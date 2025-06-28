@@ -8,7 +8,7 @@
 #include <thread>
 #include <mutex>
 
-#include "zoneout/uuid_utils.hpp"
+#include "zoneout/zoneout/uuid_utils.hpp"
 
 using namespace zoneout;
 

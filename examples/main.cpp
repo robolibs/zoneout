@@ -92,7 +92,7 @@ int main() {
 
     std::cout << "Created field zone: " << field.getName() << std::endl;
     std::cout << "Zone ID: " << field.getId().toString() << std::endl;
-    std::cout << "Zone type: " << zoneout::zoneTypeToString(field.getType()) << std::endl;
+    std::cout << "Zone type: " << field.getType() << std::endl;
     std::cout << "Field area: " << field.area() << " m²" << std::endl;
     std::cout << "Field perimeter: " << field.perimeter() << " m" << std::endl;
 
@@ -104,52 +104,44 @@ int main() {
     std::cout << "Crop type: " << field.getProperty("crop_type") << std::endl;
 
     // Create elevation layer
-    concord::Grid<float> elevation_grid(10, 20, 5.0, concord::Datum{}, true, concord::Pose{});
+    concord::Grid<uint8_t> elevation_grid(10, 20, 5.0, true, concord::Pose{});
     for (size_t r = 0; r < 10; ++r) {
         for (size_t c = 0; c < 20; ++c) {
-            elevation_grid.set_value(r, c, 100.0f + (r * c * 0.1f)); // Gradient elevation
+            elevation_grid.set_value(r, c, static_cast<uint8_t>(100 + (r * c / 10))); // Gradient elevation
         }
     }
-    field.addLayer("elevation", "height", elevation_grid, 5.0, "meters");
+    field.addElevationLayer(elevation_grid, "meters");
 
-    std::cout << "Added elevation layer with " << field.numLayers() << " total layers" << std::endl;
+    std::cout << "Added elevation layer with " << field.numRasterLayers() << " total layers" << std::endl;
 
-    // Add crop rows as subzones
+    // Add crop rows as field elements
     for (int i = 0; i < 5; ++i) {
         std::vector<concord::Point> row_points;
         double y_start = 5.0 + i * 8.0;
         row_points.emplace_back(5.0, y_start, 0.0);
         row_points.emplace_back(95.0, y_start, 0.0);
-        row_points.emplace_back(95.0, y_start + 6.0, 0.0);
-        row_points.emplace_back(5.0, y_start + 6.0, 0.0);
 
-        concord::Polygon row_boundary(row_points);
-        field.addSubzone("Row " + std::to_string(i + 1), row_boundary, zoneout::SubzoneType::CropRow);
+        concord::Path crop_row(row_points);
+        std::unordered_map<std::string, std::string> row_props;
+        row_props["row_number"] = std::to_string(i + 1);
+        row_props["crop_type"] = "wheat";
+        field.addCropRow(crop_row, row_props);
     }
 
-    std::cout << "Added " << field.getSubzones().size() << " crop rows" << std::endl;
-    std::cout << "Subzone coverage: " << field.subzoneCoverage() << " m² (" << (field.subzoneCoverageRatio() * 100)
-              << "%)" << std::endl;
+    std::cout << "Added " << field.getCropRows().size() << " crop rows" << std::endl;
 
     // Test point queries
     concord::Point test_point(50.0, 25.0, 0.0);
     std::cout << "\nTesting point (50, 25):" << std::endl;
     std::cout << "In field: " << (field.contains(test_point) ? "Yes" : "No") << std::endl;
 
-    auto containing_subzones = field.findSubzonesContaining(test_point);
-    std::cout << "In " << containing_subzones.size() << " subzones";
-    if (!containing_subzones.empty()) {
-        std::cout << " (e.g., " << containing_subzones[0]->name << ")";
-    }
-    std::cout << std::endl;
-
     // Test elevation sampling
-    if (field.hasLayer("elevation")) {
-        try {
-            float elevation = field.getValueAt("elevation", test_point);
-            std::cout << "Elevation at test point: " << elevation << " meters" << std::endl;
-        } catch (const std::exception &e) {
-            std::cout << "Could not sample elevation: " << e.what() << std::endl;
+    if (field.hasRasterLayer("elevation")) {
+        auto elevation = field.sampleRasterAt("elevation", test_point);
+        if (elevation) {
+            std::cout << "Elevation at test point: " << static_cast<int>(*elevation) << " meters" << std::endl;
+        } else {
+            std::cout << "Could not sample elevation at test point" << std::endl;
         }
     }
 
@@ -163,24 +155,13 @@ int main() {
     concord::Polygon barn_boundary(barn_points);
     auto barn = zoneout::Zone::createBarn("Main Barn", barn_boundary);
 
-    // Add barn sections
-    std::vector<concord::Point> milking_points;
-    milking_points.emplace_back(122.0, 12.0, 0.0);
-    milking_points.emplace_back(138.0, 12.0, 0.0);
-    milking_points.emplace_back(138.0, 18.0, 0.0);
-    milking_points.emplace_back(122.0, 18.0, 0.0);
-
-    concord::Polygon milking_boundary(milking_points);
-    barn.addSubzone("Milking Area", milking_boundary, zoneout::SubzoneType::MilkingStation);
-
     std::cout << "\nCreated barn: " << barn.getName() << std::endl;
     std::cout << "Barn area: " << barn.area() << " m²" << std::endl;
-    std::cout << "Barn subzones: " << barn.getSubzones().size() << std::endl;
 
     // Validation
     std::cout << "\nZone validation:" << std::endl;
     std::cout << "Field valid: " << (field.isValid() ? "Yes" : "No") << std::endl;
-    std::cout << "Barn valid: " << (barn.isValid() ? "No (needs layers)" : "Yes") << std::endl;
+    std::cout << "Barn valid: " << (barn.isValid() ? "Yes" : "No") << std::endl;
 
     std::cout << "\n=== Demo completed successfully! ===" << std::endl;
 
