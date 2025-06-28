@@ -4,6 +4,6 @@
 Zoneout
 ===
 
-A C++ header-only library for managing robots operation zones and spaces based on raster and vector maps
+A Header-Only C++ Library for Advanced Workspace Zone Engineering with Raster & Vector Map Integration
 
 ---
