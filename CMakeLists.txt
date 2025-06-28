@@ -98,13 +98,6 @@ if(${project_name_upper}_BUILD_EXAMPLES)
   FetchContent_MakeAvailable(json)
   list(APPEND ext_deps nlohmann_json::nlohmann_json)
 
-  set(Boost_INCLUDE_DIR "/usr/include")
-  set(sys_deps)
-  find_package(Boost REQUIRED)
-  include_directories(${Boost_INCLUDE_DIRS})
-  list(APPEND sys_deps ${Boost_LIBRARIES})
-  
-
   file(GLOB exe examples/*.cpp)
 
   # ----------------------------------------------

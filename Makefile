@@ -1,8 +1,11 @@
+SHELL := /bin/bash
+
 PROJECT_NAME := $(shell grep -Po 'set\s*\(\s*project_name\s+\K[^)]+' CMakeLists.txt)
 PROJECT_CAP  := $(shell echo $(PROJECT_NAME) | tr '[:lower:]' '[:upper:]')
 LATEST_TAG   ?= $(shell git describe --tags --abbrev=0 2>/dev/null)
 TOP_DIR      := $(CURDIR)
 BUILD_DIR    := $(TOP_DIR)/build
+
 
 ifeq ($(PROJECT_NAME),)
 $(error Error: project_name not found in CMakeLists.txt)
