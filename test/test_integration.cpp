@@ -60,7 +60,7 @@ TEST_CASE("Complete agricultural scenario") {
             row_props["crop_variety"] = "winter_wheat_premium";
             row_props["seeding_rate"] = "120kg_per_hectare";
             
-            north_field.addCropRow(concord::Path(row_points), row_props);
+            north_field.add_element(concord::Path(row_points), "crop_row", row_props);
         }
         
         // Add irrigation system
@@ -73,7 +73,7 @@ TEST_CASE("Complete agricultural scenario") {
         irrigation_props["pressure"] = "4.5_bar";
         irrigation_props["coverage_width"] = "30_meters";
         
-        north_field.addIrrigationLine(concord::Path(main_irrigation), irrigation_props);
+        north_field.add_element(concord::Path(main_irrigation), "irrigation_line", irrigation_props);
         
         // Add elevation data to north field
         // Grid should cover the field area (0,0 to 500,300), so center it at (250,150)
@@ -87,7 +87,7 @@ TEST_CASE("Complete agricultural scenario") {
                 elevation_grid.set_value(r, c, elevation);
             }
         }
-        north_field.addElevationLayer(elevation_grid, "meters");
+        north_field.add_layer("elevation", "terrain", elevation_grid, {{"units", "meters"}});
         
         // Add soil moisture data
         concord::Grid<uint8_t> moisture_grid(25, 50, 10.0, true, grid_pose);
@@ -98,7 +98,7 @@ TEST_CASE("Complete agricultural scenario") {
                 moisture_grid.set_value(r, c, moisture);
             }
         }
-        north_field.addSoilMoistureLayer(moisture_grid, "percentage");
+        north_field.add_layer("soil_moisture", "environmental", moisture_grid, {{"units", "percentage"}});
         
         // Robot task assignment
         north_field.setOwnerRobot(harvester_id);
@@ -127,15 +127,15 @@ TEST_CASE("Complete agricultural scenario") {
         CHECK(operational_zones.size() >= 1);
         
         // Sample environmental data at robot position
-        if (current_zones[0]->hasRasterLayer("elevation")) {
-            auto elevation = current_zones[0]->sampleRasterAt("elevation", robot_position);
+        if (current_zones[0]->has_layer("elevation")) {
+            auto elevation = current_zones[0]->sample_at("elevation", robot_position);
             CHECK(elevation.has_value());
             CHECK(*elevation >= 95);
             CHECK(*elevation <= 105);
         }
         
-        if (current_zones[0]->hasRasterLayer("soil_moisture")) {
-            auto moisture = current_zones[0]->sampleRasterAt("soil_moisture", robot_position);
+        if (current_zones[0]->has_layer("soil_moisture")) {
+            auto moisture = current_zones[0]->sample_at("soil_moisture", robot_position);
             CHECK(moisture.has_value());
             CHECK(*moisture >= 20);
             CHECK(*moisture <= 60);
@@ -156,21 +156,21 @@ TEST_CASE("Complete agricultural scenario") {
         CHECK(north_field.getOwnerRobot() == surveyor_id);
         
         // Verify field elements
-        auto crop_rows = north_field.getCropRows();
+        auto crop_rows = north_field.get_elements("crop_row");
         CHECK(crop_rows.size() == 15);
         
-        auto irrigation_lines = north_field.getIrrigationLines();
+        auto irrigation_lines = north_field.get_elements("irrigation_line");
         CHECK(irrigation_lines.size() == 1);
         
-        auto all_elements = north_field.getFieldElements();
+        auto all_elements = north_field.get_elements();
         CHECK(all_elements.size() == 16); // 15 crop rows + 1 irrigation line
         
         // Test raster layers
-        CHECK(north_field.numRasterLayers() == 2);
-        CHECK(north_field.hasRasterLayer("elevation"));
-        CHECK(north_field.hasRasterLayer("soil_moisture"));
+        CHECK(north_field.num_layers() == 2);
+        CHECK(north_field.has_layer("elevation"));
+        CHECK(north_field.has_layer("soil_moisture"));
         
-        auto layer_names = north_field.getRasterLayerNames();
+        auto layer_names = north_field.get_layer_names();
         CHECK(layer_names.size() == 2);
     }
 }
@@ -241,7 +241,7 @@ TEST_CASE("Memory and performance stress tests") {
                         test_grid.set_value(r, c, static_cast<uint8_t>(100 + r + c + i));
                     }
                 }
-                zone.addElevationLayer(test_grid, "meters");
+                zone.add_layer("elevation", "terrain", test_grid, {{"units", "meters"}});
             }
         }
         
@@ -319,14 +319,14 @@ TEST_CASE("Error handling and edge cases") {
         auto& zone = error_farm.createField("Test Zone", createRectangle(0, 0, 100, 100));
         
         // Sample non-existent raster layer
-        auto bad_sample = zone.sampleRasterAt("non_existent_layer", concord::Point(50, 50, 0));
+        auto bad_sample = zone.sample_at("non_existent_layer", concord::Point(50, 50, 0));
         CHECK(!bad_sample.has_value());
         
         // Get non-existent raster layer
-        auto bad_layer = zone.getRasterLayer("non_existent_layer");
+        auto bad_layer = zone.get_layer("non_existent_layer");
         CHECK(bad_layer == nullptr);
         
-        CHECK(!zone.hasRasterLayer("non_existent_layer"));
+        CHECK(!zone.has_layer("non_existent_layer"));
     }
     
     SUBCASE("Boundary conditions") {
@@ -445,7 +445,7 @@ TEST_CASE("Full system integration") {
             double y = 20 + i * 16;
             row_points.emplace_back(10, y, 0);
             row_points.emplace_back(190, y, 0);
-            field1.addCropRow(concord::Path(row_points));
+            field1.add_element(concord::Path(row_points), "crop_row");
         }
         
         // Phase 3: Add monitoring data
@@ -459,8 +459,8 @@ TEST_CASE("Full system integration") {
             }
         }
         
-        field1.addElevationLayer(elevation_grid, "meters");
-        field1.addSoilMoistureLayer(moisture_grid, "percentage");
+        field1.add_layer("elevation", "terrain", elevation_grid, {{"units", "meters"}});
+        field1.add_layer("soil_moisture", "environmental", moisture_grid, {{"units", "percentage"}});
         
         // Phase 4: Robot operations
         auto robot_id = generateUUID();
@@ -478,13 +478,13 @@ TEST_CASE("Full system integration") {
             auto current_zones = lifecycle_farm.findZonesContaining(position);
             CHECK(current_zones.size() >= 1);
             
-            if (current_zones[0]->hasRasterLayer("elevation")) {
-                auto elevation = current_zones[0]->sampleRasterAt("elevation", position);
+            if (current_zones[0]->has_layer("elevation")) {
+                auto elevation = current_zones[0]->sample_at("elevation", position);
                 CHECK(elevation.has_value());
             }
             
-            if (current_zones[0]->hasRasterLayer("soil_moisture")) {
-                auto moisture = current_zones[0]->sampleRasterAt("soil_moisture", position);
+            if (current_zones[0]->has_layer("soil_moisture")) {
+                auto moisture = current_zones[0]->sample_at("soil_moisture", position);
                 CHECK(moisture.has_value());
             }
         }
@@ -513,8 +513,8 @@ TEST_CASE("Full system integration") {
         
         // Test final state
         CHECK(lifecycle_farm.isValid());
-        CHECK(field1.isValid());
-        CHECK(field2.isValid());
-        CHECK(barn.isValid());
+        CHECK(field1.is_valid());
+        CHECK(field2.is_valid());
+        CHECK(barn.is_valid());
     }
 }

@@ -26,18 +26,18 @@ int main() {
     }
     
     // Add elevation layer to zone
-    field.addElevationLayer(elevation_grid, "meters");
+    field.add_layer("elevation", "terrain", elevation_grid, {{"units", "meters"}});
     
     // Done! Zone with one layer created using modern system
     std::cout << "Modern Zone created:" << std::endl;
     std::cout << "Name: " << field.getName() << std::endl;
     std::cout << "Type: " << field.getType() << std::endl;
     std::cout << "Area: " << field.area() << " m²" << std::endl;
-    std::cout << "Raster layers: " << field.numRasterLayers() << std::endl;
+    std::cout << "Raster layers: " << field.num_layers() << std::endl;
     
     // Query elevation at a point
     concord::Point query_point(25.0, 30.0, 0.0);
-    auto elevation = field.sampleRasterAt("elevation", query_point);
+    auto elevation = field.sample_at("elevation", query_point);
     if (elevation) {
         std::cout << "Elevation at (25,30): " << static_cast<int>(*elevation) << " meters" << std::endl;
     }

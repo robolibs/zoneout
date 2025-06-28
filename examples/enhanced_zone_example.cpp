@@ -27,7 +27,7 @@ int main() {
     std::unordered_map<std::string, std::string> irrigation_props;
     irrigation_props["flow_rate"] = "50L/min";
     irrigation_props["pressure"] = "2.5bar";
-    zone.addFieldElement(irrigation_line, "irrigation_line", irrigation_props);
+    zone.add_element(irrigation_line, "irrigation_line", irrigation_props);
     
     // Add crop rows as line elements
     for (int row = 0; row < 10; ++row) {
@@ -42,7 +42,7 @@ int main() {
         row_props["planting_date"] = "2024-03-15";
         row_props["row_number"] = std::to_string(row + 1);
         
-        zone.addFieldElement(crop_row, "crop_row", row_props);
+        zone.add_element(crop_row, "crop_row", row_props);
     }
     
     // Add obstacles (trees, rocks, etc.)
@@ -50,16 +50,16 @@ int main() {
     std::unordered_map<std::string, std::string> tree_props;
     tree_props["obstacle_type"] = "oak_tree";
     tree_props["height"] = "15m";
-    zone.addFieldElement(tree_location, "obstacle", tree_props);
+    zone.add_element(tree_location, "obstacle", tree_props);
     
     std::cout << "Added field elements:" << std::endl;
-    auto irrigation_elements = zone.getFieldElements("irrigation_line");
+    auto irrigation_elements = zone.get_elements("irrigation_line");
     std::cout << "- Irrigation lines: " << irrigation_elements.size() << std::endl;
     
-    auto crop_rows = zone.getFieldElements("crop_row");
+    auto crop_rows = zone.get_elements("crop_row");
     std::cout << "- Crop rows: " << crop_rows.size() << std::endl;
     
-    auto obstacles = zone.getFieldElements("obstacle");
+    auto obstacles = zone.get_elements("obstacle");
     std::cout << "- Obstacles: " << obstacles.size() << std::endl;
     
     // ========== Raster Integration (Multi-layer Grid Data) ==========
@@ -77,7 +77,7 @@ int main() {
     std::unordered_map<std::string, std::string> elevation_props;
     elevation_props["units"] = "meters";
     elevation_props["datum"] = "sea_level";
-    zone.addRasterLayer("elevation", "height", elevation_grid, elevation_props);
+    zone.add_layer("elevation", "height", elevation_grid, elevation_props);
     
     // Create soil moisture layer
     concord::Grid<uint8_t> moisture_grid(20, 40, 5.0, true, concord::Pose{});
@@ -91,7 +91,7 @@ int main() {
     std::unordered_map<std::string, std::string> moisture_props;
     moisture_props["units"] = "percentage";
     moisture_props["sensor_type"] = "capacitive";
-    zone.addRasterLayer("soil_moisture", "moisture", moisture_grid, moisture_props);
+    zone.add_layer("soil_moisture", "moisture", moisture_grid, moisture_props);
     
     std::cout << "Added raster layers:" << std::endl;
     std::cout << "- Elevation data: 20x40 grid" << std::endl;
@@ -101,25 +101,25 @@ int main() {
     std::cout << "\n=== Enhanced Zone Capabilities ===" << std::endl;
     
     // Check if enhanced data is available
-    std::cout << "Has Vector data: " << (zone.hasFieldBoundary() ? "Yes" : "No") << std::endl;
-    std::cout << "Has Raster data: " << (zone.numRasterLayers() > 0 ? "Yes" : "No") << std::endl;
+    std::cout << "Has Vector data: " << (zone.has_boundary() ? "Yes" : "No") << std::endl;
+    std::cout << "Has Raster data: " << (zone.num_layers() > 0 ? "Yes" : "No") << std::endl;
     
     // Access vector data
-    if (zone.hasFieldBoundary()) {
-        auto field_elements = zone.getFieldElements();
+    if (zone.has_boundary()) {
+        auto field_elements = zone.get_elements();
         std::cout << "Total field elements: " << field_elements.size() << std::endl;
     }
     
     // Access raster data  
-    if (zone.numRasterLayers() > 0) {
-        auto layer_names = zone.getRasterLayerNames();
+    if (zone.num_layers() > 0) {
+        auto layer_names = zone.get_layer_names();
         std::cout << "Raster layers: " << layer_names.size() << std::endl;
     }
     
     // Modern raster layer access
     std::cout << "\n=== Raster Layer Details ===" << std::endl;
-    std::cout << "Raster layer count: " << zone.numRasterLayers() << std::endl;
-    for (const auto& layer_name : zone.getRasterLayerNames()) {
+    std::cout << "Raster layer count: " << zone.num_layers() << std::endl;
+    for (const auto& layer_name : zone.get_layer_names()) {
         std::cout << "- Raster Layer: " << layer_name << std::endl;
     }
     
@@ -135,8 +135,8 @@ int main() {
         auto loaded_zone = zoneout::Zone::fromFiles("/tmp/enhanced_field.geojson", "/tmp/enhanced_field.tiff");
         std::cout << "Zone loaded from enhanced format files" << std::endl;
         std::cout << "Loaded zone name: " << loaded_zone.getName() << std::endl;
-        std::cout << "Loaded vector elements: " << loaded_zone.getFieldElements().size() << std::endl;
-        std::cout << "Loaded raster layers: " << loaded_zone.numRasterLayers() << std::endl;
+        std::cout << "Loaded vector elements: " << loaded_zone.get_elements().size() << std::endl;
+        std::cout << "Loaded raster layers: " << loaded_zone.num_layers() << std::endl;
                      
     } catch (const std::exception& e) {
         std::cout << "File I/O error: " << e.what() << std::endl;

@@ -54,7 +54,7 @@ int main() {
             elevation_grid.set_value(r, c, 95 + (r + c) % 20);
         }
     }
-    field1.addElevationLayer(elevation_grid, "meters");
+    field1.add_layer("elevation", "terrain", elevation_grid, {{"units", "meters"}});
     
     // Add soil moisture data to field1
     concord::Grid<uint8_t> moisture_grid(20, 40, 5.0, true, concord::Pose{});
@@ -63,10 +63,10 @@ int main() {
             moisture_grid.set_value(r, c, 25 + (r * c) % 50);
         }
     }
-    field1.addSoilMoistureLayer(moisture_grid, "percentage");
+    field1.add_layer("soil_moisture", "environmental", moisture_grid, {{"units", "percentage"}});
     
     std::cout << "Added raster layers to " << field1.getName() << ":" << std::endl;
-    for (const auto& layer_name : field1.getRasterLayerNames()) {
+    for (const auto& layer_name : field1.get_layer_names()) {
         std::cout << "- " << layer_name << std::endl;
     }
     
@@ -84,7 +84,7 @@ int main() {
         std::unordered_map<std::string, std::string> row_props;
         row_props["crop_type"] = "wheat";
         row_props["row_number"] = std::to_string(row + 1);
-        field1.addCropRow(crop_row, row_props);
+        field1.add_element(crop_row, "crop_row", row_props);
     }
     
     // Add irrigation line
@@ -96,11 +96,11 @@ int main() {
     std::unordered_map<std::string, std::string> irrigation_props;
     irrigation_props["flow_rate"] = "75L/min";
     irrigation_props["pressure"] = "3.0bar";
-    field1.addIrrigationLine(irrigation_line, irrigation_props);
+    field1.add_element(irrigation_line, "irrigation_line", irrigation_props);
     
     std::cout << "Added field elements to " << field1.getName() << ":" << std::endl;
-    std::cout << "- Crop rows: " << field1.getCropRows().size() << std::endl;
-    std::cout << "- Irrigation lines: " << field1.getIrrigationLines().size() << std::endl;
+    std::cout << "- Crop rows: " << field1.get_elements("crop_row").size() << std::endl;
+    std::cout << "- Irrigation lines: " << field1.get_elements("irrigation_line").size() << std::endl;
     
     // ========== Spatial Queries ==========
     std::cout << "\n=== Spatial Queries ===" << std::endl;
@@ -119,8 +119,8 @@ int main() {
         std::cout << "  - " << zones_at_point1[0]->getName() << " (" << zones_at_point1[0]->getType() << ")" << std::endl;
         
         // Sample raster data at this point
-        auto elevation = zones_at_point1[0]->sampleRasterAt("elevation", test_point1);
-        auto moisture = zones_at_point1[0]->sampleRasterAt("soil_moisture", test_point1);
+        auto elevation = zones_at_point1[0]->sample_at("elevation", test_point1);
+        auto moisture = zones_at_point1[0]->sample_at("soil_moisture", test_point1);
         if (elevation) std::cout << "  - Elevation: " << static_cast<int>(*elevation) << " meters" << std::endl;
         if (moisture) std::cout << "  - Soil moisture: " << static_cast<int>(*moisture) << "%" << std::endl;
     }
@@ -166,8 +166,8 @@ int main() {
     smart_farm.forEachZone([](const zoneout::Zone& zone) {
         std::cout << "Zone: " << zone.getName() << " (" << zone.getType() << ")" << std::endl;
         std::cout << "  Area: " << zone.area() << " m²" << std::endl;
-        std::cout << "  Raster layers: " << zone.numRasterLayers() << std::endl;
-        std::cout << "  Field elements: " << zone.getFieldElements().size() << std::endl;
+        std::cout << "  Raster layers: " << zone.num_layers() << std::endl;
+        std::cout << "  Field elements: " << zone.get_elements().size() << std::endl;
         
         // Show properties
         for (const auto& [key, value] : zone.getProperties()) {

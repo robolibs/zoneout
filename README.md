@@ -52,7 +52,7 @@ Each zone combines **vector** and **raster** data for complete spatial understan
 │ 🛤️  Access Paths    │   • Temperature (°C)                 │
 │                     │   • Custom layers...                 │
 │ Properties:         │                                       │
-│ • Type: "field"     │ Sampling: sampleRasterAt(point)      │
+│ • Type: "field"     │ Sampling: sample_at(point)           │
 │ • Crop: "wheat"     │ Resolution: 10m per pixel             │
 │ • Owner: Robot #1   │ Positioning: GPS coordinates         │
 └─────────────────────┴───────────────────────────────────────┘
@@ -130,7 +130,7 @@ for (int row = 1; row <= 15; row++) {
     row_props["row_number"] = std::to_string(row);
     row_props["seed_density"] = "120kg/hectare";
     
-    wheat_field.addCropRow(concord::Path(row_path), row_props);
+    wheat_field.add_element(concord::Path(row_path), "crop_row", row_props);
 }
 
 // Add irrigation system
@@ -141,7 +141,7 @@ std::unordered_map<std::string, std::string> irrigation_props;
 irrigation_props["flow_rate"] = "200L/min";
 irrigation_props["coverage_width"] = "30m";
 
-wheat_field.addIrrigationLine(concord::Path(irrigation_line), irrigation_props);
+wheat_field.add_element(concord::Path(irrigation_line), "irrigation_line", irrigation_props);
 ```
 
 ### Raster Data Integration
@@ -160,11 +160,11 @@ for (size_t row = 0; row < 25; row++) {
 }
 
 // Add to zone
-wheat_field.addElevationLayer(elevation_grid, "meters");
+wheat_field.add_layer("elevation", "terrain", elevation_grid, {{"units", "meters"}});
 
 // Sample elevation at robot position
 concord::Point robot_pos(250, 150, 0);
-auto elevation = wheat_field.sampleRasterAt("elevation", robot_pos);
+auto elevation = wheat_field.sample_at("elevation", robot_pos);
 if (elevation) {
     std::cout << "Ground elevation: " << (int)*elevation << "m" << std::endl;
     // Output: Ground elevation: 99m
@@ -313,14 +313,13 @@ class Zone {
     bool contains(const concord::Point& point) const;
     
     // Field Elements
-    void addCropRow(const concord::Path& path, const Properties& props = {});
-    void addIrrigationLine(const concord::Path& path, const Properties& props = {});
-    void addObstacle(const geoson::Geometry& geom, const Properties& props = {});
+    void add_element(const geoson::Geometry& geom, const std::string& type, const Properties& props = {});
+    std::vector<geoson::Element> get_elements(const std::string& type = "") const;
     
     // Raster Data
-    void addElevationLayer(const concord::Grid<uint8_t>& grid, const std::string& units);
-    void addSoilMoistureLayer(const concord::Grid<uint8_t>& grid, const std::string& units);
-    std::optional<uint8_t> sampleRasterAt(const std::string& layer, const concord::Point& point);
+    void add_layer(const std::string& name, const std::string& type, const concord::Grid<uint8_t>& grid, const Properties& props = {});
+    std::optional<uint8_t> sample_at(const std::string& layer, const concord::Point& point) const;
+    bool has_layer(const std::string& name) const;
     
     // Robot Coordination
     void setOwnerRobot(const UUID& robot_id);

@@ -33,18 +33,18 @@ TEST_CASE("Zone field elements management") {
         props["flow_rate"] = "50L/min";
         props["pressure"] = "2.5bar";
         
-        zone.addIrrigationLine(irrigation_line, props);
+        zone.add_element(irrigation_line, "irrigation_line", props);
         
-        auto irrigation_lines = zone.getIrrigationLines();
+        auto irrigation_lines = zone.get_elements("irrigation_line");
         CHECK(irrigation_lines.size() == 1);
         
-        auto all_elements = zone.getFieldElements();
+        auto all_elements = zone.get_elements();
         CHECK(all_elements.size() == 1);
         
-        auto irrigation_only = zone.getFieldElements("irrigation_line");
+        auto irrigation_only = zone.get_elements("irrigation_line");
         CHECK(irrigation_only.size() == 1);
         
-        auto crop_rows = zone.getFieldElements("crop_row");
+        auto crop_rows = zone.get_elements("crop_row");
         CHECK(crop_rows.size() == 0);
     }
     
@@ -61,13 +61,13 @@ TEST_CASE("Zone field elements management") {
             props["crop_type"] = "wheat";
             props["planting_date"] = "2024-03-15";
             
-            zone.addCropRow(crop_row, props);
+            zone.add_element(crop_row, "crop_row", props);
         }
         
-        auto crop_rows = zone.getCropRows();
+        auto crop_rows = zone.get_elements("crop_row");
         CHECK(crop_rows.size() == 5);
         
-        auto all_elements = zone.getFieldElements();
+        auto all_elements = zone.get_elements();
         CHECK(all_elements.size() == 5);
     }
     
@@ -80,9 +80,9 @@ TEST_CASE("Zone field elements management") {
         props["height"] = "5.0m";
         props["material"] = "concrete";
         
-        zone.addObstacle(obstacle_boundary, props);
+        zone.add_element(obstacle_boundary, "obstacle", props);
         
-        auto obstacles = zone.getObstacles();
+        auto obstacles = zone.get_elements("obstacle");
         CHECK(obstacles.size() == 1);
     }
     
@@ -99,9 +99,9 @@ TEST_CASE("Zone field elements management") {
         props["surface"] = "gravel";
         props["max_speed"] = "15km/h";
         
-        zone.addAccessPath(access_path, props);
+        zone.add_element(access_path, "access_path", props);
         
-        auto access_paths = zone.getAccessPaths();
+        auto access_paths = zone.get_elements("access_path");
         CHECK(access_paths.size() == 1);
     }
     
@@ -110,21 +110,21 @@ TEST_CASE("Zone field elements management") {
         std::vector<concord::Point> line_points;
         line_points.emplace_back(10, 30, 0);
         line_points.emplace_back(190, 30, 0);
-        zone.addIrrigationLine(concord::Path(line_points));
+        zone.add_element(concord::Path(line_points), "irrigation_line");
         
         std::vector<concord::Point> row_points;
         row_points.emplace_back(5, 70, 0);
         row_points.emplace_back(195, 70, 0);
-        zone.addCropRow(concord::Path(row_points));
+        zone.add_element(concord::Path(row_points), "crop_row");
         
         auto obstacle = createRectangle(100, 10, 10, 10);
-        zone.addObstacle(obstacle);
+        zone.add_element(obstacle, "obstacle");
         
         // Check totals
-        CHECK(zone.getIrrigationLines().size() == 1);
-        CHECK(zone.getCropRows().size() == 1);
-        CHECK(zone.getObstacles().size() == 1);
-        CHECK(zone.getFieldElements().size() == 3);
+        CHECK(zone.get_elements("irrigation_line").size() == 1);
+        CHECK(zone.get_elements("crop_row").size() == 1);
+        CHECK(zone.get_elements("obstacle").size() == 1);
+        CHECK(zone.get_elements().size() == 3);
     }
 }
 
@@ -143,19 +143,19 @@ TEST_CASE("Zone raster layers management") {
             }
         }
         
-        zone.addElevationLayer(elevation_grid, "meters");
+        zone.add_layer("elevation", "terrain", elevation_grid, {{"units", "meters"}});
         
-        CHECK(zone.numRasterLayers() == 1);
-        CHECK(zone.hasRasterLayer("elevation"));
+        CHECK(zone.num_layers() == 1);
+        CHECK(zone.has_layer("elevation"));
         
-        auto layer_names = zone.getRasterLayerNames();
+        auto layer_names = zone.get_layer_names();
         CHECK(layer_names.size() == 1);
         CHECK(layer_names[0] == "elevation");
         
-        auto layer = zone.getRasterLayer("elevation");
+        auto layer = zone.get_layer("elevation");
         CHECK(layer != nullptr);
         
-        auto non_existent = zone.getRasterLayer("non_existent");
+        auto non_existent = zone.get_layer("non_existent");
         CHECK(non_existent == nullptr);
     }
     
@@ -170,10 +170,10 @@ TEST_CASE("Zone raster layers management") {
             }
         }
         
-        zone.addSoilMoistureLayer(moisture_grid, "percentage");
+        zone.add_layer("soil_moisture", "environmental", moisture_grid, {{"units", "percentage"}});
         
-        CHECK(zone.numRasterLayers() == 1);
-        CHECK(zone.hasRasterLayer("soil_moisture"));
+        CHECK(zone.num_layers() == 1);
+        CHECK(zone.has_layer("soil_moisture"));
     }
     
     SUBCASE("Add crop health layer") {
@@ -187,10 +187,10 @@ TEST_CASE("Zone raster layers management") {
             }
         }
         
-        zone.addCropHealthLayer(health_grid, "NDVI");
+        zone.add_layer("crop_health", "vegetation", health_grid, {{"units", "NDVI"}});
         
-        CHECK(zone.numRasterLayers() == 1);
-        CHECK(zone.hasRasterLayer("crop_health"));
+        CHECK(zone.num_layers() == 1);
+        CHECK(zone.has_layer("crop_health"));
     }
     
     SUBCASE("Multiple raster layers") {
@@ -208,16 +208,16 @@ TEST_CASE("Zone raster layers management") {
             }
         }
         
-        zone.addElevationLayer(grid1, "meters");
-        zone.addSoilMoistureLayer(grid2, "percentage");
-        zone.addCropHealthLayer(grid3, "NDVI");
+        zone.add_layer("elevation", "terrain", grid1, {{"units", "meters"}});
+        zone.add_layer("soil_moisture", "environmental", grid2, {{"units", "percentage"}});
+        zone.add_layer("crop_health", "vegetation", grid3, {{"units", "NDVI"}});
         
-        CHECK(zone.numRasterLayers() == 3);
-        CHECK(zone.hasRasterLayer("elevation"));
-        CHECK(zone.hasRasterLayer("soil_moisture"));
-        CHECK(zone.hasRasterLayer("crop_health"));
+        CHECK(zone.num_layers() == 3);
+        CHECK(zone.has_layer("elevation"));
+        CHECK(zone.has_layer("soil_moisture"));
+        CHECK(zone.has_layer("crop_health"));
         
-        auto all_layers = zone.getRasterLayerNames();
+        auto all_layers = zone.get_layer_names();
         CHECK(all_layers.size() == 3);
     }
     
@@ -236,10 +236,10 @@ TEST_CASE("Zone raster layers management") {
         props["measurement_date"] = "2024-06-15";
         props["weather_conditions"] = "sunny";
         
-        zone.addRasterLayer("temperature", "thermal", custom_grid, props);
+        zone.add_layer("temperature", "thermal", custom_grid, props);
         
-        CHECK(zone.numRasterLayers() == 1);
-        CHECK(zone.hasRasterLayer("temperature"));
+        CHECK(zone.num_layers() == 1);
+        CHECK(zone.has_layer("temperature"));
     }
 }
 
@@ -255,31 +255,31 @@ TEST_CASE("Zone raster sampling") {
             elevation_grid.set_value(r, c, elevation);
         }
     }
-    zone.addElevationLayer(elevation_grid, "meters");
+    zone.add_layer("elevation", "terrain", elevation_grid, {{"units", "meters"}});
     
     SUBCASE("Sample at specific points") {
         // Sample at various points
-        auto sample1 = zone.sampleRasterAt("elevation", concord::Point(12.5, 12.5, 0));
+        auto sample1 = zone.sample_at("elevation", concord::Point(12.5, 12.5, 0));
         CHECK(sample1.has_value());
         
-        auto sample2 = zone.sampleRasterAt("elevation", concord::Point(50, 25, 0));
+        auto sample2 = zone.sample_at("elevation", concord::Point(50, 25, 0));
         CHECK(sample2.has_value());
         
         // Sample outside zone boundary (should still work if within raster grid)
-        auto sample3 = zone.sampleRasterAt("elevation", concord::Point(-10, -10, 0));
+        auto sample3 = zone.sample_at("elevation", concord::Point(-10, -10, 0));
         // May or may not have value depending on grid bounds
         
         // Sample non-existent layer
-        auto sample4 = zone.sampleRasterAt("non_existent", concord::Point(25, 25, 0));
+        auto sample4 = zone.sample_at("non_existent", concord::Point(25, 25, 0));
         CHECK(!sample4.has_value());
     }
     
     SUBCASE("Sample at grid corners") {
         // Sample at exact grid positions
-        auto corner_sample = zone.sampleRasterAt("elevation", concord::Point(0, 0, 0));
+        auto corner_sample = zone.sample_at("elevation", concord::Point(0, 0, 0));
         // Should return a value (exact behavior depends on grid implementation)
         
-        auto center_sample = zone.sampleRasterAt("elevation", concord::Point(50, 25, 0));
+        auto center_sample = zone.sample_at("elevation", concord::Point(50, 25, 0));
         CHECK(center_sample.has_value());
     }
 }
@@ -374,26 +374,26 @@ TEST_CASE("Zone validation rules") {
     SUBCASE("Valid zones") {
         auto boundary = createRectangle(0, 0, 100, 50);
         Zone valid_zone("Valid Zone", "field", boundary);
-        CHECK(valid_zone.isValid());
+        CHECK(valid_zone.is_valid());
         
         // Zone with just name and boundary is valid
         Zone minimal_zone("Minimal", "other", boundary);
-        CHECK(minimal_zone.isValid());
+        CHECK(minimal_zone.is_valid());
     }
     
     SUBCASE("Invalid zones") {
         // No boundary
         Zone no_boundary("No Boundary", "field");
-        CHECK(!no_boundary.isValid());
+        CHECK(!no_boundary.is_valid());
         
         // Empty name
         auto boundary = createRectangle(0, 0, 100, 50);
         Zone empty_name("", "field", boundary);
-        CHECK(!empty_name.isValid());
+        CHECK(!empty_name.is_valid());
         
         // Both empty name and no boundary
         Zone completely_invalid("", "field");
-        CHECK(!completely_invalid.isValid());
+        CHECK(!completely_invalid.is_valid());
     }
 }
 
@@ -408,13 +408,13 @@ TEST_CASE("Zone file I/O operations") {
             elevation_grid.set_value(r, c, static_cast<uint8_t>(100 + r + c));
         }
     }
-    zone.addElevationLayer(elevation_grid, "meters");
+    zone.add_layer("elevation", "terrain", elevation_grid, {{"units", "meters"}});
     
     // Add field elements
     std::vector<concord::Point> row_points;
     row_points.emplace_back(10, 25, 0);
     row_points.emplace_back(90, 25, 0);
-    zone.addCropRow(concord::Path(row_points));
+    zone.add_element(concord::Path(row_points), "crop_row");
     
     SUBCASE("Save and load files") {
         const std::string vector_path = "/tmp/zoneout_test_zone.geojson";

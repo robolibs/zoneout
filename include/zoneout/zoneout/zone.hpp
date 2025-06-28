@@ -80,58 +80,42 @@ namespace zoneout {
         }
 
         // ========== Field Boundary (Vector) ==========
-        void setFieldBoundary(const concord::Polygon& boundary) {
+        void set_boundary(const concord::Polygon& boundary) {
             vector_data_.setFieldBoundary(boundary);
             updateModifiedTime();
         }
 
-        const concord::Polygon& getFieldBoundary() const { 
+        const concord::Polygon& get_boundary() const { 
             return vector_data_.getFieldBoundary(); 
         }
 
-        bool hasFieldBoundary() const { 
+        bool has_boundary() const { 
             return !vector_data_.getFieldBoundary().getPoints().empty(); 
         }
 
         // Field geometry operations
         double area() const { 
-            return hasFieldBoundary() ? vector_data_.getFieldBoundary().area() : 0.0; 
+            return has_boundary() ? vector_data_.getFieldBoundary().area() : 0.0; 
         }
         
         double perimeter() const { 
-            return hasFieldBoundary() ? vector_data_.getFieldBoundary().perimeter() : 0.0; 
+            return has_boundary() ? vector_data_.getFieldBoundary().perimeter() : 0.0; 
         }
         
         bool contains(const concord::Point& point) const {
-            return hasFieldBoundary() && vector_data_.getFieldBoundary().contains(point);
+            return has_boundary() && vector_data_.getFieldBoundary().contains(point);
         }
 
         // ========== Field Elements (Vector) ==========
-        void addFieldElement(const geoson::Geometry& geometry, const std::string& type, 
-                           const std::unordered_map<std::string, std::string>& properties = {}) {
+        // Generic method - users name their own element types
+        void add_element(const geoson::Geometry& geometry, const std::string& type, 
+                        const std::unordered_map<std::string, std::string>& properties = {}) {
             vector_data_.addElement(geometry, type, properties);
             updateModifiedTime();
         }
-        
-        // Add specific element types
-        void addIrrigationLine(const concord::Path& path, const std::unordered_map<std::string, std::string>& properties = {}) {
-            addFieldElement(path, "irrigation_line", properties);
-        }
-        
-        void addCropRow(const concord::Path& path, const std::unordered_map<std::string, std::string>& properties = {}) {
-            addFieldElement(path, "crop_row", properties);
-        }
-        
-        void addObstacle(const geoson::Geometry& geometry, const std::unordered_map<std::string, std::string>& properties = {}) {
-            addFieldElement(geometry, "obstacle", properties);
-        }
-        
-        void addAccessPath(const concord::Path& path, const std::unordered_map<std::string, std::string>& properties = {}) {
-            addFieldElement(path, "access_path", properties);
-        }
 
-        // Get field elements
-        std::vector<geoson::Element> getFieldElements(const std::string& type = "") const {
+        // Get field elements by type (or all if type is empty)
+        std::vector<geoson::Element> get_elements(const std::string& type = "") const {
             if (type.empty()) {
                 std::vector<geoson::Element> all_elements;
                 for (size_t i = 0; i < vector_data_.elementCount(); ++i) {
@@ -141,16 +125,12 @@ namespace zoneout {
             }
             return vector_data_.getElementsByType(type);
         }
-        
-        std::vector<geoson::Element> getIrrigationLines() const { return getFieldElements("irrigation_line"); }
-        std::vector<geoson::Element> getCropRows() const { return getFieldElements("crop_row"); }
-        std::vector<geoson::Element> getObstacles() const { return getFieldElements("obstacle"); }
-        std::vector<geoson::Element> getAccessPaths() const { return getFieldElements("access_path"); }
 
         // ========== Raster Layers (Raster) ==========
-        void addRasterLayer(const std::string& name, const std::string& type,
-                          const concord::Grid<uint8_t>& grid,
-                          const std::unordered_map<std::string, std::string>& properties = {}) {
+        // Generic method - users name their own layer types
+        void add_layer(const std::string& name, const std::string& type,
+                      const concord::Grid<uint8_t>& grid,
+                      const std::unordered_map<std::string, std::string>& properties = {}) {
             // Store grid metadata in geotiv raster
             raster_data_.addGrid(grid.cols(), grid.rows(), name, type, properties);
             
@@ -164,50 +144,32 @@ namespace zoneout {
             
             updateModifiedTime();
         }
-        
-        // Add specific layer types
-        void addElevationLayer(const concord::Grid<uint8_t>& grid, const std::string& units = "meters") {
-            std::unordered_map<std::string, std::string> props;
-            props["units"] = units;
-            props["datum"] = "sea_level";
-            addRasterLayer("elevation", "height", grid, props);
-        }
-        
-        void addSoilMoistureLayer(const concord::Grid<uint8_t>& grid, const std::string& units = "percentage") {
-            std::unordered_map<std::string, std::string> props;
-            props["units"] = units;
-            props["sensor_type"] = "capacitive";
-            addRasterLayer("soil_moisture", "moisture", grid, props);
-        }
-        
-        void addCropHealthLayer(const concord::Grid<uint8_t>& grid, const std::string& index_type = "NDVI") {
-            std::unordered_map<std::string, std::string> props;
-            props["index_type"] = index_type;
-            props["range"] = "0-255";
-            addRasterLayer("crop_health", "vegetation_index", grid, props);
-        }
 
-        // Get raster layers
-        std::vector<std::string> getRasterLayerNames() const {
-            return raster_data_.getGridNames();
+        // Get raster layer information
+        std::vector<std::string> get_layer_names() const {
+            std::vector<std::string> names;
+            for (const auto& [name, layer] : grid_layers_) {
+                names.push_back(name);
+            }
+            return names;
         }
         
-        const GridLayer* getRasterLayer(const std::string& name) const {
+        const GridLayer* get_layer(const std::string& name) const {
             auto it = grid_layers_.find(name);
             return (it != grid_layers_.end()) ? &it->second : nullptr;
         }
         
-        bool hasRasterLayer(const std::string& name) const {
+        bool has_layer(const std::string& name) const {
             return grid_layers_.find(name) != grid_layers_.end();
         }
         
-        size_t numRasterLayers() const {
+        size_t num_layers() const {
             return grid_layers_.size();
         }
 
         // Sample raster value at point
-        std::optional<uint8_t> sampleRasterAt(const std::string& layer_name, const concord::Point& point) const {
-            auto layer = getRasterLayer(layer_name);
+        std::optional<uint8_t> sample_at(const std::string& layer_name, const concord::Point& point) const {
+            auto layer = get_layer(layer_name);
             if (!layer) return std::nullopt;
             
             // Simple point-in-grid sampling (could be enhanced with interpolation)
@@ -259,8 +221,8 @@ namespace zoneout {
         const Timestamp& getModifiedTime() const { return modified_time_; }
 
         // ========== Validation ==========
-        bool isValid() const { 
-            return hasFieldBoundary() && !name_.empty(); 
+        bool is_valid() const { 
+            return has_boundary() && !name_.empty(); 
         }
 
         // ========== File I/O ==========

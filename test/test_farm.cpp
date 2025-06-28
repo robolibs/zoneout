@@ -436,7 +436,7 @@ TEST_CASE("Farm file I/O") {
             elevation_grid.set_value(r, c, static_cast<uint8_t>(100 + r + c));
         }
     }
-    field.addElevationLayer(elevation_grid, "meters");
+    field.add_layer("elevation", "terrain", elevation_grid, {{"units", "meters"}});
     
     SUBCASE("Save and load farm") {
         const std::string test_dir = "/tmp/zoneout_test_farm";

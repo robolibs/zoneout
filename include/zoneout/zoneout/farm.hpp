@@ -9,7 +9,7 @@
 
 #include "concord/concord.hpp"
 #include "concord/indexing/rtree/rtree.hpp"
-#include "zone_modern.hpp"
+#include "zone.hpp"
 
 namespace zoneout {
 
@@ -50,9 +50,9 @@ namespace zoneout {
         
         // Update spatial index when zones are added/removed
         void updateSpatialIndex(const UUID& zone_id, const Zone* zone) {
-            if (zone && zone->hasFieldBoundary()) {
+            if (zone && zone->has_boundary()) {
                 // Calculate bounding box for the zone
-                auto boundary = zone->getFieldBoundary();
+                auto boundary = zone->get_boundary();
                 auto vertices = boundary.getPoints();
                 if (!vertices.empty()) {
                     // Find min/max coordinates
@@ -317,9 +317,9 @@ namespace zoneout {
             // Perform precise intersection test on candidates
             for (const auto& entry : candidates) {
                 auto it = zones_.find(entry.data);
-                if (it != zones_.end() && it->second->hasFieldBoundary()) {
+                if (it != zones_.end() && it->second->has_boundary()) {
                     // Simple intersection test: check if any vertices are inside or bounding boxes overlap
-                    auto zone_boundary = it->second->getFieldBoundary();
+                    auto zone_boundary = it->second->get_boundary();
                     bool intersects = false;
                     
                     // Check if any query polygon vertices are inside zone
@@ -356,9 +356,9 @@ namespace zoneout {
             // For now, use a simple brute-force approach for reliability
             // TODO: Fix spatial index radius search later
             for (const auto& [id, zone] : zones_) {
-                if (!zone->hasFieldBoundary()) continue;
+                if (!zone->has_boundary()) continue;
                 
-                auto boundary = zone->getFieldBoundary();
+                auto boundary = zone->get_boundary();
                 bool within_radius = false;
                 
                 // First check if center point is inside the zone
@@ -420,8 +420,8 @@ namespace zoneout {
             // If still no candidates, fall back to full search
             if (candidates.empty()) {
                 for (auto& [id, zone] : zones_) {
-                    if (zone->hasFieldBoundary()) {
-                        auto boundary = zone->getFieldBoundary();
+                    if (zone->has_boundary()) {
+                        auto boundary = zone->get_boundary();
                         double distance = std::numeric_limits<double>::max();
                         
                         if (zone->contains(point)) {
@@ -442,8 +442,8 @@ namespace zoneout {
                 // Process candidates from spatial index
                 for (const auto& entry : candidates) {
                     auto it = zones_.find(entry.data);
-                    if (it != zones_.end() && it->second->hasFieldBoundary()) {
-                        auto boundary = it->second->getFieldBoundary();
+                    if (it != zones_.end() && it->second->has_boundary()) {
+                        auto boundary = it->second->get_boundary();
                         double distance = std::numeric_limits<double>::max();
                         
                         if (it->second->contains(point)) {
@@ -512,13 +512,13 @@ namespace zoneout {
                 zone_distances.clear();
                 for (const auto& entry : candidates) {
                     auto it = zones_.find(entry.data);
-                    if (it != zones_.end() && it->second->hasFieldBoundary()) {
+                    if (it != zones_.end() && it->second->has_boundary()) {
                         double distance = std::numeric_limits<double>::max();
                         
                         if (it->second->contains(point)) {
                             distance = 0.0;
                         } else {
-                            auto boundary = it->second->getFieldBoundary();
+                            auto boundary = it->second->get_boundary();
                             for (const auto& vertex : boundary.getPoints()) {
                                 distance = std::min(distance, point.distance_to(vertex));
                             }
@@ -577,8 +577,8 @@ namespace zoneout {
             
             std::vector<concord::Point> all_points;
             for (const auto& [id, zone] : zones_) {
-                if (zone->hasFieldBoundary()) {
-                    auto vertices = zone->getFieldBoundary().getPoints();
+                if (zone->has_boundary()) {
+                    auto vertices = zone->get_boundary().getPoints();
                     all_points.insert(all_points.end(), vertices.begin(), vertices.end());
                 }
             }

@@ -110,9 +110,9 @@ int main() {
             elevation_grid.set_value(r, c, static_cast<uint8_t>(100 + (r * c / 10))); // Gradient elevation
         }
     }
-    field.addElevationLayer(elevation_grid, "meters");
+    field.add_layer("elevation", "terrain", elevation_grid, {{"units", "meters"}});
 
-    std::cout << "Added elevation layer with " << field.numRasterLayers() << " total layers" << std::endl;
+    std::cout << "Added elevation layer with " << field.num_layers() << " total layers" << std::endl;
 
     // Add crop rows as field elements
     for (int i = 0; i < 5; ++i) {
@@ -125,10 +125,10 @@ int main() {
         std::unordered_map<std::string, std::string> row_props;
         row_props["row_number"] = std::to_string(i + 1);
         row_props["crop_type"] = "wheat";
-        field.addCropRow(crop_row, row_props);
+        field.add_element(crop_row, "crop_row", row_props);
     }
 
-    std::cout << "Added " << field.getCropRows().size() << " crop rows" << std::endl;
+    std::cout << "Added " << field.get_elements("crop_row").size() << " crop rows" << std::endl;
 
     // Test point queries
     concord::Point test_point(50.0, 25.0, 0.0);
@@ -136,8 +136,8 @@ int main() {
     std::cout << "In field: " << (field.contains(test_point) ? "Yes" : "No") << std::endl;
 
     // Test elevation sampling
-    if (field.hasRasterLayer("elevation")) {
-        auto elevation = field.sampleRasterAt("elevation", test_point);
+    if (field.has_layer("elevation")) {
+        auto elevation = field.sample_at("elevation", test_point);
         if (elevation) {
             std::cout << "Elevation at test point: " << static_cast<int>(*elevation) << " meters" << std::endl;
         } else {
@@ -160,8 +160,8 @@ int main() {
 
     // Validation
     std::cout << "\nZone validation:" << std::endl;
-    std::cout << "Field valid: " << (field.isValid() ? "Yes" : "No") << std::endl;
-    std::cout << "Barn valid: " << (barn.isValid() ? "Yes" : "No") << std::endl;
+    std::cout << "Field valid: " << (field.is_valid() ? "Yes" : "No") << std::endl;
+    std::cout << "Barn valid: " << (barn.is_valid() ? "Yes" : "No") << std::endl;
 
     std::cout << "\n=== Demo completed successfully! ===" << std::endl;
 

@@ -24,16 +24,16 @@ TEST_CASE("Zone creation and basic properties") {
         Zone zone;
         CHECK(zone.getName().empty());
         CHECK(zone.getType() == "other");
-        CHECK(!zone.hasFieldBoundary());
-        CHECK(zone.numRasterLayers() == 0);
+        CHECK(!zone.has_boundary());
+        CHECK(zone.num_layers() == 0);
     }
 
     SUBCASE("Named constructor") {
         Zone zone("Test Zone", "field");
         CHECK(zone.getName() == "Test Zone");
         CHECK(zone.getType() == "field");
-        CHECK(!zone.hasFieldBoundary());
-        CHECK(zone.numRasterLayers() == 0);
+        CHECK(!zone.has_boundary());
+        CHECK(zone.num_layers() == 0);
     }
 
     SUBCASE("Constructor with boundary") {
@@ -41,7 +41,7 @@ TEST_CASE("Zone creation and basic properties") {
         Zone zone("Test Zone", "field", boundary);
         CHECK(zone.getName() == "Test Zone");
         CHECK(zone.getType() == "field");
-        CHECK(zone.hasFieldBoundary());
+        CHECK(zone.has_boundary());
         CHECK(zone.area() == 5000.0); // 100 * 50
     }
 }
@@ -53,7 +53,7 @@ TEST_CASE("Zone factory methods") {
         auto field = Zone::createField("Wheat Field", boundary);
         CHECK(field.getName() == "Wheat Field");
         CHECK(field.getType() == "field");
-        CHECK(field.hasFieldBoundary());
+        CHECK(field.has_boundary());
         CHECK(field.getProperty("crop_type") == "unknown");
     }
     
@@ -61,7 +61,7 @@ TEST_CASE("Zone factory methods") {
         auto barn = Zone::createBarn("Main Barn", boundary);
         CHECK(barn.getName() == "Main Barn");
         CHECK(barn.getType() == "barn");
-        CHECK(barn.hasFieldBoundary());
+        CHECK(barn.has_boundary());
         CHECK(barn.getProperty("animal_type") == "unknown");
     }
     
@@ -69,7 +69,7 @@ TEST_CASE("Zone factory methods") {
         auto greenhouse = Zone::createGreenhouse("Tomato House", boundary);
         CHECK(greenhouse.getName() == "Tomato House");
         CHECK(greenhouse.getType() == "greenhouse");
-        CHECK(greenhouse.hasFieldBoundary());
+        CHECK(greenhouse.has_boundary());
         CHECK(greenhouse.getProperty("climate_control") == "automated");
     }
 }
@@ -100,9 +100,9 @@ TEST_CASE("Zone field elements") {
         std::unordered_map<std::string, std::string> props;
         props["row_number"] = "1";
         
-        zone.addCropRow(crop_row, props);
+        zone.add_element(crop_row, "crop_row", props);
         
-        auto crop_rows = zone.getCropRows();
+        auto crop_rows = zone.get_elements("crop_row");
         CHECK(crop_rows.size() == 1);
     }
 }
@@ -121,12 +121,12 @@ TEST_CASE("Zone raster layers") {
             }
         }
         
-        zone.addElevationLayer(elevation_grid, "meters");
+        zone.add_layer("elevation", "terrain", elevation_grid, {{"units", "meters"}});
         
-        CHECK(zone.numRasterLayers() == 1);
-        CHECK(zone.hasRasterLayer("elevation"));
+        CHECK(zone.num_layers() == 1);
+        CHECK(zone.has_layer("elevation"));
         
-        auto layer_names = zone.getRasterLayerNames();
+        auto layer_names = zone.get_layer_names();
         CHECK(layer_names.size() == 1);
         CHECK(layer_names[0] == "elevation");
     }
@@ -158,18 +158,18 @@ TEST_CASE("Zone validation") {
     SUBCASE("Valid zone with boundary") {
         auto boundary = createRectangle(0, 0, 100, 50);
         Zone zone("Test Zone", "field", boundary);
-        CHECK(zone.isValid());
+        CHECK(zone.is_valid());
     }
     
     SUBCASE("Invalid zone without boundary") {
         Zone zone("Test Zone", "field");
-        CHECK(!zone.isValid());
+        CHECK(!zone.is_valid());
     }
     
     SUBCASE("Invalid zone without name") {
         auto boundary = createRectangle(0, 0, 100, 50);
         Zone zone("", "field", boundary);
-        CHECK(!zone.isValid());
+        CHECK(!zone.is_valid());
     }
 }
 
