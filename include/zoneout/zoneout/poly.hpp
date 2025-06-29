@@ -296,13 +296,25 @@ namespace zoneout {
         
         // Apply boundary from loaded elements if border type exists
         void applyBoundaryFromElements() {
-            for (const auto &elem : polygon_elements_) {
-                if (elem.type == "border") {
-                    // Set this polygon as the field boundary
-                    setFieldBoundary(elem.geometry);
+            // Find boundary element in the underlying Vector's elements
+            for (size_t i = 0; i < elementCount(); ++i) {
+                const auto &element = getElement(i);
+                auto props = element.properties;
+                
+                if (props.find("type") != props.end() && props.at("type") == "border") {
+                    // Convert element to polygon and set as field boundary
+                    if (std::holds_alternative<concord::Polygon>(element.geometry)) {
+                        setFieldBoundary(std::get<concord::Polygon>(element.geometry));
+                    }
+                    
+                    // Remove the boundary element from the Vector's elements list
+                    removeElement(i);
                     break;
                 }
             }
+            
+            // Now reload structured elements (without the boundary element)
+            loadStructuredElements();
         }
 
         // Load structured elements from underlying Vector elements
