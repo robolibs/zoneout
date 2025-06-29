@@ -25,7 +25,7 @@ TEST_CASE("Zone creation and basic properties") {
         CHECK(zone.getName().empty());
         CHECK(zone.getType() == "other");
         CHECK(!zone.has_boundary());
-        CHECK(zone.num_layers() == 0);
+        CHECK(zone.getRasterData().gridCount() == 0);
     }
 
     SUBCASE("Named constructor") {
@@ -33,7 +33,7 @@ TEST_CASE("Zone creation and basic properties") {
         CHECK(zone.getName() == "Test Zone");
         CHECK(zone.getType() == "field");
         CHECK(!zone.has_boundary());
-        CHECK(zone.num_layers() == 0);
+        CHECK(zone.getRasterData().gridCount() == 0);
     }
 
     SUBCASE("Constructor with boundary") {
@@ -50,27 +50,24 @@ TEST_CASE("Zone factory methods") {
     auto boundary = createRectangle(0, 0, 100, 50);
     
     SUBCASE("createField") {
-        auto field = Zone::createField("Wheat Field", boundary);
+        auto field = Zone("Wheat Field", "field", boundary);
         CHECK(field.getName() == "Wheat Field");
         CHECK(field.getType() == "field");
         CHECK(field.has_boundary());
-        CHECK(field.getProperty("crop_type") == "unknown");
     }
     
     SUBCASE("createBarn") {
-        auto barn = Zone::createBarn("Main Barn", boundary);
+        auto barn = Zone("Main Barn", "barn", boundary);
         CHECK(barn.getName() == "Main Barn");
         CHECK(barn.getType() == "barn");
         CHECK(barn.has_boundary());
-        CHECK(barn.getProperty("animal_type") == "unknown");
     }
     
     SUBCASE("createGreenhouse") {
-        auto greenhouse = Zone::createGreenhouse("Tomato House", boundary);
+        auto greenhouse = Zone("Tomato House", "greenhouse", boundary);
         CHECK(greenhouse.getName() == "Tomato House");
         CHECK(greenhouse.getType() == "greenhouse");
         CHECK(greenhouse.has_boundary());
-        CHECK(greenhouse.getProperty("climate_control") == "automated");
     }
 }
 
@@ -121,14 +118,13 @@ TEST_CASE("Zone raster layers") {
             }
         }
         
-        zone.add_layer("elevation", "terrain", elevation_grid, {{"units", "meters"}});
+        zone.getRasterData().addGrid(20, 10, "elevation", "terrain", {{"units", "meters"}});
         
-        CHECK(zone.num_layers() == 1);
-        CHECK(zone.has_layer("elevation"));
+        CHECK(zone.getRasterData().gridCount() == 1);
         
-        auto layer_names = zone.get_layer_names();
+        auto layer_names = zone.getRasterData().getGridNames();
         CHECK(layer_names.size() == 1);
-        CHECK(layer_names[0] == "elevation");
+        CHECK(std::find(layer_names.begin(), layer_names.end(), "elevation") != layer_names.end());
     }
 }
 

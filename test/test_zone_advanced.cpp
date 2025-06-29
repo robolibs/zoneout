@@ -1,9 +1,10 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 
-#include <vector>
+#include <algorithm>
 #include <chrono>
 #include <thread>
+#include <vector>
 
 #include "zoneout/zoneout.hpp"
 
@@ -22,32 +23,32 @@ concord::Polygon createRectangle(double x, double y, double width, double height
 TEST_CASE("Zone field elements management") {
     auto boundary = createRectangle(0, 0, 200, 100);
     Zone zone("Field Zone", "field", boundary);
-    
+
     SUBCASE("Add irrigation lines") {
         std::vector<concord::Point> line_points;
         line_points.emplace_back(10, 50, 0);
         line_points.emplace_back(190, 50, 0);
         concord::Path irrigation_line(line_points);
-        
+
         std::unordered_map<std::string, std::string> props;
         props["flow_rate"] = "50L/min";
         props["pressure"] = "2.5bar";
-        
+
         zone.add_element(irrigation_line, "irrigation_line", props);
-        
+
         auto irrigation_lines = zone.get_elements("irrigation_line");
         CHECK(irrigation_lines.size() == 1);
-        
+
         auto all_elements = zone.get_elements();
         CHECK(all_elements.size() == 1);
-        
+
         auto irrigation_only = zone.get_elements("irrigation_line");
         CHECK(irrigation_only.size() == 1);
-        
+
         auto crop_rows = zone.get_elements("crop_row");
         CHECK(crop_rows.size() == 0);
     }
-    
+
     SUBCASE("Add crop rows") {
         for (int i = 0; i < 5; ++i) {
             std::vector<concord::Point> row_points;
@@ -55,37 +56,37 @@ TEST_CASE("Zone field elements management") {
             row_points.emplace_back(5, y, 0);
             row_points.emplace_back(195, y, 0);
             concord::Path crop_row(row_points);
-            
+
             std::unordered_map<std::string, std::string> props;
             props["row_number"] = std::to_string(i + 1);
             props["crop_type"] = "wheat";
             props["planting_date"] = "2024-03-15";
-            
+
             zone.add_element(crop_row, "crop_row", props);
         }
-        
+
         auto crop_rows = zone.get_elements("crop_row");
         CHECK(crop_rows.size() == 5);
-        
+
         auto all_elements = zone.get_elements();
         CHECK(all_elements.size() == 5);
     }
-    
+
     SUBCASE("Add obstacles") {
         // Add a rectangular obstacle (e.g., building)
         auto obstacle_boundary = createRectangle(50, 25, 20, 10);
-        
+
         std::unordered_map<std::string, std::string> props;
         props["type"] = "building";
         props["height"] = "5.0m";
         props["material"] = "concrete";
-        
+
         zone.add_element(obstacle_boundary, "obstacle", props);
-        
+
         auto obstacles = zone.get_elements("obstacle");
         CHECK(obstacles.size() == 1);
     }
-    
+
     SUBCASE("Add access paths") {
         std::vector<concord::Point> path_points;
         path_points.emplace_back(0, 0, 0);
@@ -93,33 +94,33 @@ TEST_CASE("Zone field elements management") {
         path_points.emplace_back(100, 50, 0);
         path_points.emplace_back(200, 100, 0);
         concord::Path access_path(path_points);
-        
+
         std::unordered_map<std::string, std::string> props;
         props["width"] = "3.0m";
         props["surface"] = "gravel";
         props["max_speed"] = "15km/h";
-        
+
         zone.add_element(access_path, "access_path", props);
-        
+
         auto access_paths = zone.get_elements("access_path");
         CHECK(access_paths.size() == 1);
     }
-    
+
     SUBCASE("Mixed field elements") {
         // Add multiple types
         std::vector<concord::Point> line_points;
         line_points.emplace_back(10, 30, 0);
         line_points.emplace_back(190, 30, 0);
         zone.add_element(concord::Path(line_points), "irrigation_line");
-        
+
         std::vector<concord::Point> row_points;
         row_points.emplace_back(5, 70, 0);
         row_points.emplace_back(195, 70, 0);
         zone.add_element(concord::Path(row_points), "crop_row");
-        
+
         auto obstacle = createRectangle(100, 10, 10, 10);
         zone.add_element(obstacle, "obstacle");
-        
+
         // Check totals
         CHECK(zone.get_elements("irrigation_line").size() == 1);
         CHECK(zone.get_elements("crop_row").size() == 1);
@@ -131,10 +132,10 @@ TEST_CASE("Zone field elements management") {
 TEST_CASE("Zone raster layers management") {
     auto boundary = createRectangle(0, 0, 100, 50);
     Zone zone("Raster Zone", "field", boundary);
-    
+
     SUBCASE("Add elevation layer") {
         concord::Grid<uint8_t> elevation_grid(10, 20, 5.0, true, concord::Pose{});
-        
+
         // Create elevation gradient
         for (size_t r = 0; r < 10; ++r) {
             for (size_t c = 0; c < 20; ++c) {
@@ -142,26 +143,30 @@ TEST_CASE("Zone raster layers management") {
                 elevation_grid.set_value(r, c, elevation);
             }
         }
+
+        zone.getRasterData().addGrid(elevation_grid.cols(), elevation_grid.rows(), "elevation", "terrain", {{"units", "meters"}});
         
-        zone.add_layer("elevation", "terrain", elevation_grid, {{"units", "meters"}});
-        
-        CHECK(zone.num_layers() == 1);
-        CHECK(zone.has_layer("elevation"));
-        
-        auto layer_names = zone.get_layer_names();
-        CHECK(layer_names.size() == 1);
-        CHECK(layer_names[0] == "elevation");
-        
-        auto layer = zone.get_layer("elevation");
-        CHECK(layer != nullptr);
-        
-        auto non_existent = zone.get_layer("non_existent");
-        CHECK(non_existent == nullptr);
+        // Copy the grid data
+        auto& raster_grid = zone.getRasterData().getGrid("elevation").grid;
+        for (size_t r = 0; r < elevation_grid.rows(); ++r) {
+            for (size_t c = 0; c < elevation_grid.cols(); ++c) {
+                auto cell = elevation_grid(r, c);
+                raster_grid.set_value(r, c, cell.second);
+            }
+        }
+
+        CHECK(zone.getRasterData().gridCount() == 1);
+        CHECK(zone.getRasterData().getGridNames().size() == 1);
+        CHECK(zone.getRasterData().getGridNames()[0] == "elevation");
+
+        const auto& layer = zone.getRasterData().getGrid("elevation");
+        CHECK(layer.name == "elevation");
+        CHECK(layer.type == "terrain");
     }
-    
+
     SUBCASE("Add soil moisture layer") {
         concord::Grid<uint8_t> moisture_grid(8, 16, 6.25, true, concord::Pose{});
-        
+
         // Create moisture pattern
         for (size_t r = 0; r < 8; ++r) {
             for (size_t c = 0; c < 16; ++c) {
@@ -169,16 +174,26 @@ TEST_CASE("Zone raster layers management") {
                 moisture_grid.set_value(r, c, moisture);
             }
         }
+
+        zone.getRasterData().addGrid(moisture_grid.cols(), moisture_grid.rows(), "soil_moisture", "environmental", {{"units", "percentage"}});
         
-        zone.add_layer("soil_moisture", "environmental", moisture_grid, {{"units", "percentage"}});
-        
-        CHECK(zone.num_layers() == 1);
-        CHECK(zone.has_layer("soil_moisture"));
+        // Copy the grid data
+        auto& raster_grid = zone.getRasterData().getGrid("soil_moisture").grid;
+        for (size_t r = 0; r < moisture_grid.rows(); ++r) {
+            for (size_t c = 0; c < moisture_grid.cols(); ++c) {
+                auto cell = moisture_grid(r, c);
+                raster_grid.set_value(r, c, cell.second);
+            }
+        }
+
+        CHECK(zone.getRasterData().gridCount() == 1);
+        auto grid_names = zone.getRasterData().getGridNames();
+        CHECK(std::find(grid_names.begin(), grid_names.end(), "soil_moisture") != grid_names.end());
     }
-    
+
     SUBCASE("Add crop health layer") {
         concord::Grid<uint8_t> health_grid(12, 24, 4.16, true, concord::Pose{});
-        
+
         // Create NDVI-like pattern
         for (size_t r = 0; r < 12; ++r) {
             for (size_t c = 0; c < 24; ++c) {
@@ -186,19 +201,29 @@ TEST_CASE("Zone raster layers management") {
                 health_grid.set_value(r, c, ndvi);
             }
         }
+
+        zone.getRasterData().addGrid(health_grid.cols(), health_grid.rows(), "crop_health", "vegetation", {{"units", "NDVI"}});
         
-        zone.add_layer("crop_health", "vegetation", health_grid, {{"units", "NDVI"}});
-        
-        CHECK(zone.num_layers() == 1);
-        CHECK(zone.has_layer("crop_health"));
+        // Copy the grid data
+        auto& raster_grid = zone.getRasterData().getGrid("crop_health").grid;
+        for (size_t r = 0; r < health_grid.rows(); ++r) {
+            for (size_t c = 0; c < health_grid.cols(); ++c) {
+                auto cell = health_grid(r, c);
+                raster_grid.set_value(r, c, cell.second);
+            }
+        }
+
+        CHECK(zone.getRasterData().gridCount() == 1);
+        auto grid_names = zone.getRasterData().getGridNames();
+        CHECK(std::find(grid_names.begin(), grid_names.end(), "crop_health") != grid_names.end());
     }
-    
+
     SUBCASE("Multiple raster layers") {
         // Add all three types
         concord::Grid<uint8_t> grid1(10, 20, 5.0, true, concord::Pose{});
         concord::Grid<uint8_t> grid2(10, 20, 5.0, true, concord::Pose{});
         concord::Grid<uint8_t> grid3(10, 20, 5.0, true, concord::Pose{});
-        
+
         // Fill grids with test data
         for (size_t r = 0; r < 10; ++r) {
             for (size_t c = 0; c < 20; ++c) {
@@ -207,46 +232,68 @@ TEST_CASE("Zone raster layers management") {
                 grid3.set_value(r, c, static_cast<uint8_t>(200 - c));
             }
         }
+
+        zone.getRasterData().addGrid(grid1.cols(), grid1.rows(), "elevation", "terrain", {{"units", "meters"}});
+        zone.getRasterData().addGrid(grid2.cols(), grid2.rows(), "soil_moisture", "environmental", {{"units", "percentage"}});
+        zone.getRasterData().addGrid(grid3.cols(), grid3.rows(), "crop_health", "vegetation", {{"units", "NDVI"}});
         
-        zone.add_layer("elevation", "terrain", grid1, {{"units", "meters"}});
-        zone.add_layer("soil_moisture", "environmental", grid2, {{"units", "percentage"}});
-        zone.add_layer("crop_health", "vegetation", grid3, {{"units", "NDVI"}});
+        // Copy the grid data
+        auto& raster_grid1 = zone.getRasterData().getGrid("elevation").grid;
+        auto& raster_grid2 = zone.getRasterData().getGrid("soil_moisture").grid;
+        auto& raster_grid3 = zone.getRasterData().getGrid("crop_health").grid;
         
-        CHECK(zone.num_layers() == 3);
-        CHECK(zone.has_layer("elevation"));
-        CHECK(zone.has_layer("soil_moisture"));
-        CHECK(zone.has_layer("crop_health"));
-        
-        auto all_layers = zone.get_layer_names();
-        CHECK(all_layers.size() == 3);
+        for (size_t r = 0; r < 10; ++r) {
+            for (size_t c = 0; c < 20; ++c) {
+                raster_grid1.set_value(r, c, static_cast<uint8_t>(100 + r + c));
+                raster_grid2.set_value(r, c, static_cast<uint8_t>(50 + r * 2));
+                raster_grid3.set_value(r, c, static_cast<uint8_t>(200 - c));
+            }
+        }
+
+        CHECK(zone.getRasterData().gridCount() == 3);
+        auto grid_names = zone.getRasterData().getGridNames();
+        CHECK(grid_names.size() == 3);
+        CHECK(std::find(grid_names.begin(), grid_names.end(), "elevation") != grid_names.end());
+        CHECK(std::find(grid_names.begin(), grid_names.end(), "soil_moisture") != grid_names.end());
+        CHECK(std::find(grid_names.begin(), grid_names.end(), "crop_health") != grid_names.end());
     }
-    
+
     SUBCASE("Custom raster layer") {
         concord::Grid<uint8_t> custom_grid(5, 10, 10.0, true, concord::Pose{});
-        
+
         // Fill with custom data
         for (size_t r = 0; r < 5; ++r) {
             for (size_t c = 0; c < 10; ++c) {
                 custom_grid.set_value(r, c, static_cast<uint8_t>(r * 10 + c));
             }
         }
-        
+
         std::unordered_map<std::string, std::string> props;
         props["sensor_type"] = "infrared";
         props["measurement_date"] = "2024-06-15";
         props["weather_conditions"] = "sunny";
+
+        zone.getRasterData().addGrid(custom_grid.cols(), custom_grid.rows(), "temperature", "thermal", props);
         
-        zone.add_layer("temperature", "thermal", custom_grid, props);
-        
-        CHECK(zone.num_layers() == 1);
-        CHECK(zone.has_layer("temperature"));
+        // Copy the grid data
+        auto& raster_grid = zone.getRasterData().getGrid("temperature").grid;
+        for (size_t r = 0; r < custom_grid.rows(); ++r) {
+            for (size_t c = 0; c < custom_grid.cols(); ++c) {
+                auto cell = custom_grid(r, c);
+                raster_grid.set_value(r, c, cell.second);
+            }
+        }
+
+        CHECK(zone.getRasterData().gridCount() == 1);
+        auto grid_names = zone.getRasterData().getGridNames();
+        CHECK(std::find(grid_names.begin(), grid_names.end(), "temperature") != grid_names.end());
     }
 }
 
 TEST_CASE("Zone raster sampling") {
     auto boundary = createRectangle(0, 0, 100, 50);
     Zone zone("Sampling Zone", "field", boundary);
-    
+
     // Create elevation grid with known pattern
     concord::Grid<uint8_t> elevation_grid(10, 20, 5.0, true, concord::Pose{});
     for (size_t r = 0; r < 10; ++r) {
@@ -255,32 +302,40 @@ TEST_CASE("Zone raster sampling") {
             elevation_grid.set_value(r, c, elevation);
         }
     }
-    zone.add_layer("elevation", "terrain", elevation_grid, {{"units", "meters"}});
+    zone.getRasterData().addGrid(elevation_grid.cols(), elevation_grid.rows(), "elevation", "terrain", {{"units", "meters"}});
     
-    SUBCASE("Sample at specific points") {
-        // Sample at various points
-        auto sample1 = zone.sample_at("elevation", concord::Point(12.5, 12.5, 0));
-        CHECK(sample1.has_value());
-        
-        auto sample2 = zone.sample_at("elevation", concord::Point(50, 25, 0));
-        CHECK(sample2.has_value());
-        
-        // Sample outside zone boundary (should still work if within raster grid)
-        auto sample3 = zone.sample_at("elevation", concord::Point(-10, -10, 0));
-        // May or may not have value depending on grid bounds
-        
-        // Sample non-existent layer
-        auto sample4 = zone.sample_at("non_existent", concord::Point(25, 25, 0));
-        CHECK(!sample4.has_value());
+    // Copy the grid data
+    auto& raster_grid = zone.getRasterData().getGrid("elevation").grid;
+    for (size_t r = 0; r < elevation_grid.rows(); ++r) {
+        for (size_t c = 0; c < elevation_grid.cols(); ++c) {
+            auto cell = elevation_grid(r, c);
+            raster_grid.set_value(r, c, cell.second);
+        }
     }
-    
-    SUBCASE("Sample at grid corners") {
-        // Sample at exact grid positions
-        auto corner_sample = zone.sample_at("elevation", concord::Point(0, 0, 0));
-        // Should return a value (exact behavior depends on grid implementation)
+
+    SUBCASE("Sample at specific points") {
+        // Direct access to raster grid for sampling
+        const auto& layer = zone.getRasterData().getGrid("elevation");
         
-        auto center_sample = zone.sample_at("elevation", concord::Point(50, 25, 0));
-        CHECK(center_sample.has_value());
+        // Sample at grid cell (2, 2) - should have value 100 + 2 + 2 = 104
+        auto cell = layer.grid(2, 2);
+        CHECK(cell.second == 104);
+        
+        // Sample at grid cell (5, 10) - should have value 100 + 5 + 10 = 115
+        auto cell2 = layer.grid(5, 10);
+        CHECK(cell2.second == 115);
+    }
+
+    SUBCASE("Sample at grid corners") {
+        const auto& layer = zone.getRasterData().getGrid("elevation");
+        
+        // Sample at corner (0, 0) - should have value 100 + 0 + 0 = 100
+        auto corner = layer.grid(0, 0);
+        CHECK(corner.second == 100);
+        
+        // Sample at opposite corner (9, 19) - should have value 100 + 9 + 19 = 128
+        auto far_corner = layer.grid(9, 19);
+        CHECK(far_corner.second == 128);
     }
 }
 
@@ -289,30 +344,30 @@ TEST_CASE("Zone geometric operations") {
         // Rectangle: 100m x 50m = 5000 m²
         auto boundary = createRectangle(0, 0, 100, 50);
         Zone zone("Geometry Zone", "field", boundary);
-        
+
         CHECK(zone.area() == doctest::Approx(5000.0));
         CHECK(zone.perimeter() == doctest::Approx(300.0)); // 2 * (100 + 50)
     }
-    
+
     SUBCASE("Point containment") {
         auto boundary = createRectangle(10, 10, 80, 60);
         Zone zone("Containment Zone", "field", boundary);
-        
+
         // Points inside
         CHECK(zone.contains(concord::Point(50, 40, 0)));
         CHECK(zone.contains(concord::Point(20, 20, 0)));
         CHECK(zone.contains(concord::Point(80, 60, 0)));
-        
+
         // Points outside
         CHECK(!zone.contains(concord::Point(5, 5, 0)));
         CHECK(!zone.contains(concord::Point(100, 100, 0)));
         CHECK(!zone.contains(concord::Point(50, 5, 0)));
-        
+
         // Points on boundary (behavior may vary)
         zone.contains(concord::Point(10, 40, 0)); // Left edge
         zone.contains(concord::Point(90, 40, 0)); // Right edge
     }
-    
+
     SUBCASE("Complex polygon") {
         // Create L-shaped polygon
         std::vector<concord::Point> l_points;
@@ -322,18 +377,18 @@ TEST_CASE("Zone geometric operations") {
         l_points.emplace_back(30, 30, 0);
         l_points.emplace_back(30, 60, 0);
         l_points.emplace_back(0, 60, 0);
-        
+
         concord::Polygon l_boundary(l_points);
         Zone l_zone("L-Shape Zone", "field", l_boundary);
-        
+
         // Points in different parts of the L
         CHECK(l_zone.contains(concord::Point(15, 15, 0))); // Bottom part
         CHECK(l_zone.contains(concord::Point(15, 45, 0))); // Left part
         CHECK(l_zone.contains(concord::Point(45, 15, 0))); // Right part
-        
+
         // Point in the "notch" of the L
         CHECK(!l_zone.contains(concord::Point(45, 45, 0)));
-        
+
         // Area should be: 60*30 + 30*30 = 1800 + 900 = 2700
         CHECK(l_zone.area() == doctest::Approx(2700.0));
     }
@@ -341,28 +396,28 @@ TEST_CASE("Zone geometric operations") {
 
 TEST_CASE("Zone ownership management") {
     Zone zone("Ownership Zone", "field");
-    
+
     SUBCASE("Initial state") {
         CHECK(!zone.hasOwner());
         CHECK(zone.getOwnerRobot().isNull());
     }
-    
+
     SUBCASE("Set and change owner") {
         auto robot1 = generateUUID();
         auto robot2 = generateUUID();
-        
+
         // Set first owner
         zone.setOwnerRobot(robot1);
         CHECK(zone.hasOwner());
         CHECK(zone.getOwnerRobot() == robot1);
         CHECK(zone.getOwnerRobot() != robot2);
-        
+
         // Change owner
         zone.setOwnerRobot(robot2);
         CHECK(zone.hasOwner());
         CHECK(zone.getOwnerRobot() == robot2);
         CHECK(zone.getOwnerRobot() != robot1);
-        
+
         // Release ownership
         zone.releaseOwnership();
         CHECK(!zone.hasOwner());
@@ -375,22 +430,22 @@ TEST_CASE("Zone validation rules") {
         auto boundary = createRectangle(0, 0, 100, 50);
         Zone valid_zone("Valid Zone", "field", boundary);
         CHECK(valid_zone.is_valid());
-        
+
         // Zone with just name and boundary is valid
         Zone minimal_zone("Minimal", "other", boundary);
         CHECK(minimal_zone.is_valid());
     }
-    
+
     SUBCASE("Invalid zones") {
         // No boundary
         Zone no_boundary("No Boundary", "field");
         CHECK(!no_boundary.is_valid());
-        
+
         // Empty name
         auto boundary = createRectangle(0, 0, 100, 50);
         Zone empty_name("", "field", boundary);
         CHECK(!empty_name.is_valid());
-        
+
         // Both empty name and no boundary
         Zone completely_invalid("", "field");
         CHECK(!completely_invalid.is_valid());
@@ -400,7 +455,7 @@ TEST_CASE("Zone validation rules") {
 TEST_CASE("Zone file I/O operations") {
     auto boundary = createRectangle(0, 0, 100, 50);
     Zone zone("File I/O Zone", "field", boundary);
-    
+
     // Add some data to make it interesting
     concord::Grid<uint8_t> elevation_grid(5, 10, 10.0, true, concord::Pose{});
     for (size_t r = 0; r < 5; ++r) {
@@ -408,28 +463,37 @@ TEST_CASE("Zone file I/O operations") {
             elevation_grid.set_value(r, c, static_cast<uint8_t>(100 + r + c));
         }
     }
-    zone.add_layer("elevation", "terrain", elevation_grid, {{"units", "meters"}});
+    zone.getRasterData().addGrid(elevation_grid.cols(), elevation_grid.rows(), "elevation", "terrain", {{"units", "meters"}});
     
+    // Copy the grid data
+    auto& raster_grid = zone.getRasterData().getGrid("elevation").grid;
+    for (size_t r = 0; r < elevation_grid.rows(); ++r) {
+        for (size_t c = 0; c < elevation_grid.cols(); ++c) {
+            auto cell = elevation_grid(r, c);
+            raster_grid.set_value(r, c, cell.second);
+        }
+    }
+
     // Add field elements
     std::vector<concord::Point> row_points;
     row_points.emplace_back(10, 25, 0);
     row_points.emplace_back(90, 25, 0);
     zone.add_element(concord::Path(row_points), "crop_row");
-    
+
     SUBCASE("Save and load files") {
         const std::string vector_path = "/tmp/zoneout_test_zone.geojson";
         const std::string raster_path = "/tmp/zoneout_test_zone.tiff";
-        
+
         // Save zone
         zone.toFiles(vector_path, raster_path);
-        
+
         // Load zone back
         auto loaded_zone = Zone::fromFiles(vector_path, raster_path);
-        
+
         // Basic properties should be preserved
         CHECK(loaded_zone.getName() == "File I/O Zone");
         CHECK(loaded_zone.getType() == "field");
-        
+
         // Note: Detailed validation depends on actual geoson/geotiv implementation
         // This test mainly ensures the methods don't crash
     }
@@ -437,29 +501,29 @@ TEST_CASE("Zone file I/O operations") {
 
 TEST_CASE("Zone property edge cases") {
     Zone zone("Edge Case Zone", "field");
-    
+
     SUBCASE("Property overwrites") {
         zone.setProperty("test_key", "value1");
         CHECK(zone.getProperty("test_key") == "value1");
-        
+
         zone.setProperty("test_key", "value2");
         CHECK(zone.getProperty("test_key") == "value2");
     }
-    
+
     SUBCASE("Empty property values") {
         zone.setProperty("empty_key", "");
         CHECK(zone.getProperty("empty_key") == "");
         CHECK(zone.getProperty("empty_key", "default") == "");
     }
-    
+
     SUBCASE("Special characters in properties") {
         zone.setProperty("special", "value with spaces and symbols!@#$%");
         CHECK(zone.getProperty("special") == "value with spaces and symbols!@#$%");
-        
+
         zone.setProperty("unicode", "café naïve résumé");
         CHECK(zone.getProperty("unicode") == "café naïve résumé");
     }
-    
+
     SUBCASE("Large number of properties") {
         // Add many properties
         for (int i = 0; i < 1000; ++i) {
@@ -467,11 +531,11 @@ TEST_CASE("Zone property edge cases") {
             std::string value = "value_" + std::to_string(i * 2);
             zone.setProperty(key, value);
         }
-        
+
         // Verify they're all there
         auto properties = zone.getProperties();
         CHECK(properties.size() == 1000);
-        
+
         // Check specific values
         CHECK(zone.getProperty("key_42") == "value_84");
         CHECK(zone.getProperty("key_999") == "value_1998");

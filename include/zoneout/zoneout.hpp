@@ -3,10 +3,10 @@
 // Zoneout library - Agricultural zone management for robotics
 // Header-only library for managing robotic operation zones and spaces
 
-#include "zoneout/zoneout/time_utils.hpp"
-#include "zoneout/zoneout/uuid_utils.hpp"
+#include "zoneout/zoneout/utils/time.hpp"
+#include "zoneout/zoneout/utils/uuid.hpp"
 #include "zoneout/zoneout/zone.hpp"
-#include "zoneout/zoneout/farm.hpp"
+#include "visualize.hpp"
 
 namespace zoneout {
     // Library version

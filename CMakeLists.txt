@@ -45,6 +45,10 @@ FetchContent_Declare(geotiv GIT_REPOSITORY https://github.com/smolfetch/geotiv.g
 FetchContent_MakeAvailable(geotiv)
 list(APPEND ext_deps geotiv::geotiv)
 
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+FetchContent_MakeAvailable(json)
+list(APPEND ext_deps nlohmann_json::nlohmann_json)
+
 # --------------------------------------------------------------------------------------------------
 add_library(${project_name} INTERFACE)
 add_library(${project_name}::${project_name} ALIAS ${project_name})
@@ -85,7 +89,8 @@ export(EXPORT ${project_name}Targets
 # --------------------------------------------------------------------------------------------------
 if(${project_name_upper}_BUILD_EXAMPLES)
   add_definitions(-DHAS_RERUN)
-  set(RERUN_DOWNLOAD_AND_BUILD_ARROW OFF)
+  set(RERUN_DOWNLOAD_AND_BUILD_ARROW OFF CACHE BOOL "" FORCE)
+  set(RERUN_FIND_ARROW OFF CACHE BOOL "" FORCE)
   FetchContent_Declare(rerun_sdk URL https://github.com/rerun-io/rerun/releases/latest/download/rerun_cpp_sdk.zip)
   FetchContent_MakeAvailable(rerun_sdk)
   list(APPEND ext_deps rerun_sdk)

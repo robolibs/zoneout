@@ -19,7 +19,7 @@ $(info ------------------------------------------)
 
 
 build:
-	@cd $(BUILD_DIR) && make -j$(shell nproc) 2>&1 | tee >(grep "^$(TOP_HEAD)" | grep -E "error:" > "$(TOP_HEAD)/.quickfix") || true
+	@cd $(BUILD_DIR) && make -j$(shell nproc) 2>&1 | tee >(grep "^$(TOP_DIR)" | grep -E "error:" > "$(TOP_DIR)/.quickfix") || true
 
 b: build
 

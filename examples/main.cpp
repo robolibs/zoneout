@@ -98,7 +98,7 @@ int main() {
     field_points.emplace_back(0.0, 50.0, 0.0);
 
     concord::Polygon field_boundary(field_points);
-    auto field = zoneout::Zone::createField("Wheat Field Alpha", field_boundary);
+    auto field = zoneout::Zone("Wheat Field Alpha", "field", field_boundary);
 
     std::cout << "Created field zone: " << field.getName() << std::endl;
     std::cout << "Zone ID: " << field.getId().toString() << std::endl;
@@ -120,9 +120,9 @@ int main() {
             elevation_grid.set_value(r, c, static_cast<uint8_t>(100 + (r * c / 10))); // Gradient elevation
         }
     }
-    field.add_layer("elevation", "terrain", elevation_grid, {{"units", "meters"}});
+    field.getRasterData().addGrid(20, 10, "elevation", "terrain", {{"units", "meters"}});
 
-    std::cout << "Added elevation layer with " << field.num_layers() << " total layers" << std::endl;
+    std::cout << "Added elevation layer with " << field.getRasterData().gridCount() << " total layers" << std::endl;
 
     // Add crop rows as field elements
     for (int i = 0; i < 5; ++i) {
@@ -146,13 +146,11 @@ int main() {
     std::cout << "In field: " << (field.contains(test_point) ? "Yes" : "No") << std::endl;
 
     // Test elevation sampling
-    if (field.has_layer("elevation")) {
-        auto elevation = field.sample_at("elevation", test_point);
-        if (elevation) {
-            std::cout << "Elevation at test point: " << static_cast<int>(*elevation) << " meters" << std::endl;
-        } else {
-            std::cout << "Could not sample elevation at test point" << std::endl;
-        }
+    try {
+        const auto& elevation_layer = field.getRasterData().getGrid("elevation");
+        std::cout << "Elevation grid exists with " << elevation_layer.grid.rows() << "x" << elevation_layer.grid.cols() << " cells" << std::endl;
+    } catch (const std::runtime_error&) {
+        std::cout << "Could not find elevation grid" << std::endl;
     }
 
     // Create a barn zone
@@ -163,7 +161,7 @@ int main() {
     barn_points.emplace_back(120.0, 30.0, 0.0);
 
     concord::Polygon barn_boundary(barn_points);
-    auto barn = zoneout::Zone::createBarn("Main Barn", barn_boundary);
+    auto barn = zoneout::Zone("Main Barn", "barn", barn_boundary);
 
     std::cout << "\nCreated barn: " << barn.getName() << std::endl;
     std::cout << "Barn area: " << barn.area() << " m²" << std::endl;
@@ -175,61 +173,50 @@ int main() {
 
     // Test file I/O with different element types
     std::cout << "\n=== File I/O Testing ===" << std::endl;
-    
+
     // Add different types of elements to the field
     auto parking_area = createRectangle(110, 60, 20, 15);
-    field.add_element(parking_area, "parking_space", {
-        {"name", "main_parking"},
-        {"capacity", "5_vehicles"}, 
-        {"surface", "gravel"}
-    });
-    
+    field.add_element(parking_area, "parking_space",
+                      {{"name", "main_parking"}, {"capacity", "5_vehicles"}, {"surface", "gravel"}});
+
     auto storage_zone = createRectangle(80, 70, 25, 20);
-    field.add_element(storage_zone, "storage_area", {
-        {"name", "equipment_storage"},
-        {"max_weight", "500kg_per_m2"},
-        {"weather_protection", "covered"}
-    });
-    
+    field.add_element(
+        storage_zone, "storage_area",
+        {{"name", "equipment_storage"}, {"max_weight", "500kg_per_m2"}, {"weather_protection", "covered"}});
+
     std::vector<concord::Point> access_path = {{5, 50, 0}, {95, 50, 0}};
-    field.add_element(concord::Path(access_path), "access_route", {
-        {"name", "main_access"},
-        {"width", "4m"},
-        {"surface", "dirt_road"}
-    });
-    
-    field.add_element(concord::Point(60, 40, 0), "equipment_point", {
-        {"name", "water_station"},
-        {"type", "irrigation_hub"},
-        {"flow_rate", "100L_per_min"}
-    });
-    
+    field.add_element(concord::Path(access_path), "access_route",
+                      {{"name", "main_access"}, {"width", "4m"}, {"surface", "dirt_road"}});
+
+    field.add_element(concord::Point(60, 40, 0), "equipment_point",
+                      {{"name", "water_station"}, {"type", "irrigation_hub"}, {"flow_rate", "100L_per_min"}});
+
     std::cout << "Added " << field.get_elements().size() << " elements to field:" << std::endl;
-    for (const auto& element : field.get_elements()) {
+    for (const auto &element : field.get_elements()) {
         auto name_it = element.properties.find("name");
         auto type_it = element.properties.find("type");
         if (name_it != element.properties.end() && type_it != element.properties.end()) {
             std::cout << "- " << name_it->second << " (" << type_it->second << ")" << std::endl;
         }
     }
-    
+
     // Save to files
     std::string vector_path = "/tmp/test_field.geojson";
     std::string raster_path = "/tmp/test_field.tiff";
-    
+
     try {
         field.toFiles(vector_path, raster_path);
         std::cout << "\nSaved field to: " << vector_path << std::endl;
-        
+
         // Load it back
         auto loaded_field = zoneout::Zone::fromFiles(vector_path, raster_path);
         std::cout << "Loaded field: " << loaded_field.getName() << std::endl;
         std::cout << "Loaded elements: " << loaded_field.get_elements().size() << std::endl;
-        std::cout << "Loaded layers: " << loaded_field.num_layers() << std::endl;
-        
+        std::cout << "Loaded layers: " << loaded_field.getRasterData().gridCount() << std::endl;
+
         std::cout << "\nFile I/O test successful!" << std::endl;
-        
-    } catch (const std::exception& e) {
+
+    } catch (const std::exception &e) {
         std::cout << "File I/O error: " << e.what() << std::endl;
     }
 

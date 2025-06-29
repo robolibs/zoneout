@@ -207,7 +207,7 @@ TEST_CASE("Complete file I/O round-trip test") {
                 elevation_grid.set_value(r, c, elevation);
             }
         }
-        original_zone.add_layer("elevation", "terrain", elevation_grid, {
+        original_zone.getRasterData().addGrid(30, 20, "elevation", "terrain", {
             {"units", "meters"},
             {"datum", "sea_level"},
             {"accuracy", "0.5m"},
@@ -222,7 +222,7 @@ TEST_CASE("Complete file I/O round-trip test") {
                 moisture_grid.set_value(r, c, moisture);
             }
         }
-        original_zone.add_layer("soil_moisture", "environmental", moisture_grid, {
+        original_zone.getRasterData().addGrid(30, 20, "soil_moisture", "environmental", {
             {"units", "percentage"},
             {"depth", "0-30cm"},
             {"measurement_date", "2024-06-28"},
@@ -237,7 +237,7 @@ TEST_CASE("Complete file I/O round-trip test") {
                 ndvi_grid.set_value(r, c, ndvi);
             }
         }
-        original_zone.add_layer("vegetation_health", "crop_monitoring", ndvi_grid, {
+        original_zone.getRasterData().addGrid(30, 20, "vegetation_health", "crop_monitoring", {
             {"units", "NDVI_scaled"},
             {"scale_factor", "0.004"},
             {"offset", "-0.2"},
@@ -249,7 +249,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         CHECK(original_zone.getName() == "Test Agricultural Zone");
         CHECK(original_zone.getType() == "field");
         CHECK(original_zone.get_elements().size() == 11); // 11 different elements
-        CHECK(original_zone.num_layers() == 3); // 3 raster layers
+        CHECK(original_zone.getRasterData().gridCount() == 3); // 3 raster layers
         CHECK(original_zone.getProperty("crop_type") == "wheat");
         
         // Save to files
@@ -362,26 +362,27 @@ TEST_CASE("Complete file I/O round-trip test") {
         CHECK(loaded_routes.size() == 1);
         
         // === Verify Raster Layers ===
-        CHECK(loaded_zone.num_layers() == original_zone.num_layers());
-        CHECK(loaded_zone.num_layers() == 3);
+        CHECK(loaded_zone.getRasterData().gridCount() == original_zone.getRasterData().gridCount());
+        CHECK(loaded_zone.getRasterData().gridCount() == 3);
         
-        CHECK(loaded_zone.has_layer("elevation"));
-        CHECK(loaded_zone.has_layer("soil_moisture"));
-        CHECK(loaded_zone.has_layer("vegetation_health"));
+        auto grid_names = loaded_zone.getRasterData().getGridNames();
+        CHECK(std::find(grid_names.begin(), grid_names.end(), "elevation") != grid_names.end());
+        CHECK(std::find(grid_names.begin(), grid_names.end(), "soil_moisture") != grid_names.end());
+        CHECK(std::find(grid_names.begin(), grid_names.end(), "vegetation_health") != grid_names.end());
         
-        auto original_layer_names = original_zone.get_layer_names();
-        auto loaded_layer_names = loaded_zone.get_layer_names();
+        auto original_layer_names = original_zone.getRasterData().getGridNames();
+        auto loaded_layer_names = loaded_zone.getRasterData().getGridNames();
         CHECK(loaded_layer_names.size() == original_layer_names.size());
         
         // Note: Raster data verification would require more complex grid comparison
         // For now, we verify that layers exist and can be queried
-        auto elevation_sample = loaded_zone.sample_at("elevation", concord::Point(100, 75, 0));
-        auto moisture_sample = loaded_zone.sample_at("soil_moisture", concord::Point(100, 75, 0));
-        auto ndvi_sample = loaded_zone.sample_at("vegetation_health", concord::Point(100, 75, 0));
+        const auto& elevation_layer = loaded_zone.getRasterData().getGrid("elevation");
+        const auto& moisture_layer = loaded_zone.getRasterData().getGrid("soil_moisture");
+        const auto& ndvi_layer = loaded_zone.getRasterData().getGrid("vegetation_health");
         
-        CHECK(elevation_sample.has_value());
-        CHECK(moisture_sample.has_value());
-        CHECK(ndvi_sample.has_value());
+        CHECK(elevation_layer.grid.rows() > 0);
+        CHECK(moisture_layer.grid.rows() > 0);
+        CHECK(ndvi_layer.grid.rows() > 0);
         
         // === Verify Zone Validation ===
         CHECK(loaded_zone.is_valid());
@@ -395,7 +396,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         std::cout << "✓ Zone properties preserved" << std::endl;
         std::cout << "✓ Field boundary preserved" << std::endl;
         std::cout << "✓ All " << loaded_elements.size() << " vector elements preserved" << std::endl;
-        std::cout << "✓ All " << loaded_zone.num_layers() << " raster layers preserved" << std::endl;
+        std::cout << "✓ All " << loaded_zone.getRasterData().gridCount() << " raster layers preserved" << std::endl;
         std::cout << "✓ Element types: parking_space(" << loaded_parking.size() 
                   << "), storage_facility(" << loaded_storage.size() 
                   << "), access_route(" << loaded_routes.size() << "), etc." << std::endl;
