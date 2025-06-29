@@ -13,22 +13,6 @@
 
 namespace zoneout {
 
-    // Global property names for consistent access across Poly and Grid
-    namespace polygrid_globals {
-        static constexpr const char *NAME = "name";
-        static constexpr const char *UUID = "uuid";
-        static constexpr const char *TYPE = "type";
-        static constexpr const char *SUBTYPE = "subtype";
-        static constexpr const char *OWNER_ROBOT_ID = "owner_robot_id";
-        static constexpr const char *CREATED_TIME = "created_time";
-        static constexpr const char *MODIFIED_TIME = "modified_time";
-        static constexpr const char *AREA = "area";
-        static constexpr const char *PERIMETER = "perimeter";
-        static constexpr const char *IS_VALID = "is_valid";
-        static constexpr const char *HAS_BOUNDARY = "has_boundary";
-        static constexpr const char *HAS_OWNER = "has_owner";
-    } // namespace polygrid_globals
-
     // Structured Element types with required metadata
     struct StructuredElement {
         UUID uuid;
@@ -44,10 +28,10 @@ namespace zoneout {
         // Check if element has all required fields
         static bool isValid(const geoson::Element &element) {
             const auto &props = element.properties;
-            return props.find(polygrid_globals::UUID) != props.end() &&
-                   props.find(polygrid_globals::NAME) != props.end() &&
-                   props.find(polygrid_globals::TYPE) != props.end() &&
-                   props.find(polygrid_globals::SUBTYPE) != props.end();
+            return props.find("uuid") != props.end() &&
+                   props.find("name") != props.end() &&
+                   props.find("type") != props.end() &&
+                   props.find("subtype") != props.end();
         }
 
         // Create from geoson::Element if valid
@@ -56,17 +40,17 @@ namespace zoneout {
                 return std::nullopt;
 
             const auto &props = element.properties;
-            return StructuredElement(UUID(props.at(polygrid_globals::UUID)), props.at(polygrid_globals::NAME),
-                                     props.at(polygrid_globals::TYPE), props.at(polygrid_globals::SUBTYPE), props);
+            return StructuredElement(UUID(props.at("uuid")), props.at("name"),
+                                     props.at("type"), props.at("subtype"), props);
         }
 
         // Convert to properties map for storage
         std::unordered_map<std::string, std::string> toProperties() const {
             auto props = properties;
-            props[polygrid_globals::UUID] = uuid.toString();
-            props[polygrid_globals::NAME] = name;
-            props[polygrid_globals::TYPE] = type;
-            props[polygrid_globals::SUBTYPE] = subtype;
+            props["uuid"] = uuid.toString();
+            props["name"] = name;
+            props["type"] = type;
+            props["subtype"] = subtype;
             return props;
         }
     };
@@ -103,7 +87,6 @@ namespace zoneout {
         std::string name_;
         std::string type_;
         std::string subtype_;
-        UUID owner_robot_id_ = UUID::null();
 
         // Structured element collections
         std::vector<PolygonElement> polygon_elements_;
@@ -164,19 +147,6 @@ namespace zoneout {
             syncToGlobalProperties();
         }
 
-        // ========== Owner Management ==========
-        void setOwnerRobot(const UUID &robot_id) {
-            owner_robot_id_ = robot_id;
-            syncToGlobalProperties();
-        }
-
-        const UUID &getOwnerRobot() const { return owner_robot_id_; }
-        bool hasOwner() const { return !owner_robot_id_.isNull(); }
-
-        void releaseOwnership() {
-            owner_robot_id_ = UUID::null();
-            syncToGlobalProperties();
-        }
 
         // ========== Structured Element Management ==========
 
@@ -258,30 +228,26 @@ namespace zoneout {
             // Extract metadata from global properties
             auto global_props = vector_data.getGlobalProperties();
 
-            auto name_it = global_props.find(polygrid_globals::NAME);
+            auto name_it = global_props.find("name");
             if (name_it != global_props.end()) {
                 poly.name_ = name_it->second;
             }
 
-            auto type_it = global_props.find(polygrid_globals::TYPE);
+            auto type_it = global_props.find("type");
             if (type_it != global_props.end()) {
                 poly.type_ = type_it->second;
             }
 
-            auto subtype_it = global_props.find(polygrid_globals::SUBTYPE);
+            auto subtype_it = global_props.find("subtype");
             if (subtype_it != global_props.end()) {
                 poly.subtype_ = subtype_it->second;
             }
 
-            auto uuid_it = global_props.find(polygrid_globals::UUID);
+            auto uuid_it = global_props.find("uuid");
             if (uuid_it != global_props.end()) {
                 poly.id_ = UUID(uuid_it->second);
             }
 
-            auto owner_it = global_props.find(polygrid_globals::OWNER_ROBOT_ID);
-            if (owner_it != global_props.end()) {
-                poly.owner_robot_id_ = UUID(owner_it->second);
-            }
 
             // Load structured elements from Vector elements
             poly.loadStructuredElements();
@@ -299,11 +265,10 @@ namespace zoneout {
 
       private:
         void syncToGlobalProperties() {
-            setGlobalProperty(polygrid_globals::NAME, name_);
-            setGlobalProperty(polygrid_globals::TYPE, type_);
-            setGlobalProperty(polygrid_globals::SUBTYPE, subtype_);
-            setGlobalProperty(polygrid_globals::UUID, id_.toString());
-            setGlobalProperty(polygrid_globals::OWNER_ROBOT_ID, owner_robot_id_.toString());
+            setGlobalProperty("name", name_);
+            setGlobalProperty("type", type_);
+            setGlobalProperty("subtype", subtype_);
+            setGlobalProperty("uuid", id_.toString());
         }
 
         // Load structured elements from underlying Vector elements
@@ -350,7 +315,6 @@ namespace zoneout {
         std::string name_;
         std::string type_;
         std::string subtype_;
-        UUID owner_robot_id_ = UUID::null();
 
       public:
         // ========== Constructors ==========
@@ -397,19 +361,6 @@ namespace zoneout {
             syncToGlobalProperties();
         }
 
-        // ========== Owner Management ==========
-        void setOwnerRobot(const UUID &robot_id) {
-            owner_robot_id_ = robot_id;
-            syncToGlobalProperties();
-        }
-
-        const UUID &getOwnerRobot() const { return owner_robot_id_; }
-        bool hasOwner() const { return !owner_robot_id_.isNull(); }
-
-        void releaseOwnership() {
-            owner_robot_id_ = UUID::null();
-            syncToGlobalProperties();
-        }
 
         // ========== Higher Level Operations ==========
         bool isValid() const { return hasGrids() && !name_.empty(); }
@@ -432,30 +383,26 @@ namespace zoneout {
             // Extract metadata from global properties
             auto global_props = raster_data.getGlobalProperties();
 
-            auto name_it = global_props.find(polygrid_globals::NAME);
+            auto name_it = global_props.find("name");
             if (name_it != global_props.end()) {
                 grid.name_ = name_it->second;
             }
 
-            auto type_it = global_props.find(polygrid_globals::TYPE);
+            auto type_it = global_props.find("type");
             if (type_it != global_props.end()) {
                 grid.type_ = type_it->second;
             }
 
-            auto subtype_it = global_props.find(polygrid_globals::SUBTYPE);
+            auto subtype_it = global_props.find("subtype");
             if (subtype_it != global_props.end()) {
                 grid.subtype_ = subtype_it->second;
             }
 
-            auto uuid_it = global_props.find(polygrid_globals::UUID);
+            auto uuid_it = global_props.find("uuid");
             if (uuid_it != global_props.end()) {
                 grid.id_ = UUID(uuid_it->second);
             }
 
-            auto owner_it = global_props.find(polygrid_globals::OWNER_ROBOT_ID);
-            if (owner_it != global_props.end()) {
-                grid.owner_robot_id_ = UUID(owner_it->second);
-            }
 
             return grid;
         }
@@ -480,11 +427,10 @@ namespace zoneout {
       private:
         void syncToGlobalProperties() {
             if (hasGrids()) {
-                setGlobalProperty(polygrid_globals::NAME, name_);
-                setGlobalProperty(polygrid_globals::TYPE, type_);
-                setGlobalProperty(polygrid_globals::SUBTYPE, subtype_);
-                setGlobalProperty(polygrid_globals::UUID, id_.toString());
-                setGlobalProperty(polygrid_globals::OWNER_ROBOT_ID, owner_robot_id_.toString());
+                setGlobalProperty("name", name_);
+                setGlobalProperty("type", type_);
+                setGlobalProperty("subtype", subtype_);
+                setGlobalProperty("uuid", id_.toString());
             }
         }
     };

@@ -103,8 +103,8 @@ int main() {
     std::cout << "Created field zone: " << field.getName() << std::endl;
     std::cout << "Zone ID: " << field.getId().toString() << std::endl;
     std::cout << "Zone type: " << field.getType() << std::endl;
-    std::cout << "Field area: " << field.area() << " m²" << std::endl;
-    std::cout << "Field perimeter: " << field.perimeter() << " m" << std::endl;
+    std::cout << "Field area: " << field.poly_data_.area() << " m²" << std::endl;
+    std::cout << "Field perimeter: " << field.poly_data_.perimeter() << " m" << std::endl;
 
     // Add some properties
     field.setProperty("crop_type", "wheat");
@@ -135,15 +135,15 @@ int main() {
         std::unordered_map<std::string, std::string> row_props;
         row_props["row_number"] = std::to_string(i + 1);
         row_props["crop_type"] = "wheat";
-        field.add_element(crop_row, "crop_row", row_props);
+        field.poly_data_.addElement(crop_row, "crop_row", row_props);
     }
 
-    std::cout << "Added " << field.get_elements("crop_row").size() << " crop rows" << std::endl;
+    std::cout << "Added " << field.poly_data_.getElementsByType("crop_row").size() << " crop rows" << std::endl;
 
     // Test point queries
     concord::Point test_point(50.0, 25.0, 0.0);
     std::cout << "\nTesting point (50, 25):" << std::endl;
-    std::cout << "In field: " << (field.contains(test_point) ? "Yes" : "No") << std::endl;
+    std::cout << "In field: " << (field.poly_data_.contains(test_point) ? "Yes" : "No") << std::endl;
 
     // Test elevation sampling
     try {
@@ -164,7 +164,7 @@ int main() {
     auto barn = zoneout::Zone("Main Barn", "barn", barn_boundary);
 
     std::cout << "\nCreated barn: " << barn.getName() << std::endl;
-    std::cout << "Barn area: " << barn.area() << " m²" << std::endl;
+    std::cout << "Barn area: " << barn.poly_data_.area() << " m²" << std::endl;
 
     // Validation
     std::cout << "\nZone validation:" << std::endl;
@@ -176,23 +176,24 @@ int main() {
 
     // Add different types of elements to the field
     auto parking_area = createRectangle(110, 60, 20, 15);
-    field.add_element(parking_area, "parking_space",
+    field.poly_data_.addElement(parking_area, "parking_space",
                       {{"name", "main_parking"}, {"capacity", "5_vehicles"}, {"surface", "gravel"}});
 
     auto storage_zone = createRectangle(80, 70, 25, 20);
-    field.add_element(
+    field.poly_data_.addElement(
         storage_zone, "storage_area",
         {{"name", "equipment_storage"}, {"max_weight", "500kg_per_m2"}, {"weather_protection", "covered"}});
 
     std::vector<concord::Point> access_path = {{5, 50, 0}, {95, 50, 0}};
-    field.add_element(concord::Path(access_path), "access_route",
+    field.poly_data_.addElement(concord::Path(access_path), "access_route",
                       {{"name", "main_access"}, {"width", "4m"}, {"surface", "dirt_road"}});
 
-    field.add_element(concord::Point(60, 40, 0), "equipment_point",
+    field.poly_data_.addElement(concord::Point(60, 40, 0), "equipment_point",
                       {{"name", "water_station"}, {"type", "irrigation_hub"}, {"flow_rate", "100L_per_min"}});
 
-    std::cout << "Added " << field.get_elements().size() << " elements to field:" << std::endl;
-    for (const auto &element : field.get_elements()) {
+    std::cout << "Added " << field.poly_data_.elementCount() << " elements to field:" << std::endl;
+    for (size_t i = 0; i < field.poly_data_.elementCount(); ++i) {
+        const auto &element = field.poly_data_.getElement(i);
         auto name_it = element.properties.find("name");
         auto type_it = element.properties.find("type");
         if (name_it != element.properties.end() && type_it != element.properties.end()) {
@@ -211,7 +212,7 @@ int main() {
         // Load it back
         auto loaded_field = zoneout::Zone::fromFiles(vector_path, raster_path);
         std::cout << "Loaded field: " << loaded_field.getName() << std::endl;
-        std::cout << "Loaded elements: " << loaded_field.get_elements().size() << std::endl;
+        std::cout << "Loaded elements: " << loaded_field.poly_data_.elementCount() << std::endl;
         std::cout << "Loaded layers: " << loaded_field.getRasterData().gridCount() << std::endl;
 
         std::cout << "\nFile I/O test successful!" << std::endl;

@@ -9,7 +9,6 @@ TEST_CASE("PolyGrid Basic Construction") {
         CHECK(!poly.getId().isNull());
         CHECK(poly.getName() == "");
         CHECK(poly.getType() == "other");
-        CHECK(!poly.hasOwner());
         CHECK(!poly.isValid()); // No name or boundary
     }
     
@@ -18,7 +17,6 @@ TEST_CASE("PolyGrid Basic Construction") {
         CHECK(!poly.getId().isNull());
         CHECK(poly.getName() == "Test Field");
         CHECK(poly.getType() == "agricultural");
-        CHECK(!poly.hasOwner());
         CHECK(!poly.isValid()); // No boundary yet
     }
     
@@ -27,7 +25,6 @@ TEST_CASE("PolyGrid Basic Construction") {
         CHECK(!grid.getId().isNull());
         CHECK(grid.getName() == "");
         CHECK(grid.getType() == "other");
-        CHECK(!grid.hasOwner());
         CHECK(!grid.isValid()); // No name or grids
     }
     
@@ -36,7 +33,6 @@ TEST_CASE("PolyGrid Basic Construction") {
         CHECK(!grid.getId().isNull());
         CHECK(grid.getName() == "Test Raster");
         CHECK(grid.getType() == "elevation");
-        CHECK(!grid.hasOwner());
         CHECK(!grid.isValid()); // No grids yet
     }
 }
@@ -70,20 +66,6 @@ TEST_CASE("PolyGrid Properties and Operations") {
         CHECK(grid.gridCount() == 1); // Just the elevation grid
     }
     
-    SUBCASE("Owner management") {
-        zoneout::Poly poly("Test", "field", "crop");
-        zoneout::UUID robot_id = zoneout::generateUUID();
-        
-        CHECK(!poly.hasOwner());
-        
-        poly.setOwnerRobot(robot_id);
-        CHECK(poly.hasOwner());
-        CHECK(poly.getOwnerRobot() == robot_id);
-        
-        poly.releaseOwnership();
-        CHECK(!poly.hasOwner());
-        CHECK(poly.getOwnerRobot().isNull());
-    }
 }
 
 TEST_CASE("PolyGrid Global Properties Sync") {
@@ -91,16 +73,16 @@ TEST_CASE("PolyGrid Global Properties Sync") {
         zoneout::Poly poly("Test Field", "agricultural", "crop");
         
         // Check that global properties are synced
-        CHECK(poly.getGlobalProperty(zoneout::polygrid_globals::NAME) == "Test Field");
-        CHECK(poly.getGlobalProperty(zoneout::polygrid_globals::TYPE) == "agricultural");
-        CHECK(poly.getGlobalProperty(zoneout::polygrid_globals::UUID) == poly.getId().toString());
+        CHECK(poly.getGlobalProperty("name") == "Test Field");
+        CHECK(poly.getGlobalProperty("type") == "agricultural");
+        CHECK(poly.getGlobalProperty("uuid") == poly.getId().toString());
         
         // Test property updates
         poly.setName("Updated Field");
-        CHECK(poly.getGlobalProperty(zoneout::polygrid_globals::NAME) == "Updated Field");
+        CHECK(poly.getGlobalProperty("name") == "Updated Field");
         
         poly.setType("pasture");
-        CHECK(poly.getGlobalProperty(zoneout::polygrid_globals::TYPE) == "pasture");
+        CHECK(poly.getGlobalProperty("type") == "pasture");
     }
     
     SUBCASE("Grid global properties") {
@@ -110,16 +92,16 @@ TEST_CASE("PolyGrid Global Properties Sync") {
         grid.addGrid(5, 5, "test_layer", "elevation");
         
         // Check that global properties are synced
-        CHECK(grid.getGlobalProperty(zoneout::polygrid_globals::NAME) == "Test Grid");
-        CHECK(grid.getGlobalProperty(zoneout::polygrid_globals::TYPE) == "elevation");
-        CHECK(grid.getGlobalProperty(zoneout::polygrid_globals::UUID) == grid.getId().toString());
+        CHECK(grid.getGlobalProperty("name") == "Test Grid");
+        CHECK(grid.getGlobalProperty("type") == "elevation");
+        CHECK(grid.getGlobalProperty("uuid") == grid.getId().toString());
         
         // Test property updates
         grid.setName("Updated Grid");
-        CHECK(grid.getGlobalProperty(zoneout::polygrid_globals::NAME) == "Updated Grid");
+        CHECK(grid.getGlobalProperty("name") == "Updated Grid");
         
         grid.setType("terrain");
-        CHECK(grid.getGlobalProperty(zoneout::polygrid_globals::TYPE) == "terrain");
+        CHECK(grid.getGlobalProperty("type") == "terrain");
     }
 }
 
@@ -134,8 +116,6 @@ TEST_CASE("PolyGrid File I/O") {
         };
         concord::Polygon boundary(points);
         zoneout::Poly original_poly("Test Field", "agricultural", "crop", boundary);
-        zoneout::UUID robot_id = zoneout::generateUUID();
-        original_poly.setOwnerRobot(robot_id);
         
         // Save to file
         original_poly.toFile(poly_file);
@@ -148,7 +128,6 @@ TEST_CASE("PolyGrid File I/O") {
         CHECK(loaded_poly.getName() == "Test Field");
         CHECK(loaded_poly.getType() == "agricultural");
         CHECK(loaded_poly.getId() == original_poly.getId());
-        CHECK(loaded_poly.getOwnerRobot() == robot_id);
         CHECK(loaded_poly.hasFieldBoundary());
         CHECK(loaded_poly.isValid());
         
@@ -161,8 +140,6 @@ TEST_CASE("PolyGrid File I/O") {
         concord::Datum datum{52.0, 4.0, 10.0};
         zoneout::Grid original_grid("Test Grid", "elevation", "dem", datum);
         original_grid.addGrid(5, 5, "test_layer", "elevation");
-        zoneout::UUID robot_id = zoneout::generateUUID();
-        original_grid.setOwnerRobot(robot_id);
         
         // Save to file
         original_grid.toFile(grid_file);
@@ -175,7 +152,6 @@ TEST_CASE("PolyGrid File I/O") {
         CHECK(loaded_grid.getName() == "Test Grid");
         CHECK(loaded_grid.getType() == "elevation");
         CHECK(loaded_grid.getId() == original_grid.getId());
-        CHECK(loaded_grid.getOwnerRobot() == robot_id);
         CHECK(loaded_grid.hasGrids());
         CHECK(loaded_grid.isValid());
         

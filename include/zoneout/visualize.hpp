@@ -23,9 +23,9 @@ namespace visualize {
 inline void visualize_zone(const Zone& zone, std::shared_ptr<rerun::RecordingStream> rec, 
                           const concord::Datum& datum, const std::string& zone_name, 
                           size_t color_index = 0) {
-    if (!zone.has_boundary()) return;
+    if (!zone.poly_data_.hasFieldBoundary()) return;
     
-    const auto& boundary = zone.get_boundary();
+    const auto& boundary = zone.poly_data_.getFieldBoundary();
     const auto& points_data = boundary.getPoints();
     if (points_data.empty()) return;
     
@@ -48,7 +48,7 @@ inline void visualize_zone(const Zone& zone, std::shared_ptr<rerun::RecordingStr
     // ENU coordinates visualization (local 3D space)
     std::vector<std::array<float, 3>> enu_points;
     for (const auto& point : points_data) {
-        enu_points.push_back({float(point.x), float(point.y), float(point.z)});
+        enu_points.push_back(std::array<float, 3>{float(point.x), float(point.y), float(point.z)});
     }
     // Close the polygon
     if (!enu_points.empty()) {

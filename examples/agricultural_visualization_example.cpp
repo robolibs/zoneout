@@ -33,14 +33,14 @@ int main() {
     boundary.addPoint(concord::Point(300.0, 200.0, 0.0)); // NE corner
     boundary.addPoint(concord::Point(0.0, 200.0, 0.0));   // NW corner
     
-    wheat_field.set_boundary(boundary);
+    wheat_field.poly_data_.setFieldBoundary(boundary);
     wheat_field.setProperty("crop_type", "wheat");
     wheat_field.setProperty("planting_date", "2024-10-15");
     wheat_field.setProperty("area_hectares", "6.0");
 
     std::cout << "Created zone: " << wheat_field.getName() 
               << " (" << wheat_field.getType() << "): " 
-              << wheat_field.area() << " m²" << std::endl;
+              << wheat_field.poly_data_.area() << " m²" << std::endl;
 
     // Visualize the zone
     std::cout << "\nSending visualization data to Rerun..." << std::endl;
@@ -53,7 +53,7 @@ int main() {
     std::cout << "• Local ENU coordinates: /" << wheat_field.getName() << "/enu (meters from datum)" << std::endl;
     std::cout << "• GPS map coordinates: /" << wheat_field.getName() << "/wgs (lat/lon on world map)" << std::endl;
     std::cout << "\nMap view shows real GPS coordinates around Wageningen, Netherlands" << std::endl;
-    std::cout << "\nZone area: " << wheat_field.area() / 10000.0 << " hectares" << std::endl;
+    std::cout << "\nZone area: " << wheat_field.poly_data_.area() / 10000.0 << " hectares" << std::endl;
     std::cout << "Datum reference: " << datum.lat << "°N, " << datum.lon << "°E" << std::endl;
 
     // Keep the program running to maintain the visualization

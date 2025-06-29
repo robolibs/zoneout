@@ -24,7 +24,7 @@ TEST_CASE("Zone creation and basic properties") {
         Zone zone;
         CHECK(zone.getName().empty());
         CHECK(zone.getType() == "other");
-        CHECK(!zone.has_boundary());
+        CHECK(!zone.poly_data_.hasFieldBoundary());
         CHECK(zone.getRasterData().gridCount() == 0);
     }
 
@@ -32,7 +32,7 @@ TEST_CASE("Zone creation and basic properties") {
         Zone zone("Test Zone", "field");
         CHECK(zone.getName() == "Test Zone");
         CHECK(zone.getType() == "field");
-        CHECK(!zone.has_boundary());
+        CHECK(!zone.poly_data_.hasFieldBoundary());
         CHECK(zone.getRasterData().gridCount() == 0);
     }
 
@@ -41,8 +41,8 @@ TEST_CASE("Zone creation and basic properties") {
         Zone zone("Test Zone", "field", boundary);
         CHECK(zone.getName() == "Test Zone");
         CHECK(zone.getType() == "field");
-        CHECK(zone.has_boundary());
-        CHECK(zone.area() == 5000.0); // 100 * 50
+        CHECK(zone.poly_data_.hasFieldBoundary());
+        CHECK(zone.poly_data_.area() == 5000.0); // 100 * 50
     }
 }
 
@@ -53,21 +53,21 @@ TEST_CASE("Zone factory methods") {
         auto field = Zone("Wheat Field", "field", boundary);
         CHECK(field.getName() == "Wheat Field");
         CHECK(field.getType() == "field");
-        CHECK(field.has_boundary());
+        CHECK(field.poly_data_.hasFieldBoundary());
     }
     
     SUBCASE("createBarn") {
         auto barn = Zone("Main Barn", "barn", boundary);
         CHECK(barn.getName() == "Main Barn");
         CHECK(barn.getType() == "barn");
-        CHECK(barn.has_boundary());
+        CHECK(barn.poly_data_.hasFieldBoundary());
     }
     
     SUBCASE("createGreenhouse") {
         auto greenhouse = Zone("Tomato House", "greenhouse", boundary);
         CHECK(greenhouse.getName() == "Tomato House");
         CHECK(greenhouse.getType() == "greenhouse");
-        CHECK(greenhouse.has_boundary());
+        CHECK(greenhouse.poly_data_.hasFieldBoundary());
     }
 }
 
@@ -97,9 +97,9 @@ TEST_CASE("Zone field elements") {
         std::unordered_map<std::string, std::string> props;
         props["row_number"] = "1";
         
-        zone.add_element(crop_row, "crop_row", props);
+        zone.poly_data_.addElement(crop_row, "crop_row", props);
         
-        auto crop_rows = zone.get_elements("crop_row");
+        auto crop_rows = zone.poly_data_.getElementsByType("crop_row");
         CHECK(crop_rows.size() == 1);
     }
 }
@@ -134,19 +134,19 @@ TEST_CASE("Zone point containment") {
     
     SUBCASE("Point inside") {
         concord::Point inside_point(50, 25, 0);
-        CHECK(zone.contains(inside_point));
+        CHECK(zone.poly_data_.contains(inside_point));
     }
     
     SUBCASE("Point outside") {
         concord::Point outside_point(150, 25, 0);
-        CHECK(!zone.contains(outside_point));
+        CHECK(!zone.poly_data_.contains(outside_point));
     }
     
     SUBCASE("Point on boundary") {
         concord::Point boundary_point(0, 25, 0);
-        // Note: Polygon.contains() behavior on boundary may vary
+        // Note: Polygon.poly_data_.contains() behavior on boundary may vary
         // This test just checks the method works
-        zone.contains(boundary_point);
+        zone.poly_data_.contains(boundary_point);
     }
 }
 
@@ -169,46 +169,46 @@ TEST_CASE("Zone validation") {
     }
 }
 
-TEST_CASE("Zone ownership") {
-    Zone zone("Test Zone", "field");
-    
-    SUBCASE("Initial state") {
-        CHECK(!zone.hasOwner());
-        CHECK(zone.getOwnerRobot().isNull());
-    }
-    
-    SUBCASE("Set owner") {
-        auto robot_id = generateUUID();
-        zone.setOwnerRobot(robot_id);
-        
-        CHECK(zone.hasOwner());
-        CHECK(zone.getOwnerRobot() == robot_id);
-    }
-    
-    SUBCASE("Release ownership") {
-        auto robot_id = generateUUID();
-        zone.setOwnerRobot(robot_id);
-        zone.releaseOwnership();
-        
-        CHECK(!zone.hasOwner());
-        CHECK(zone.getOwnerRobot().isNull());
-    }
-}
+//TEST_CASE("Zone ownership") {
+//    Zone zone("Test Zone", "field");
+//    
+//    SUBCASE("Initial state") {
+//        // CHECK(!zone.hasOwner()); // hasOwner removed
+//        // CHECK(zone.getOwnerRobot().isNull()); // getOwnerRobot removed
+//    }
+//    
+//    SUBCASE("Set owner") {
+//        auto robot_id = generateUUID();
+//        zone.setOwnerRobot(robot_id);
+//        
+//        // CHECK(!zone.hasOwner()); // hasOwner removed
+//        CHECK(zone.getOwnerRobot() == robot_id);
+//    }
+//    
+//    SUBCASE("Release ownership") {
+//        auto robot_id = generateUUID();
+//        zone.setOwnerRobot(robot_id);
+//        zone.releaseOwnership();
+//        
+//        // CHECK(!zone.hasOwner()); // hasOwner removed
+//        // CHECK(zone.getOwnerRobot().isNull()); // getOwnerRobot removed
+//    }
+//}
 
-TEST_CASE("Zone timestamps") {
-    Zone zone("Test Zone", "field");
-    
-    // Check that timestamps are set (non-zero epoch time)
-    auto epoch = std::chrono::time_point<std::chrono::system_clock>{};
-    CHECK(zone.getCreatedTime() > epoch);
-    CHECK(zone.getModifiedTime() > epoch);
-    
-    auto initial_modified = zone.getModifiedTime();
-    
-    // Sleep briefly and modify zone
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    zone.setProperty("test", "value");
-    
-    // Modified time should have changed
-    CHECK(zone.getModifiedTime() > initial_modified);
-}
+//TEST_CASE("Zone timestamps") {
+//    Zone zone("Test Zone", "field");
+//    
+//    // Check that timestamps are set (non-zero epoch time)
+//    auto epoch = std::chrono::time_point<std::chrono::system_clock>{};
+//    CHECK(zone.getId() // getCreatedTime removed > epoch);
+//    // CHECK(zone.getModifiedTime() // getModifiedTime removed > epoch);
+//    
+//    auto initial_modified = zone.getId() // getModifiedTime removed;
+//    
+//    // Sleep briefly and modify zone
+//    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+//    zone.setProperty("test", "value");
+//    
+//    // Modified time functionality removed
+//    // // CHECK(zone.getModifiedTime() // getModifiedTime removed > initial_modified);
+//}
