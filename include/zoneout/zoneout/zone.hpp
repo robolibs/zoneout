@@ -17,6 +17,21 @@
 
 namespace zoneout {
 
+    // Global zone property names for consistent access
+    namespace zone_globals {
+        static constexpr const char* NAME = "name";
+        static constexpr const char* UUID = "uuid";
+        static constexpr const char* TYPE = "type";
+        static constexpr const char* OWNER_ROBOT_ID = "owner_robot_id";
+        static constexpr const char* CREATED_TIME = "created_time";
+        static constexpr const char* MODIFIED_TIME = "modified_time";
+        static constexpr const char* AREA = "area";
+        static constexpr const char* PERIMETER = "perimeter";
+        static constexpr const char* IS_VALID = "is_valid";
+        static constexpr const char* HAS_BOUNDARY = "has_boundary";
+        static constexpr const char* HAS_OWNER = "has_owner";
+    }
+
     // Modern Zone class using Vector and Raster as primary data storage
     class Zone {
       private:
@@ -147,19 +162,30 @@ namespace zoneout {
         static Zone fromFiles(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path) {
             Zone zone;
 
+            std::string vector_name, vector_uuid;
+            std::string raster_name, raster_uuid;
+
             // Load vector data (field boundary + elements)
             if (std::filesystem::exists(vector_path)) {
                 zone.vector_data_ = geoson::Vector::fromFile(vector_path);
 
-                // Extract zone metadata from field properties
+                // Extract zone metadata from field properties using global names
                 auto field_props = zone.vector_data_.getFieldProperties();
-                auto name_it = field_props.find("name");
+                auto name_it = field_props.find(zone_globals::NAME);
                 if (name_it != field_props.end()) {
-                    zone.setName(name_it->second);
+                    vector_name = name_it->second;
                 }
-                auto type_it = field_props.find("type");
+                auto type_it = field_props.find(zone_globals::TYPE);
                 if (type_it != field_props.end()) {
                     zone.setType(type_it->second);
+                }
+                auto uuid_it = field_props.find(zone_globals::UUID);
+                if (uuid_it != field_props.end()) {
+                    vector_uuid = uuid_it->second;
+                }
+                auto owner_it = field_props.find(zone_globals::OWNER_ROBOT_ID);
+                if (owner_it != field_props.end()) {
+                    zone.owner_robot_id_ = UUID(owner_it->second);
                 }
 
                 // Load zone properties (those with "prop_" prefix)
@@ -173,17 +199,65 @@ namespace zoneout {
             // Load raster data (multi-layer grids)
             if (std::filesystem::exists(raster_path)) {
                 zone.raster_data_ = geotiv::Raster::fromFile(raster_path);
+                
+                // Extract zone metadata from raster global properties using global names
+                auto raster_metadata = zone.raster_data_.getGlobalProperties();
+                auto name_it = raster_metadata.find(zone_globals::NAME);
+                if (name_it != raster_metadata.end()) {
+                    raster_name = name_it->second;
+                }
+                auto type_it = raster_metadata.find(zone_globals::TYPE);
+                if (type_it != raster_metadata.end() && zone.type_.empty()) {
+                    zone.setType(type_it->second);
+                }
+                auto uuid_it = raster_metadata.find(zone_globals::UUID);
+                if (uuid_it != raster_metadata.end()) {
+                    raster_uuid = uuid_it->second;
+                }
+                auto owner_it = raster_metadata.find(zone_globals::OWNER_ROBOT_ID);
+                if (owner_it != raster_metadata.end() && zone.owner_robot_id_.isNull()) {
+                    zone.owner_robot_id_ = UUID(owner_it->second);
+                }
+            }
+
+            // Validate and resolve UUID conflicts
+            if (!vector_uuid.empty() && !raster_uuid.empty()) {
+                if (vector_uuid != raster_uuid) {
+                    throw std::runtime_error("UUID mismatch between vector (" + vector_uuid + 
+                                           ") and raster (" + raster_uuid + ") data files");
+                }
+                zone.id_ = UUID(vector_uuid);
+            } else if (!vector_uuid.empty()) {
+                zone.id_ = UUID(vector_uuid);
+            } else if (!raster_uuid.empty()) {
+                zone.id_ = UUID(raster_uuid);
+            }
+
+            // Validate and resolve NAME conflicts
+            if (!vector_name.empty() && !raster_name.empty()) {
+                if (vector_name != raster_name) {
+                    throw std::runtime_error("Name mismatch between vector ('" + vector_name + 
+                                           "') and raster ('" + raster_name + "') data files");
+                }
+                zone.setName(vector_name);
+            } else if (!vector_name.empty()) {
+                zone.setName(vector_name);
+            } else if (!raster_name.empty()) {
+                zone.setName(raster_name);
             }
 
             return zone;
         }
 
         void toFiles(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path) const {
-            // Save vector data with zone metadata
+            // Save vector data with zone metadata using global names
             auto vector_copy = vector_data_;
-            vector_copy.setFieldProperty("name", name_);
-            vector_copy.setFieldProperty("type", type_);
-            vector_copy.setFieldProperty("id", id_.toString());
+            vector_copy.setFieldProperty(zone_globals::NAME, name_);
+            vector_copy.setFieldProperty(zone_globals::TYPE, type_);
+            vector_copy.setFieldProperty(zone_globals::UUID, id_.toString());
+            vector_copy.setFieldProperty(zone_globals::OWNER_ROBOT_ID, owner_robot_id_.toString());
+            vector_copy.setFieldProperty(zone_globals::CREATED_TIME, std::to_string(created_time_.time_since_epoch().count()));
+            vector_copy.setFieldProperty(zone_globals::MODIFIED_TIME, std::to_string(modified_time_.time_since_epoch().count()));
 
             // Save all zone properties with a prefix to avoid conflicts
             for (const auto &[key, value] : properties_) {
@@ -192,9 +266,17 @@ namespace zoneout {
 
             vector_copy.toFile(vector_path);
 
-            // Save raster data - only if we have grids
+            // Save raster data with zone metadata using global names
             if (raster_data_.hasGrids()) {
-                raster_data_.toFile(raster_path);
+                auto raster_copy = raster_data_;
+                raster_copy.setGlobalProperty(zone_globals::NAME, name_);
+                raster_copy.setGlobalProperty(zone_globals::TYPE, type_);
+                raster_copy.setGlobalProperty(zone_globals::UUID, id_.toString());
+                raster_copy.setGlobalProperty(zone_globals::OWNER_ROBOT_ID, owner_robot_id_.toString());
+                raster_copy.setGlobalProperty(zone_globals::CREATED_TIME, std::to_string(created_time_.time_since_epoch().count()));
+                raster_copy.setGlobalProperty(zone_globals::MODIFIED_TIME, std::to_string(modified_time_.time_since_epoch().count()));
+                
+                raster_copy.toFile(raster_path);
             }
         }
 
@@ -203,6 +285,48 @@ namespace zoneout {
 
         geoson::Vector &getVectorData() { return vector_data_; }
         geotiv::Raster &getRasterData() { return raster_data_; }
+
+        // ========== Integrated Global Name Access ==========
+        // Get zone property from vector field properties using global names
+        std::string getVectorProperty(const char* global_name) const {
+            auto field_props = vector_data_.getFieldProperties();
+            auto it = field_props.find(global_name);
+            return (it != field_props.end()) ? it->second : "";
+        }
+
+        // Set zone property in vector field properties using global names
+        void setVectorProperty(const char* global_name, const std::string& value) {
+            vector_data_.setFieldProperty(global_name, value);
+            updateModifiedTime();
+        }
+
+        // Get zone property from raster global properties using global names
+        std::string getRasterProperty(const char* global_name) const {
+            auto metadata = raster_data_.getGlobalProperties();
+            auto it = metadata.find(global_name);
+            return (it != metadata.end()) ? it->second : "";
+        }
+
+        // Set zone property in raster global properties using global names
+        void setRasterProperty(const char* global_name, const std::string& value) {
+            raster_data_.setGlobalProperty(global_name, value);
+            updateModifiedTime();
+        }
+
+        // Sync zone properties to both vector and raster using global names
+        void syncPropertiesToData() {
+            setVectorProperty(zone_globals::NAME, name_);
+            setVectorProperty(zone_globals::TYPE, type_);
+            setVectorProperty(zone_globals::UUID, id_.toString());
+            setVectorProperty(zone_globals::OWNER_ROBOT_ID, owner_robot_id_.toString());
+            
+            if (raster_data_.hasGrids()) {
+                setRasterProperty(zone_globals::NAME, name_);
+                setRasterProperty(zone_globals::TYPE, type_);
+                setRasterProperty(zone_globals::UUID, id_.toString());
+                setRasterProperty(zone_globals::OWNER_ROBOT_ID, owner_robot_id_.toString());
+            }
+        }
     };
 
 } // namespace zoneout
