@@ -24,24 +24,36 @@ concord::Polygon createRectangle(double x, double y, double width, double height
 
 TEST_CASE("Zone creation and basic properties") {
     SUBCASE("Default constructor") {
-        Zone zone(WAGENINGEN_DATUM);
+        // Create simple base grid for Zone constructor
+        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        
+        Zone zone(WAGENINGEN_DATUM, base_grid);
         CHECK(zone.getName().empty());
         CHECK(zone.getType() == "other");
         CHECK(!zone.poly_data_.hasFieldBoundary());
-        CHECK(zone.getRasterData().gridCount() == 0);
+        CHECK(zone.getRasterData().gridCount() == 1); // Zone now includes the base grid
     }
 
     SUBCASE("Named constructor") {
-        Zone zone("Test Zone", "field", WAGENINGEN_DATUM);
+        // Create simple base grid for Zone constructor
+        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        
+        Zone zone("Test Zone", "field", WAGENINGEN_DATUM, base_grid);
         CHECK(zone.getName() == "Test Zone");
         CHECK(zone.getType() == "field");
         CHECK(!zone.poly_data_.hasFieldBoundary());
-        CHECK(zone.getRasterData().gridCount() == 0);
+        CHECK(zone.getRasterData().gridCount() == 1); // Zone now includes the base grid
     }
 
     SUBCASE("Constructor with boundary") {
+        // Create simple base grid for Zone constructor
+        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        
         auto boundary = createRectangle(0, 0, 100, 50);
-        Zone zone("Test Zone", "field", boundary, WAGENINGEN_DATUM);
+        Zone zone("Test Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
         CHECK(zone.getName() == "Test Zone");
         CHECK(zone.getType() == "field");
         CHECK(zone.poly_data_.hasFieldBoundary());
@@ -53,21 +65,33 @@ TEST_CASE("Zone factory methods") {
     auto boundary = createRectangle(0, 0, 100, 50);
     
     SUBCASE("createField") {
-        auto field = Zone("Wheat Field", "field", boundary, WAGENINGEN_DATUM);
+        // Create simple base grid for Zone constructor
+        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        
+        auto field = Zone("Wheat Field", "field", boundary, WAGENINGEN_DATUM, base_grid);
         CHECK(field.getName() == "Wheat Field");
         CHECK(field.getType() == "field");
         CHECK(field.poly_data_.hasFieldBoundary());
     }
     
     SUBCASE("createBarn") {
-        auto barn = Zone("Main Barn", "barn", boundary, WAGENINGEN_DATUM);
+        // Create simple base grid for Zone constructor
+        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        
+        auto barn = Zone("Main Barn", "barn", boundary, WAGENINGEN_DATUM, base_grid);
         CHECK(barn.getName() == "Main Barn");
         CHECK(barn.getType() == "barn");
         CHECK(barn.poly_data_.hasFieldBoundary());
     }
     
     SUBCASE("createGreenhouse") {
-        auto greenhouse = Zone("Tomato House", "greenhouse", boundary, WAGENINGEN_DATUM);
+        // Create simple base grid for Zone constructor
+        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        
+        auto greenhouse = Zone("Tomato House", "greenhouse", boundary, WAGENINGEN_DATUM, base_grid);
         CHECK(greenhouse.getName() == "Tomato House");
         CHECK(greenhouse.getType() == "greenhouse");
         CHECK(greenhouse.poly_data_.hasFieldBoundary());
@@ -75,7 +99,11 @@ TEST_CASE("Zone factory methods") {
 }
 
 TEST_CASE("Zone properties") {
-    Zone zone("Test Zone", "field", WAGENINGEN_DATUM);
+    // Create simple base grid for Zone constructor
+    concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+    concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    
+    Zone zone("Test Zone", "field", WAGENINGEN_DATUM, base_grid);
     
     SUBCASE("Set and get properties") {
         zone.setProperty("crop_type", "wheat");
@@ -88,8 +116,12 @@ TEST_CASE("Zone properties") {
 }
 
 TEST_CASE("Zone field elements") {
+    // Create simple base grid for Zone constructor
+    concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+    concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    
     auto boundary = createRectangle(0, 0, 100, 50);
-    Zone zone("Test Zone", "field", boundary, WAGENINGEN_DATUM);
+    Zone zone("Test Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
     
     SUBCASE("Add crop rows") {
         std::vector<concord::Point> row_points;
@@ -108,8 +140,12 @@ TEST_CASE("Zone field elements") {
 }
 
 TEST_CASE("Zone raster layers") {
+    // Create simple base grid for Zone constructor
+    concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+    concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    
     auto boundary = createRectangle(0, 0, 100, 50);
-    Zone zone("Test Zone", "field", boundary, WAGENINGEN_DATUM);
+    Zone zone("Test Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
     
     SUBCASE("Add elevation layer") {
         concord::Grid<uint8_t> elevation_grid(10, 20, 5.0, true, concord::Pose{});
@@ -123,17 +159,21 @@ TEST_CASE("Zone raster layers") {
         
         zone.getRasterData().addGrid(20, 10, "elevation", "terrain", {{"units", "meters"}});
         
-        CHECK(zone.getRasterData().gridCount() == 1);
+        CHECK(zone.getRasterData().gridCount() == 2); // Base grid + elevation layer
         
         auto layer_names = zone.getRasterData().getGridNames();
-        CHECK(layer_names.size() == 1);
+        CHECK(layer_names.size() == 2); // Base grid + elevation layer
         CHECK(std::find(layer_names.begin(), layer_names.end(), "elevation") != layer_names.end());
     }
 }
 
 TEST_CASE("Zone point containment") {
+    // Create simple base grid for Zone constructor
+    concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+    concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    
     auto boundary = createRectangle(0, 0, 100, 50);
-    Zone zone("Test Zone", "field", boundary, WAGENINGEN_DATUM);
+    Zone zone("Test Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
     
     SUBCASE("Point inside") {
         concord::Point inside_point(50, 25, 0);
@@ -155,19 +195,31 @@ TEST_CASE("Zone point containment") {
 
 TEST_CASE("Zone validation") {
     SUBCASE("Valid zone with boundary") {
+        // Create simple base grid for Zone constructor
+        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        
         auto boundary = createRectangle(0, 0, 100, 50);
-        Zone zone("Test Zone", "field", boundary, WAGENINGEN_DATUM);
+        Zone zone("Test Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
         CHECK(zone.is_valid());
     }
     
     SUBCASE("Invalid zone without boundary") {
-        Zone zone("Test Zone", "field", WAGENINGEN_DATUM);
+        // Create simple base grid for Zone constructor
+        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        
+        Zone zone("Test Zone", "field", WAGENINGEN_DATUM, base_grid);
         CHECK(!zone.is_valid());
     }
     
     SUBCASE("Invalid zone without name") {
+        // Create simple base grid for Zone constructor
+        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        
         auto boundary = createRectangle(0, 0, 100, 50);
-        Zone zone("", "field", boundary, WAGENINGEN_DATUM);
+        Zone zone("", "field", boundary, WAGENINGEN_DATUM, base_grid);
         CHECK(!zone.is_valid());
     }
 }

@@ -26,30 +26,35 @@ namespace zoneout {
         UUID id_;
         std::string name_;
         std::string type_;
-        concord::Size raster_size_; // Uniform size for all raster layers
 
         // Zone metadata
         std::unordered_map<std::string, std::string> properties_;
 
       public:
         // ========== Constructors ==========
-        Zone(const concord::Datum &datum, const concord::Size &raster_size = concord::Size{100, 100, 0}) 
-            : id_(generateUUID()), type_("other"), raster_size_(raster_size), poly_data_(), grid_data_() { 
+        Zone(const concord::Datum &datum, const concord::Grid<uint8_t> &initial_grid) 
+            : id_(generateUUID()), type_("other"), poly_data_(), grid_data_() { 
             setDatum(datum);
+            // Add the initial grid as the first layer
+            grid_data_.addGrid(initial_grid, "base_layer", "terrain");
             syncToPolyGrid(); 
         }
 
-        Zone(const std::string &name, const std::string &type, const concord::Datum &datum, const concord::Size &raster_size = concord::Size{100, 100, 0})
-            : id_(generateUUID()), name_(name), type_(type), raster_size_(raster_size), poly_data_(name, type, "default"),
+        Zone(const std::string &name, const std::string &type, const concord::Datum &datum, const concord::Grid<uint8_t> &initial_grid)
+            : id_(generateUUID()), name_(name), type_(type), poly_data_(name, type, "default"),
               grid_data_(name, type, "default") {
             setDatum(datum);
+            // Add the initial grid as the first layer
+            grid_data_.addGrid(initial_grid, "base_layer", "terrain");
             syncToPolyGrid();
         }
 
-        Zone(const std::string &name, const std::string &type, const concord::Polygon &boundary, const concord::Datum &datum, const concord::Size &raster_size = concord::Size{100, 100, 0})
-            : id_(generateUUID()), name_(name), type_(type), raster_size_(raster_size), poly_data_(name, type, "default", boundary),
+        Zone(const std::string &name, const std::string &type, const concord::Polygon &boundary, const concord::Datum &datum, const concord::Grid<uint8_t> &initial_grid)
+            : id_(generateUUID()), name_(name), type_(type), poly_data_(name, type, "default", boundary),
               grid_data_(name, type, "default") {
             setDatum(datum);
+            // Add the initial grid as the first layer
+            grid_data_.addGrid(initial_grid, "base_layer", "terrain");
             syncToPolyGrid();
         }
 
@@ -93,71 +98,26 @@ namespace zoneout {
             grid_data_.setDatum(datum);
         }
 
-        // ========== Raster Size Management ==========
-        const concord::Size& getRasterSize() const { return raster_size_; }
-        
-        void setRasterSize(const concord::Size& size) { 
-            raster_size_ = size; 
-        }
-
         // ========== Raster Layer Management ==========
-        void addRasterLayer(const std::string& name, const std::string& type = "", 
-                           const std::unordered_map<std::string, std::string>& properties = {}) {
-            grid_data_.addGrid(static_cast<uint32_t>(raster_size_.x), 
-                              static_cast<uint32_t>(raster_size_.y), 
-                              name, type, properties);
-        }
-
         // Add raster layer with actual grid data
         void addRasterLayer(const concord::Grid<uint8_t>& grid, const std::string& name, const std::string& type = "", 
                            const std::unordered_map<std::string, std::string>& properties = {}) {
-            // Validate that the grid dimensions match the Zone's raster size
-            if (static_cast<double>(grid.cols()) != raster_size_.x || 
-                static_cast<double>(grid.rows()) != raster_size_.y) {
-                throw std::invalid_argument("Grid dimensions (" + 
-                    std::to_string(grid.cols()) + "x" + std::to_string(grid.rows()) + 
-                    ") do not match Zone raster size (" + 
-                    std::to_string(static_cast<int>(raster_size_.x)) + "x" + 
-                    std::to_string(static_cast<int>(raster_size_.y)) + ")");
-            }
             grid_data_.addGrid(grid, name, type, properties);
-        }
-
-        // Helper to create a grid with the Zone's raster size and proper spatial positioning
-        concord::Grid<uint8_t> createGrid() const {
-            concord::Point p0;
-            concord::Pose shift;
-            
-            // Use the same logic as geotiv::Raster for spatial positioning
-            auto datum = getDatum();
-            auto heading = grid_data_.getHeading();
-            auto crs = grid_data_.getCRS();
-            auto resolution = grid_data_.getResolution();
-            
-            if (crs == geotiv::CRS::WGS) {
-                concord::WGS w0{datum.lat, datum.lon, datum.alt};
-                concord::ENU enu0 = w0.toENU(datum);
-                p0 = concord::Point{enu0.x, enu0.y, enu0.z};
-                shift = concord::Pose{p0, heading};
-            } else {
-                p0 = concord::Point{0.0, 0.0, 0.0};
-                shift = concord::Pose{p0, heading};
-            }
-            
-            return concord::Grid<uint8_t>(static_cast<size_t>(raster_size_.y), 
-                                         static_cast<size_t>(raster_size_.x), 
-                                         resolution, true, shift);
         }
 
         // Helper to display raster configuration
         std::string getRasterInfo() const {
-            return "Raster size: " + std::to_string(static_cast<int>(raster_size_.x)) + "x" + 
-                   std::to_string(static_cast<int>(raster_size_.y)) + 
-                   " (" + std::to_string(grid_data_.gridCount()) + " layers)";
+            if (grid_data_.gridCount() > 0) {
+                const auto& first_layer = grid_data_.getGrid(0);
+                return "Raster size: " + std::to_string(first_layer.grid.cols()) + "x" + 
+                       std::to_string(first_layer.grid.rows()) + 
+                       " (" + std::to_string(grid_data_.gridCount()) + " layers)";
+            }
+            return "No raster layers";
         }
 
         // ========== Validation ==========
-        bool is_valid() const { return poly_data_.isValid() && (grid_data_.hasGrids() ? grid_data_.isValid() : true); }
+        bool is_valid() const { return poly_data_.isValid() && grid_data_.isValid(); }
 
         // ========== File I/O ==========
         static Zone fromFiles(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path) {
@@ -167,16 +127,19 @@ namespace zoneout {
             // Extract datum from loaded poly (they should match due to validation in loadPolyGrid)
             auto datum = poly.getDatum();
             
-            // Extract raster size from loaded grid (if it has layers)
-            concord::Size raster_size{100, 100, 0}; // default
+            // Create a default base grid if no grid exists, or use the first layer
+            concord::Grid<uint8_t> base_grid;
             if (grid.hasGrids()) {
-                const auto& first_layer = grid.getGrid(0);
-                raster_size = concord::Size{static_cast<double>(first_layer.grid.cols()), 
-                                          static_cast<double>(first_layer.grid.rows()), 0};
+                base_grid = grid.getGrid(0).grid;
+            } else {
+                // Create a minimal default grid
+                concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+                base_grid = concord::Grid<uint8_t>(10, 10, 1.0, true, shift);
             }
             
-            Zone zone(datum, raster_size);
+            Zone zone(datum, base_grid);
             zone.poly_data_ = poly;
+            // Replace the default grid_data with the loaded one
             zone.grid_data_ = grid;
 
             // Extract properties from the loaded components

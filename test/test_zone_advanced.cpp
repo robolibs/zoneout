@@ -24,8 +24,12 @@ concord::Polygon createRectangle(double x, double y, double width, double height
 }
 
 TEST_CASE("Zone field elements management") {
+    // Create simple base grid for Zone constructor
+    concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+    concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    
     auto boundary = createRectangle(0, 0, 200, 100);
-    Zone zone("Field Zone", "field", boundary, WAGENINGEN_DATUM);
+    Zone zone("Field Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
 
     SUBCASE("Add irrigation lines") {
         std::vector<concord::Point> line_points;
@@ -133,8 +137,12 @@ TEST_CASE("Zone field elements management") {
 }
 
 TEST_CASE("Zone raster layers management") {
+    // Create simple base grid for Zone constructor
+    concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+    concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    
     auto boundary = createRectangle(0, 0, 100, 50);
-    Zone zone("Raster Zone", "field", boundary, WAGENINGEN_DATUM);
+    Zone zone("Raster Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
 
     SUBCASE("Add elevation layer") {
         concord::Grid<uint8_t> elevation_grid(10, 20, 5.0, true, concord::Pose{});
@@ -158,9 +166,11 @@ TEST_CASE("Zone raster layers management") {
             }
         }
 
-        CHECK(zone.getRasterData().gridCount() == 1);
-        CHECK(zone.getRasterData().getGridNames().size() == 1);
-        CHECK(zone.getRasterData().getGridNames()[0] == "elevation");
+        CHECK(zone.getRasterData().gridCount() == 2); // Base grid + elevation layer
+        CHECK(zone.getRasterData().getGridNames().size() == 2); // Base grid + elevation layer
+        // Check that elevation layer is present (might not be first due to base grid)
+        auto grid_names = zone.getRasterData().getGridNames();
+        CHECK(std::find(grid_names.begin(), grid_names.end(), "elevation") != grid_names.end());
 
         const auto& layer = zone.getRasterData().getGrid("elevation");
         CHECK(layer.name == "elevation");
@@ -189,7 +199,7 @@ TEST_CASE("Zone raster layers management") {
             }
         }
 
-        CHECK(zone.getRasterData().gridCount() == 1);
+        CHECK(zone.getRasterData().gridCount() == 2); // Base grid + soil moisture layer
         auto grid_names = zone.getRasterData().getGridNames();
         CHECK(std::find(grid_names.begin(), grid_names.end(), "soil_moisture") != grid_names.end());
     }
@@ -216,7 +226,7 @@ TEST_CASE("Zone raster layers management") {
             }
         }
 
-        CHECK(zone.getRasterData().gridCount() == 1);
+        CHECK(zone.getRasterData().gridCount() == 2); // Base grid + crop health layer
         auto grid_names = zone.getRasterData().getGridNames();
         CHECK(std::find(grid_names.begin(), grid_names.end(), "crop_health") != grid_names.end());
     }
@@ -253,9 +263,9 @@ TEST_CASE("Zone raster layers management") {
             }
         }
 
-        CHECK(zone.getRasterData().gridCount() == 3);
+        CHECK(zone.getRasterData().gridCount() == 4); // Base grid + 3 additional layers
         auto grid_names = zone.getRasterData().getGridNames();
-        CHECK(grid_names.size() == 3);
+        CHECK(grid_names.size() == 4); // Base grid + 3 additional layers
         CHECK(std::find(grid_names.begin(), grid_names.end(), "elevation") != grid_names.end());
         CHECK(std::find(grid_names.begin(), grid_names.end(), "soil_moisture") != grid_names.end());
         CHECK(std::find(grid_names.begin(), grid_names.end(), "crop_health") != grid_names.end());
@@ -287,15 +297,19 @@ TEST_CASE("Zone raster layers management") {
             }
         }
 
-        CHECK(zone.getRasterData().gridCount() == 1);
+        CHECK(zone.getRasterData().gridCount() == 2); // Base grid + temperature layer
         auto grid_names = zone.getRasterData().getGridNames();
         CHECK(std::find(grid_names.begin(), grid_names.end(), "temperature") != grid_names.end());
     }
 }
 
 TEST_CASE("Zone raster sampling") {
+    // Create simple base grid for Zone constructor
+    concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+    concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    
     auto boundary = createRectangle(0, 0, 100, 50);
-    Zone zone("Sampling Zone", "field", boundary, WAGENINGEN_DATUM);
+    Zone zone("Sampling Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
 
     // Create elevation grid with known pattern
     concord::Grid<uint8_t> elevation_grid(10, 20, 5.0, true, concord::Pose{});
@@ -344,17 +358,25 @@ TEST_CASE("Zone raster sampling") {
 
 TEST_CASE("Zone geometric operations") {
     SUBCASE("Area and perimeter calculations") {
+        // Create simple base grid for Zone constructor
+        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        
         // Rectangle: 100m x 50m = 5000 m²
         auto boundary = createRectangle(0, 0, 100, 50);
-        Zone zone("Geometry Zone", "field", boundary, WAGENINGEN_DATUM);
+        Zone zone("Geometry Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
 
         CHECK(zone.poly_data_.area() == doctest::Approx(5000.0));
         CHECK(zone.poly_data_.perimeter() == doctest::Approx(300.0)); // 2 * (100 + 50)
     }
 
     SUBCASE("Point containment") {
+        // Create simple base grid for Zone constructor
+        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        
         auto boundary = createRectangle(10, 10, 80, 60);
-        Zone zone("Containment Zone", "field", boundary, WAGENINGEN_DATUM);
+        Zone zone("Containment Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
 
         // Points inside
         CHECK(zone.poly_data_.contains(concord::Point(50, 40, 0)));
@@ -381,8 +403,12 @@ TEST_CASE("Zone geometric operations") {
         l_points.emplace_back(30, 60, 0);
         l_points.emplace_back(0, 60, 0);
 
+        // Create simple base grid for Zone constructor
+        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        
         concord::Polygon l_boundary(l_points);
-        Zone l_zone("L-Shape Zone", "field", l_boundary, WAGENINGEN_DATUM);
+        Zone l_zone("L-Shape Zone", "field", l_boundary, WAGENINGEN_DATUM, base_grid);
 
         // Points in different parts of the L
         CHECK(l_zone.poly_data_.contains(concord::Point(15, 15, 0))); // Bottom part
@@ -430,34 +456,46 @@ TEST_CASE("Zone geometric operations") {
 //
 TEST_CASE("Zone validation rules") {
     SUBCASE("Valid zones") {
+        // Create simple base grid for Zone constructor
+        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        
         auto boundary = createRectangle(0, 0, 100, 50);
-        Zone valid_zone("Valid Zone", "field", boundary, WAGENINGEN_DATUM);
+        Zone valid_zone("Valid Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
         CHECK(valid_zone.is_valid());
 
         // Zone with just name and boundary is valid
-        Zone minimal_zone("Minimal", "other", boundary, WAGENINGEN_DATUM);
+        Zone minimal_zone("Minimal", "other", boundary, WAGENINGEN_DATUM, base_grid);
         CHECK(minimal_zone.is_valid());
     }
 
     SUBCASE("Invalid zones") {
+        // Create simple base grid for Zone constructor
+        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        
         // No boundary
-        Zone no_boundary("No Boundary", "field", WAGENINGEN_DATUM);
+        Zone no_boundary("No Boundary", "field", WAGENINGEN_DATUM, base_grid);
         CHECK(!no_boundary.is_valid());
 
         // Empty name
         auto boundary = createRectangle(0, 0, 100, 50);
-        Zone empty_name("", "field", boundary, WAGENINGEN_DATUM);
+        Zone empty_name("", "field", boundary, WAGENINGEN_DATUM, base_grid);
         CHECK(!empty_name.is_valid());
 
         // Both empty name and no boundary
-        Zone completely_invalid("", "field", WAGENINGEN_DATUM);
+        Zone completely_invalid("", "field", WAGENINGEN_DATUM, base_grid);
         CHECK(!completely_invalid.is_valid());
     }
 }
 
 TEST_CASE("Zone file I/O operations") {
+    // Create simple base grid for Zone constructor
+    concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+    concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    
     auto boundary = createRectangle(0, 0, 100, 50);
-    Zone zone("File I/O Zone", "field", boundary, WAGENINGEN_DATUM);
+    Zone zone("File I/O Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
 
     // Add some data to make it interesting
     concord::Grid<uint8_t> elevation_grid(5, 10, 10.0, true, concord::Pose{});
@@ -503,7 +541,11 @@ TEST_CASE("Zone file I/O operations") {
 }
 
 TEST_CASE("Zone property edge cases") {
-    Zone zone("Edge Case Zone", "field", WAGENINGEN_DATUM);
+    // Create simple base grid for Zone constructor
+    concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+    concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    
+    Zone zone("Edge Case Zone", "field", WAGENINGEN_DATUM, base_grid);
 
     SUBCASE("Property overwrites") {
         zone.setProperty("test_key", "value1");

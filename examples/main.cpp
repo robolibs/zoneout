@@ -49,12 +49,13 @@ int main() {
     // Wageningen Research Labs coordinates
     const concord::Datum WAGENINGEN_DATUM{51.98776171041831, 5.662378206146002, 0.0};
 
-    // Define raster size for all layers (20x10 grid)
-    const concord::Size RASTER_SIZE{100, 50, 0};
+    // Create base elevation grid (100x50 resolution)
+    auto base_elevation_grid = generate_noise(concord::Size{100, 50, 0}, entropy::NoiseGen::NoiseType_OpenSimplex2,
+                                              0.01f, 0, 20, WAGENINGEN_DATUM, 1.0);
 
-    // Create a field zone with boundary and raster size
+    // Create a field zone with boundary and base elevation grid
     auto field_boundary = createRectangle(0, 0, 100, 50);
-    zoneout::Zone field("Wheat Field", "field", field_boundary, WAGENINGEN_DATUM, RASTER_SIZE);
+    zoneout::Zone field("Wheat Field", "field", field_boundary, WAGENINGEN_DATUM, base_elevation_grid);
 
     std::cout << "Created field: " << field.getName() << std::endl;
     std::cout << "Field area: " << field.poly_data_.area() << " m²" << std::endl;
@@ -78,16 +79,16 @@ int main() {
 
     std::cout << "Added " << field.poly_data_.elementCount() << " elements" << std::endl;
 
-    // Generate realistic elevation data (0-20 meters)
-    auto elevation_grid = generate_noise(RASTER_SIZE, entropy::NoiseGen::NoiseType_OpenSimplex2,
-                                         0.01f,  // Low frequency for gentle terrain
-                                         0, 20); // 0-20m range
+    // Generate realistic elevation data (0-20 meters) using same size as base grid
+    auto elevation_grid = generate_noise(concord::Size{100, 50, 0}, entropy::NoiseGen::NoiseType_OpenSimplex2,
+                                         0.01f,                         // Low frequency for gentle terrain
+                                         0, 20, WAGENINGEN_DATUM, 1.0); // 0-20m range
     field.addRasterLayer(elevation_grid, "elevation", "terrain", {{"units", "meters"}, {"range", "0-20m"}});
 
     // Generate realistic soil moisture data (20-80%)
-    auto moisture_grid = generate_noise(RASTER_SIZE, entropy::NoiseGen::NoiseType_Perlin,
-                                        0.05f,   // Higher frequency for more variation
-                                        20, 80); // 20-80% range
+    auto moisture_grid = generate_noise(concord::Size{100, 50, 0}, entropy::NoiseGen::NoiseType_Perlin,
+                                        0.05f,                          // Higher frequency for more variation
+                                        20, 80, WAGENINGEN_DATUM, 1.0); // 20-80% range
     field.addRasterLayer(moisture_grid, "soil_moisture", "environmental",
                          {{"units", "percentage"}, {"range", "20-80%"}});
 

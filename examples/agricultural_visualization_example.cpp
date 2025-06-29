@@ -26,8 +26,12 @@ int main() {
     // Define raster size for high-resolution agricultural monitoring
     concord::Size raster_size{150, 100, 0}; // 150x100 grid for 300x200m field
 
+    // Create simple base grid for Zone constructor
+    concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
+    concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    
     // Create a realistic agricultural zone (wheat field)
-    zoneout::Zone wheat_field("Wheat_Field_North", "field", datum, raster_size);
+    zoneout::Zone wheat_field("Wheat_Field_North", "field", datum, base_grid);
 
     // Create field boundary in local ENU coordinates (meters from datum)
     concord::Polygon boundary;
