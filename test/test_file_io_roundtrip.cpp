@@ -287,8 +287,13 @@ TEST_CASE("Complete file I/O round-trip test") {
         size_t original_elements = original_zone.poly_data_.elementCount();
         size_t loaded_elements = loaded_zone.poly_data_.elementCount();
         
-        CHECK(loaded_elements == original_elements);
-        CHECK(loaded_elements == 11);
+        // After save/load, we should have 1 additional element (the field boundary as "border" element)
+        CHECK(loaded_elements == original_elements + 1);
+        CHECK(loaded_elements == 12); // 11 original + 1 boundary element
+        
+        // Verify that a "border" element was added
+        auto border_elements = loaded_zone.poly_data_.getElementsByType("border");
+        CHECK(border_elements.size() == 1);
         
         // Verify specific element types were preserved
         auto original_parking = original_zone.poly_data_.getElementsByType("parking_space");
