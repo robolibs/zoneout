@@ -142,6 +142,42 @@ irrigation_props["flow_rate"] = "200L/min";
 irrigation_props["coverage_width"] = "30m";
 
 wheat_field.add_element(concord::Path(irrigation_line), "irrigation_line", irrigation_props);
+
+// Add facilities (parking, storage, etc.)
+concord::Polygon parking_area = createRectangle(520, 50, 30, 20);
+std::unordered_map<std::string, std::string> parking_props;
+parking_props["name"] = "main_parking";
+parking_props["capacity"] = "5_vehicles";
+parking_props["surface"] = "gravel";
+
+wheat_field.add_element(parking_area, "parking_space", parking_props);
+
+// Add storage area
+concord::Polygon storage_area = createRectangle(80, 70, 25, 20);
+std::unordered_map<std::string, std::string> storage_props;
+storage_props["name"] = "equipment_storage";
+storage_props["max_weight"] = "500kg_per_m2";
+storage_props["weather_protection"] = "covered";
+
+wheat_field.add_element(storage_area, "storage_area", storage_props);
+
+// Add access routes  
+std::vector<concord::Point> access_path = {{5, 50, 0}, {95, 50, 0}};
+std::unordered_map<std::string, std::string> route_props;
+route_props["name"] = "main_access";
+route_props["width"] = "4m";
+route_props["surface"] = "dirt_road";
+
+wheat_field.add_element(concord::Path(access_path), "access_route", route_props);
+
+// Add equipment points
+concord::Point water_station(60, 40, 0);
+std::unordered_map<std::string, std::string> station_props;
+station_props["name"] = "water_station";
+station_props["type"] = "irrigation_hub";
+station_props["flow_rate"] = "100L_per_min";
+
+wheat_field.add_element(water_station, "equipment_point", station_props);
 ```
 
 ### Raster Data Integration
@@ -173,37 +209,57 @@ if (elevation) {
 
 ### Farm-Level Management
 ```cpp
-// Create farm with multiple zones
+// Create farm with multiple zones (snake_case API)
 Farm smart_farm("Precision Agriculture Demo");
 
 // Add zones to farm
-smart_farm.addZone(std::make_unique<Zone>(std::move(wheat_field)));
-auto& barn = smart_farm.createBarn("Storage Barn", createRectangle(600, 0, 80, 60));
-auto& greenhouse = smart_farm.createGreenhouse("Tomato House", createRectangle(0, 350, 200, 100));
+smart_farm.add_zone(std::make_unique<Zone>(std::move(wheat_field)));
+auto& barn = smart_farm.create_barn("Storage Barn", createRectangle(600, 0, 80, 60));
+auto& greenhouse = smart_farm.create_greenhouse("Tomato House", createRectangle(0, 350, 200, 100));
 
 std::cout << "Farm overview:" << std::endl;
-std::cout << "• Total area: " << smart_farm.totalArea() << " m²" << std::endl;
-std::cout << "• Number of zones: " << smart_farm.numZones() << std::endl;
-std::cout << "• Field area: " << smart_farm.areaByType("field") << " m²" << std::endl;
+std::cout << "• Total area: " << smart_farm.total_area() << " m²" << std::endl;
+std::cout << "• Number of zones: " << smart_farm.num_zones() << std::endl;
+std::cout << "• Field area: " << smart_farm.area_by_type("field") << " m²" << std::endl;
 ```
 
 ### Spatial Queries & Robot Coordination
 ```cpp
-// Robot navigation queries
+// Robot navigation queries (snake_case API)
 concord::Point robot_position(250, 150, 0);
 
 // Which zone contains the robot?
-auto current_zones = smart_farm.findZonesContaining(robot_position);
+auto current_zones = smart_farm.find_zones_containing(robot_position);
 if (!current_zones.empty()) {
     std::cout << "Robot is in: " << current_zones[0]->getName() << std::endl;
 }
 
 // Find zones within operational radius
-auto nearby_zones = smart_farm.findZonesWithinRadius(robot_position, 100.0);
+auto nearby_zones = smart_farm.find_zones_within_radius(robot_position, 100.0);
 std::cout << "Zones within 100m: " << nearby_zones.size() << std::endl;
 
+// Query elements within the current zone
+if (!current_zones.empty()) {
+    auto parking_spaces = current_zones[0]->get_elements("parking_space");
+    auto storage_areas = current_zones[0]->get_elements("storage_area");
+    std::cout << "Available parking: " << parking_spaces.size() << std::endl;
+    std::cout << "Storage areas: " << storage_areas.size() << std::endl;
+    
+    for (const auto& space : parking_spaces) {
+        auto name_it = space.properties.find("name");
+        auto capacity_it = space.properties.find("capacity");
+        if (name_it != space.properties.end()) {
+            std::cout << "- " << name_it->second;
+            if (capacity_it != space.properties.end()) {
+                std::cout << " (" << capacity_it->second << ")";
+            }
+            std::cout << std::endl;
+        }
+    }
+}
+
 // Find nearest facility for resupply
-auto nearest_barn = smart_farm.findNearestZone(robot_position);
+auto nearest_barn = smart_farm.find_nearest_zone(robot_position);
 if (nearest_barn && nearest_barn->getType() == "barn") {
     std::cout << "Nearest resupply: " << nearest_barn->getName() << std::endl;
 }
@@ -251,21 +307,28 @@ std::cout << "1000 point queries: " << duration.count() << "ms" << std::endl;
 
 ### 💾 Persistence & File I/O
 ```cpp
-// Save farm data (GeoJSON + GeoTIFF formats)
-smart_farm.saveToDirectory("/data/farms/demo_farm/");
+// Save zone data (dual-format: GeoJSON + GeoTIFF)
+std::string vector_path = "/tmp/wheat_field.geojson";
+std::string raster_path = "/tmp/wheat_field.tiff";
+
+wheat_field.toFiles(vector_path, raster_path);
 /*
 Creates:
-📁 /data/farms/demo_farm/
-├── 📄 North_Field.geojson    (vector data + metadata)
-├── 🗺️ North_Field.tiff       (raster layers)
-├── 📄 Storage_Barn.geojson   
-├── 📄 Tomato_House.geojson   
-└── 🗺️ Tomato_House.tiff      (if has raster data)
+📄 wheat_field.geojson - Vector data (boundaries, elements, properties)
+🗺️ wheat_field.tiff   - Raster data (elevation, soil data, etc.)
 */
 
-// Load farm from directory
-Farm loaded_farm = Farm::loadFromDirectory("/data/farms/demo_farm/", "Loaded Demo");
-std::cout << "Loaded " << loaded_farm.numZones() << " zones" << std::endl;
+// Load zone from files (round-trip preservation)
+Zone loaded_field = Zone::fromFiles(vector_path, raster_path);
+std::cout << "Loaded: " << loaded_field.getName() << std::endl;
+std::cout << "Elements: " << loaded_field.get_elements().size() << std::endl;
+std::cout << "Layers: " << loaded_field.num_layers() << std::endl;
+
+// All data preserved through save/load cycle:
+// ✓ Zone properties (name, type, custom properties)
+// ✓ Vector elements (crop rows, irrigation, obstacles)
+// ✓ Raster layers (elevation, soil moisture, NDVI)
+// ✓ Grid data and spatial positioning
 ```
 
 ## 🎯 Use Cases
@@ -306,50 +369,70 @@ class Zone {
     Zone(const std::string& name, const std::string& type, const concord::Polygon& boundary);
     static Zone createField(const std::string& name, const concord::Polygon& boundary);
     static Zone createBarn(const std::string& name, const concord::Polygon& boundary);
+    static Zone createGreenhouse(const std::string& name, const concord::Polygon& boundary);
     
-    // Geometry
+    // Geometry (snake_case API)
     double area() const;
     double perimeter() const;
     bool contains(const concord::Point& point) const;
+    void set_boundary(const concord::Polygon& boundary);
+    const concord::Polygon& get_boundary() const;
+    bool has_boundary() const;
     
-    // Field Elements
+    // Field Elements (generic methods - user-defined types)
     void add_element(const geoson::Geometry& geom, const std::string& type, const Properties& props = {});
     std::vector<geoson::Element> get_elements(const std::string& type = "") const;
     
-    // Raster Data
+    // Raster Layers (generic methods - user-defined types)
     void add_layer(const std::string& name, const std::string& type, const concord::Grid<uint8_t>& grid, const Properties& props = {});
     std::optional<uint8_t> sample_at(const std::string& layer, const concord::Point& point) const;
     bool has_layer(const std::string& name) const;
+    size_t num_layers() const;
+    std::vector<std::string> get_layer_names() const;
+    
+    // Properties
+    void setProperty(const std::string& key, const std::string& value);
+    std::string getProperty(const std::string& key, const std::string& default_value = "") const;
+    const std::unordered_map<std::string, std::string>& getProperties() const;
     
     // Robot Coordination
     void setOwnerRobot(const UUID& robot_id);
     bool hasOwner() const;
     void releaseOwnership();
+    
+    // Validation
+    bool is_valid() const;
+    
+    // File I/O (dual-format persistence)
+    void toFiles(const std::filesystem::path& vector_path, const std::filesystem::path& raster_path) const;
+    static Zone fromFiles(const std::filesystem::path& vector_path, const std::filesystem::path& raster_path);
 };
 ```
 
 ### Farm Class  
 ```cpp
 class Farm {
-    // Zone Management
-    void addZone(std::unique_ptr<Zone> zone);
-    Zone& createField(const std::string& name, const concord::Polygon& boundary);
-    size_t numZones() const;
+    // Zone Management (snake_case API)
+    void add_zone(std::unique_ptr<Zone> zone);
+    Zone& create_field(const std::string& name, const concord::Polygon& boundary);
+    Zone& create_barn(const std::string& name, const concord::Polygon& boundary);  
+    Zone& create_greenhouse(const std::string& name, const concord::Polygon& boundary);
+    size_t num_zones() const;
     
     // Spatial Queries (O(log n) with R-tree indexing)
-    std::vector<Zone*> findZonesContaining(const concord::Point& point);
-    std::vector<Zone*> findZonesWithinRadius(const concord::Point& center, double radius);
-    std::vector<Zone*> findZonesIntersecting(const concord::Polygon& area);
-    Zone* findNearestZone(const concord::Point& point);
+    std::vector<Zone*> find_zones_containing(const concord::Point& point);
+    std::vector<Zone*> find_zones_within_radius(const concord::Point& center, double radius);
+    std::vector<Zone*> find_zones_intersecting(const concord::Polygon& area);
+    Zone* find_nearest_zone(const concord::Point& point);
     
     // Statistics
-    double totalArea() const;
-    double areaByType(const std::string& type) const;
-    std::optional<concord::AABB> getBoundingBox() const;
+    double total_area() const;
+    double area_by_type(const std::string& type) const;
+    std::optional<concord::AABB> get_bounding_box() const;
     
-    // Persistence
-    void saveToDirectory(const std::filesystem::path& dir) const;
-    static Farm loadFromDirectory(const std::filesystem::path& dir);
+    // File I/O
+    void save_to_directory(const std::filesystem::path& dir) const;
+    static Farm load_from_directory(const std::filesystem::path& dir, const std::string& name);
 };
 ```
 

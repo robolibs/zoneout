@@ -10,6 +10,16 @@
 
 #include "zoneout/zoneout.hpp"
 
+// Helper function to create a rectangular polygon
+concord::Polygon createRectangle(double x, double y, double width, double height) {
+    std::vector<concord::Point> points;
+    points.emplace_back(x, y, 0.0);
+    points.emplace_back(x + width, y, 0.0);
+    points.emplace_back(x + width, y + height, 0.0);
+    points.emplace_back(x, y + height, 0.0);
+    return concord::Polygon(points);
+}
+
 int main() {
     std::cout << "Zoneout Library Demo - Version " << zoneout::getVersion() << std::endl;
 
@@ -162,6 +172,66 @@ int main() {
     std::cout << "\nZone validation:" << std::endl;
     std::cout << "Field valid: " << (field.is_valid() ? "Yes" : "No") << std::endl;
     std::cout << "Barn valid: " << (barn.is_valid() ? "Yes" : "No") << std::endl;
+
+    // Test file I/O with different element types
+    std::cout << "\n=== File I/O Testing ===" << std::endl;
+    
+    // Add different types of elements to the field
+    auto parking_area = createRectangle(110, 60, 20, 15);
+    field.add_element(parking_area, "parking_space", {
+        {"name", "main_parking"},
+        {"capacity", "5_vehicles"}, 
+        {"surface", "gravel"}
+    });
+    
+    auto storage_zone = createRectangle(80, 70, 25, 20);
+    field.add_element(storage_zone, "storage_area", {
+        {"name", "equipment_storage"},
+        {"max_weight", "500kg_per_m2"},
+        {"weather_protection", "covered"}
+    });
+    
+    std::vector<concord::Point> access_path = {{5, 50, 0}, {95, 50, 0}};
+    field.add_element(concord::Path(access_path), "access_route", {
+        {"name", "main_access"},
+        {"width", "4m"},
+        {"surface", "dirt_road"}
+    });
+    
+    field.add_element(concord::Point(60, 40, 0), "equipment_point", {
+        {"name", "water_station"},
+        {"type", "irrigation_hub"},
+        {"flow_rate", "100L_per_min"}
+    });
+    
+    std::cout << "Added " << field.get_elements().size() << " elements to field:" << std::endl;
+    for (const auto& element : field.get_elements()) {
+        auto name_it = element.properties.find("name");
+        auto type_it = element.properties.find("type");
+        if (name_it != element.properties.end() && type_it != element.properties.end()) {
+            std::cout << "- " << name_it->second << " (" << type_it->second << ")" << std::endl;
+        }
+    }
+    
+    // Save to files
+    std::string vector_path = "/tmp/test_field.geojson";
+    std::string raster_path = "/tmp/test_field.tiff";
+    
+    try {
+        field.toFiles(vector_path, raster_path);
+        std::cout << "\nSaved field to: " << vector_path << std::endl;
+        
+        // Load it back
+        auto loaded_field = zoneout::Zone::fromFiles(vector_path, raster_path);
+        std::cout << "Loaded field: " << loaded_field.getName() << std::endl;
+        std::cout << "Loaded elements: " << loaded_field.get_elements().size() << std::endl;
+        std::cout << "Loaded layers: " << loaded_field.num_layers() << std::endl;
+        
+        std::cout << "\nFile I/O test successful!" << std::endl;
+        
+    } catch (const std::exception& e) {
+        std::cout << "File I/O error: " << e.what() << std::endl;
+    }
 
     std::cout << "\n=== Demo completed successfully! ===" << std::endl;
 

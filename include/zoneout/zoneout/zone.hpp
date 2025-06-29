@@ -244,11 +244,33 @@ namespace zoneout {
                 if (type_it != field_props.end()) {
                     zone.setType(type_it->second);
                 }
+                
+                // Load zone properties (those with "prop_" prefix)
+                for (const auto& [key, value] : field_props) {
+                    if (key.substr(0, 5) == "prop_") {
+                        zone.setProperty(key.substr(5), value);
+                    }
+                }
             }
             
             // Load raster data (multi-layer grids)
             if (std::filesystem::exists(raster_path)) {
                 zone.raster_data_ = geotiv::Raster::fromFile(raster_path);
+                
+                // Convert geotiv raster layers back to our grid layers
+                // Don't use add_layer as it would duplicate the raster data
+                for (size_t i = 0; i < zone.raster_data_.gridCount(); ++i) {
+                    const auto& geotiv_layer = zone.raster_data_.getGrid(i);
+                    
+                    // Create our GridLayer directly
+                    GridLayer layer;
+                    layer.name = geotiv_layer.name;
+                    layer.type = geotiv_layer.type;
+                    layer.grid = geotiv_layer.grid;  // Copy the loaded grid
+                    layer.properties = geotiv_layer.properties;
+                    
+                    zone.grid_layers_[layer.name] = layer;
+                }
             }
             
             return zone;
@@ -261,10 +283,36 @@ namespace zoneout {
             vector_copy.setFieldProperty("name", name_);
             vector_copy.setFieldProperty("type", type_);
             vector_copy.setFieldProperty("id", id_.toString());
+            
+            // Save all zone properties with a prefix to avoid conflicts
+            for (const auto& [key, value] : properties_) {
+                vector_copy.setFieldProperty("prop_" + key, value);
+            }
+            
             vector_copy.toFile(vector_path);
             
-            // Save raster data
-            raster_data_.toFile(raster_path);
+            // Save raster data - only if we have actual grid layers
+            if (!grid_layers_.empty()) {
+                // Create a geotiv::Raster with our actual grid data
+                geotiv::Raster raster_to_save;
+                
+                // Add each grid layer to the raster
+                for (const auto& [layer_name, grid_layer] : grid_layers_) {
+                    raster_to_save.addGrid(grid_layer.grid.cols(), grid_layer.grid.rows(), 
+                                         layer_name, grid_layer.type, grid_layer.properties);
+                    
+                    // Now get the added grid and copy our actual data to it
+                    auto& geotiv_grid = raster_to_save.getGrid(layer_name).grid;
+                    for (size_t r = 0; r < grid_layer.grid.rows(); ++r) {
+                        for (size_t c = 0; c < grid_layer.grid.cols(); ++c) {
+                            auto cell = grid_layer.grid(r, c);
+                            geotiv_grid.set_value(r, c, cell.second);
+                        }
+                    }
+                }
+                
+                raster_to_save.toFile(raster_path);
+            }
         }
 
         // ========== Factory Methods ==========
