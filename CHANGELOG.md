@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3] - 2025-06-29
+
+### <!-- 2 -->🚜 Refactor
+
+- Refactor Zone to manage raster data through an initial grid
+- Refactor: improve boundary handling in structured elements
+
 ## [0.0.2] - 2025-06-29
 
 ### <!-- 0 -->⛰️  Features
