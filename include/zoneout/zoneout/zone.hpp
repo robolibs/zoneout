@@ -9,9 +9,7 @@
 #include <vector>
 
 #include "concord/concord.hpp"
-#include "geoson/vector.hpp"
-#include "geotiv/raster.hpp"
-
+#include "polygrid.hpp"
 #include "utils/time.hpp"
 #include "utils/uuid.hpp"
 
@@ -19,18 +17,18 @@ namespace zoneout {
 
     // Global zone property names for consistent access
     namespace zone_globals {
-        static constexpr const char* NAME = "name";
-        static constexpr const char* UUID = "uuid";
-        static constexpr const char* TYPE = "type";
-        static constexpr const char* OWNER_ROBOT_ID = "owner_robot_id";
-        static constexpr const char* CREATED_TIME = "created_time";
-        static constexpr const char* MODIFIED_TIME = "modified_time";
-        static constexpr const char* AREA = "area";
-        static constexpr const char* PERIMETER = "perimeter";
-        static constexpr const char* IS_VALID = "is_valid";
-        static constexpr const char* HAS_BOUNDARY = "has_boundary";
-        static constexpr const char* HAS_OWNER = "has_owner";
-    }
+        static constexpr const char *NAME = "name";
+        static constexpr const char *UUID = "uuid";
+        static constexpr const char *TYPE = "type";
+        static constexpr const char *OWNER_ROBOT_ID = "owner_robot_id";
+        static constexpr const char *CREATED_TIME = "created_time";
+        static constexpr const char *MODIFIED_TIME = "modified_time";
+        static constexpr const char *AREA = "area";
+        static constexpr const char *PERIMETER = "perimeter";
+        static constexpr const char *IS_VALID = "is_valid";
+        static constexpr const char *HAS_BOUNDARY = "has_boundary";
+        static constexpr const char *HAS_OWNER = "has_owner";
+    } // namespace zone_globals
 
     // Modern Zone class using Vector and Raster as primary data storage
     class Zone {
@@ -39,9 +37,9 @@ namespace zoneout {
         std::string name_;
         std::string type_;
 
-        // Primary data storage - Vector for boundaries/elements, Raster for grid data
-        geoson::Vector vector_data_; // Field boundaries + elements (irrigation, crop rows, obstacles, etc.)
-        geotiv::Raster raster_data_; // Multi-layer raster data (elevation, soil, etc.)
+        // Primary data storage - Poly for boundaries/elements, Grid for raster data
+        Poly poly_data_; // Field boundaries + elements (irrigation, crop rows, obstacles, etc.)
+        Grid grid_data_; // Multi-layer raster data (elevation, soil, etc.)
 
         // Zone metadata
         std::unordered_map<std::string, std::string> properties_;
@@ -55,16 +53,22 @@ namespace zoneout {
       public:
         // ========== Constructors ==========
         Zone()
-            : id_(generateUUID()), type_("other"), vector_data_(concord::Polygon{}), raster_data_(),
-              created_time_(time_utils::now()), modified_time_(time_utils::now()) {}
+            : id_(generateUUID()), type_("other"), poly_data_(), grid_data_(), created_time_(time_utils::now()),
+              modified_time_(time_utils::now()) {
+            syncToPolyGrid();
+        }
 
         Zone(const std::string &name, const std::string &type)
-            : id_(generateUUID()), name_(name), type_(type), vector_data_(concord::Polygon{}), raster_data_(),
-              created_time_(time_utils::now()), modified_time_(time_utils::now()) {}
+            : id_(generateUUID()), name_(name), type_(type), poly_data_(name, type, "default"), grid_data_(name, type, "default"),
+              created_time_(time_utils::now()), modified_time_(time_utils::now()) {
+            syncToPolyGrid();
+        }
 
         Zone(const std::string &name, const std::string &type, const concord::Polygon &boundary)
-            : id_(generateUUID()), name_(name), type_(type), vector_data_(boundary), raster_data_(),
-              created_time_(time_utils::now()), modified_time_(time_utils::now()) {}
+            : id_(generateUUID()), name_(name), type_(type), poly_data_(name, type, "default", boundary), grid_data_(name, type, "default"),
+              created_time_(time_utils::now()), modified_time_(time_utils::now()) {
+            syncToPolyGrid();
+        }
 
         // ========== Basic Properties ==========
         const UUID &getId() const { return id_; }
@@ -73,38 +77,40 @@ namespace zoneout {
 
         void setName(const std::string &name) {
             name_ = name;
+            poly_data_.setName(name);
+            grid_data_.setName(name);
             updateModifiedTime();
         }
 
         void setType(const std::string &type) {
             type_ = type;
+            poly_data_.setType(type);
+            grid_data_.setType(type);
             updateModifiedTime();
         }
 
-        // ========== Field Boundary (Vector) ==========
+        // ========== Field Boundary (Poly) ==========
         void set_boundary(const concord::Polygon &boundary) {
-            vector_data_.setFieldBoundary(boundary);
+            poly_data_.setFieldBoundary(boundary);
             updateModifiedTime();
         }
 
-        const concord::Polygon &get_boundary() const { return vector_data_.getFieldBoundary(); }
+        const concord::Polygon &get_boundary() const { return poly_data_.getFieldBoundary(); }
 
-        bool has_boundary() const { return !vector_data_.getFieldBoundary().getPoints().empty(); }
+        bool has_boundary() const { return poly_data_.hasFieldBoundary(); }
 
         // Field geometry operations
-        double area() const { return has_boundary() ? vector_data_.getFieldBoundary().area() : 0.0; }
+        double area() const { return poly_data_.area(); }
 
-        double perimeter() const { return has_boundary() ? vector_data_.getFieldBoundary().perimeter() : 0.0; }
+        double perimeter() const { return poly_data_.perimeter(); }
 
-        bool contains(const concord::Point &point) const {
-            return has_boundary() && vector_data_.getFieldBoundary().contains(point);
-        }
+        bool contains(const concord::Point &point) const { return poly_data_.contains(point); }
 
-        // ========== Field Elements (Vector) ==========
+        // ========== Field Elements (Poly) ==========
         // Generic method - users name their own element types
         void add_element(const geoson::Geometry &geometry, const std::string &type,
                          const std::unordered_map<std::string, std::string> &properties = {}) {
-            vector_data_.addElement(geometry, type, properties);
+            poly_data_.addElement(geometry, type, properties);
             updateModifiedTime();
         }
 
@@ -112,12 +118,12 @@ namespace zoneout {
         std::vector<geoson::Element> get_elements(const std::string &type = "") const {
             if (type.empty()) {
                 std::vector<geoson::Element> all_elements;
-                for (size_t i = 0; i < vector_data_.elementCount(); ++i) {
-                    all_elements.push_back(vector_data_.getElement(i));
+                for (size_t i = 0; i < poly_data_.elementCount(); ++i) {
+                    all_elements.push_back(poly_data_.getElement(i));
                 }
                 return all_elements;
             }
-            return vector_data_.getElementsByType(type);
+            return poly_data_.getElementsByType(type);
         }
 
         // ========== Raster Layers (Raster) ==========
@@ -140,6 +146,8 @@ namespace zoneout {
         // ========== Robot Ownership ==========
         void setOwnerRobot(const UUID &robot_id) {
             owner_robot_id_ = robot_id;
+            poly_data_.setOwnerRobot(robot_id);
+            grid_data_.setOwnerRobot(robot_id);
             updateModifiedTime();
         }
 
@@ -148,6 +156,8 @@ namespace zoneout {
 
         void releaseOwnership() {
             owner_robot_id_ = UUID::null();
+            poly_data_.releaseOwnership();
+            grid_data_.releaseOwnership();
             updateModifiedTime();
         }
 
@@ -156,39 +166,47 @@ namespace zoneout {
         const Timestamp &getModifiedTime() const { return modified_time_; }
 
         // ========== Validation ==========
-        bool is_valid() const { return has_boundary() && !name_.empty(); }
+        bool is_valid() const { return poly_data_.isValid(); }
 
         // ========== File I/O ==========
         static Zone fromFiles(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path) {
+            // Use the loadPolyGrid function to load and validate consistency
+            auto [poly, grid] = loadPolyGrid(vector_path, raster_path);
+
             Zone zone;
+            zone.poly_data_ = poly;
+            zone.grid_data_ = grid;
 
-            std::string vector_name, vector_uuid;
-            std::string raster_name, raster_uuid;
+            // Extract properties from the loaded components
+            if (poly.getName().empty() && !grid.getName().empty()) {
+                zone.name_ = grid.getName();
+            } else {
+                zone.name_ = poly.getName();
+            }
 
-            // Load vector data (field boundary + elements)
+            if (poly.getType().empty() && !grid.getType().empty()) {
+                zone.type_ = grid.getType();
+            } else {
+                zone.type_ = poly.getType();
+            }
+
+            // Use the UUID from poly (they should match due to validation in loadPolyGrid)
+            if (!poly.getId().isNull()) {
+                zone.id_ = poly.getId();
+            } else if (!grid.getId().isNull()) {
+                zone.id_ = grid.getId();
+            }
+
+            // Use owner from poly (they should match)
+            if (poly.hasOwner()) {
+                zone.owner_robot_id_ = poly.getOwnerRobot();
+            } else if (grid.hasOwner()) {
+                zone.owner_robot_id_ = grid.getOwnerRobot();
+            }
+
+            // Load zone properties from poly field properties (those with "prop_" prefix)
             if (std::filesystem::exists(vector_path)) {
-                zone.vector_data_ = geoson::Vector::fromFile(vector_path);
-
-                // Extract zone metadata from field properties using global names
-                auto field_props = zone.vector_data_.getFieldProperties();
-                auto name_it = field_props.find(zone_globals::NAME);
-                if (name_it != field_props.end()) {
-                    vector_name = name_it->second;
-                }
-                auto type_it = field_props.find(zone_globals::TYPE);
-                if (type_it != field_props.end()) {
-                    zone.setType(type_it->second);
-                }
-                auto uuid_it = field_props.find(zone_globals::UUID);
-                if (uuid_it != field_props.end()) {
-                    vector_uuid = uuid_it->second;
-                }
-                auto owner_it = field_props.find(zone_globals::OWNER_ROBOT_ID);
-                if (owner_it != field_props.end()) {
-                    zone.owner_robot_id_ = UUID(owner_it->second);
-                }
-
-                // Load zone properties (those with "prop_" prefix)
+                auto field_props = poly.getFieldProperties();
                 for (const auto &[key, value] : field_props) {
                     if (key.substr(0, 5) == "prop_") {
                         zone.setProperty(key.substr(5), value);
@@ -196,136 +214,96 @@ namespace zoneout {
                 }
             }
 
-            // Load raster data (multi-layer grids)
-            if (std::filesystem::exists(raster_path)) {
-                zone.raster_data_ = geotiv::Raster::fromFile(raster_path);
-                
-                // Extract zone metadata from raster global properties using global names
-                auto raster_metadata = zone.raster_data_.getGlobalProperties();
-                auto name_it = raster_metadata.find(zone_globals::NAME);
-                if (name_it != raster_metadata.end()) {
-                    raster_name = name_it->second;
-                }
-                auto type_it = raster_metadata.find(zone_globals::TYPE);
-                if (type_it != raster_metadata.end() && zone.type_.empty()) {
-                    zone.setType(type_it->second);
-                }
-                auto uuid_it = raster_metadata.find(zone_globals::UUID);
-                if (uuid_it != raster_metadata.end()) {
-                    raster_uuid = uuid_it->second;
-                }
-                auto owner_it = raster_metadata.find(zone_globals::OWNER_ROBOT_ID);
-                if (owner_it != raster_metadata.end() && zone.owner_robot_id_.isNull()) {
-                    zone.owner_robot_id_ = UUID(owner_it->second);
-                }
-            }
-
-            // Validate and resolve UUID conflicts
-            if (!vector_uuid.empty() && !raster_uuid.empty()) {
-                if (vector_uuid != raster_uuid) {
-                    throw std::runtime_error("UUID mismatch between vector (" + vector_uuid + 
-                                           ") and raster (" + raster_uuid + ") data files");
-                }
-                zone.id_ = UUID(vector_uuid);
-            } else if (!vector_uuid.empty()) {
-                zone.id_ = UUID(vector_uuid);
-            } else if (!raster_uuid.empty()) {
-                zone.id_ = UUID(raster_uuid);
-            }
-
-            // Validate and resolve NAME conflicts
-            if (!vector_name.empty() && !raster_name.empty()) {
-                if (vector_name != raster_name) {
-                    throw std::runtime_error("Name mismatch between vector ('" + vector_name + 
-                                           "') and raster ('" + raster_name + "') data files");
-                }
-                zone.setName(vector_name);
-            } else if (!vector_name.empty()) {
-                zone.setName(vector_name);
-            } else if (!raster_name.empty()) {
-                zone.setName(raster_name);
-            }
-
+            zone.syncToPolyGrid();
             return zone;
         }
 
         void toFiles(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path) const {
-            // Save vector data with zone metadata using global names
-            auto vector_copy = vector_data_;
-            vector_copy.setFieldProperty(zone_globals::NAME, name_);
-            vector_copy.setFieldProperty(zone_globals::TYPE, type_);
-            vector_copy.setFieldProperty(zone_globals::UUID, id_.toString());
-            vector_copy.setFieldProperty(zone_globals::OWNER_ROBOT_ID, owner_robot_id_.toString());
-            vector_copy.setFieldProperty(zone_globals::CREATED_TIME, std::to_string(created_time_.time_since_epoch().count()));
-            vector_copy.setFieldProperty(zone_globals::MODIFIED_TIME, std::to_string(modified_time_.time_since_epoch().count()));
+            // Ensure internal consistency before saving
+            const_cast<Zone *>(this)->syncToPolyGrid();
 
-            // Save all zone properties with a prefix to avoid conflicts
+            // Create copies and add zone-specific properties
+            auto poly_copy = poly_data_;
+            auto grid_copy = grid_data_;
+
+            // Ensure copies have the correct UUID (in case they got out of sync)
+            poly_copy.setId(id_);
+            grid_copy.setId(id_);
+
+            // Add zone properties to poly with prefix to avoid conflicts
             for (const auto &[key, value] : properties_) {
-                vector_copy.setFieldProperty("prop_" + key, value);
+                poly_copy.setFieldProperty("prop_" + key, value);
             }
 
-            vector_copy.toFile(vector_path);
+            // Add timestamps to both
+            poly_copy.setGlobalProperty(zone_globals::CREATED_TIME,
+                                        std::to_string(created_time_.time_since_epoch().count()));
+            poly_copy.setGlobalProperty(zone_globals::MODIFIED_TIME,
+                                        std::to_string(modified_time_.time_since_epoch().count()));
 
-            // Save raster data with zone metadata using global names
-            if (raster_data_.hasGrids()) {
-                auto raster_copy = raster_data_;
-                raster_copy.setGlobalProperty(zone_globals::NAME, name_);
-                raster_copy.setGlobalProperty(zone_globals::TYPE, type_);
-                raster_copy.setGlobalProperty(zone_globals::UUID, id_.toString());
-                raster_copy.setGlobalProperty(zone_globals::OWNER_ROBOT_ID, owner_robot_id_.toString());
-                raster_copy.setGlobalProperty(zone_globals::CREATED_TIME, std::to_string(created_time_.time_since_epoch().count()));
-                raster_copy.setGlobalProperty(zone_globals::MODIFIED_TIME, std::to_string(modified_time_.time_since_epoch().count()));
-                
-                raster_copy.toFile(raster_path);
+            if (grid_copy.hasGrids()) {
+                grid_copy.setGlobalProperty(zone_globals::CREATED_TIME,
+                                            std::to_string(created_time_.time_since_epoch().count()));
+                grid_copy.setGlobalProperty(zone_globals::MODIFIED_TIME,
+                                            std::to_string(modified_time_.time_since_epoch().count()));
             }
+
+            // Use the savePolyGrid function for consistency validation
+            savePolyGrid(poly_copy, grid_copy, vector_path, raster_path);
         }
 
-        const geoson::Vector &getVectorData() const { return vector_data_; }
-        const geotiv::Raster &getRasterData() const { return raster_data_; }
+        const Poly &getPolyData() const { return poly_data_; }
+        const Grid &getGridData() const { return grid_data_; }
 
-        geoson::Vector &getVectorData() { return vector_data_; }
-        geotiv::Raster &getRasterData() { return raster_data_; }
+        Poly &getPolyData() { return poly_data_; }
+        Grid &getGridData() { return grid_data_; }
+
+        // Legacy accessors for compatibility
+        const geoson::Vector &getVectorData() const { return poly_data_; }
+        const geotiv::Raster &getRasterData() const { return grid_data_; }
+
+        geoson::Vector &getVectorData() { return poly_data_; }
+        geotiv::Raster &getRasterData() { return grid_data_; }
 
         // ========== Integrated Global Name Access ==========
-        // Get zone property from vector field properties using global names
-        std::string getVectorProperty(const char* global_name) const {
-            auto field_props = vector_data_.getFieldProperties();
+        // Get zone property from poly field properties using global names
+        std::string getVectorProperty(const char *global_name) const {
+            auto field_props = poly_data_.getFieldProperties();
             auto it = field_props.find(global_name);
             return (it != field_props.end()) ? it->second : "";
         }
 
-        // Set zone property in vector field properties using global names
-        void setVectorProperty(const char* global_name, const std::string& value) {
-            vector_data_.setFieldProperty(global_name, value);
+        // Set zone property in poly field properties using global names
+        void setVectorProperty(const char *global_name, const std::string &value) {
+            poly_data_.setFieldProperty(global_name, value);
             updateModifiedTime();
         }
 
-        // Get zone property from raster global properties using global names
-        std::string getRasterProperty(const char* global_name) const {
-            auto metadata = raster_data_.getGlobalProperties();
+        // Get zone property from grid global properties using global names
+        std::string getRasterProperty(const char *global_name) const {
+            auto metadata = grid_data_.getGlobalProperties();
             auto it = metadata.find(global_name);
             return (it != metadata.end()) ? it->second : "";
         }
 
-        // Set zone property in raster global properties using global names
-        void setRasterProperty(const char* global_name, const std::string& value) {
-            raster_data_.setGlobalProperty(global_name, value);
+        // Set zone property in grid global properties using global names
+        void setRasterProperty(const char *global_name, const std::string &value) {
+            grid_data_.setGlobalProperty(global_name, value);
             updateModifiedTime();
         }
 
-        // Sync zone properties to both vector and raster using global names
-        void syncPropertiesToData() {
-            setVectorProperty(zone_globals::NAME, name_);
-            setVectorProperty(zone_globals::TYPE, type_);
-            setVectorProperty(zone_globals::UUID, id_.toString());
-            setVectorProperty(zone_globals::OWNER_ROBOT_ID, owner_robot_id_.toString());
-            
-            if (raster_data_.hasGrids()) {
-                setRasterProperty(zone_globals::NAME, name_);
-                setRasterProperty(zone_globals::TYPE, type_);
-                setRasterProperty(zone_globals::UUID, id_.toString());
-                setRasterProperty(zone_globals::OWNER_ROBOT_ID, owner_robot_id_.toString());
-            }
+        // Sync zone properties to both poly and grid using global names
+        void syncToPolyGrid() {
+            // Set consistent properties across poly and grid
+            poly_data_.setName(name_);
+            poly_data_.setType(type_);
+            poly_data_.setId(id_); // This ensures UUID consistency
+            poly_data_.setOwnerRobot(owner_robot_id_);
+
+            grid_data_.setName(name_);
+            grid_data_.setType(type_);
+            grid_data_.setId(id_); // This ensures UUID consistency
+            grid_data_.setOwnerRobot(owner_robot_id_);
         }
     };
 
