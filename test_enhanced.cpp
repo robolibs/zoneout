@@ -20,7 +20,10 @@ int main() {
     zoneout::Grid grid("Test Grid", "elevation", "dem");
     
     // Test Zone with enhanced components
-    zoneout::Zone zone("Test Zone", "field");
+    // Wageningen Research Labs coordinates
+    const concord::Datum WAGENINGEN_DATUM{51.98776171041831, 5.662378206146002, 0.0};
+    
+    zoneout::Zone zone("Test Zone", "field", WAGENINGEN_DATUM);
     
     return 0;
 }

@@ -10,6 +10,9 @@
 
 using namespace zoneout;
 
+// Wageningen Research Labs coordinates
+const concord::Datum WAGENINGEN_DATUM{51.98776171041831, 5.662378206146002, 0.0};
+
 // Helper function to create a rectangular polygon
 concord::Polygon createRectangle(double x, double y, double width, double height) {
     std::vector<concord::Point> points;
@@ -86,7 +89,7 @@ TEST_CASE("Complete file I/O round-trip test") {
     SUBCASE("Zone with mixed element types and raster data") {
         // Create a zone with various element types
         auto field_boundary = createRectangle(0, 0, 200, 150);
-        Zone original_zone("Test Agricultural Zone", "field", field_boundary);
+        Zone original_zone("Test Agricultural Zone", "field", field_boundary, WAGENINGEN_DATUM);
         
         // Set zone properties
         original_zone.setProperty("crop_type", "wheat");
@@ -265,8 +268,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         CHECK(std::filesystem::exists(raster_path));
         
         // Load the zone back
-        Zone loaded_zone;
-        REQUIRE_NOTHROW(loaded_zone = Zone::fromFiles(vector_path, raster_path));
+        Zone loaded_zone = Zone::fromFiles(vector_path, raster_path);
         
         // === Verify Basic Zone Properties ===
         CHECK(loaded_zone.getName() == original_zone.getName());

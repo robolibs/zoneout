@@ -123,6 +123,34 @@ namespace zoneout {
             syncToGlobalProperties();
         }
 
+        // Add grid with pre-populated data
+        void addGrid(const concord::Grid<uint8_t>& grid, const std::string& name, 
+                    const std::string& type = "", 
+                    const std::unordered_map<std::string, std::string>& properties = {}) {
+            auto props = properties;
+            if (!type.empty()) {
+                props["type"] = type;
+            }
+            
+            geotiv::GridLayer gridLayer(grid, name, type, props);
+            
+            // Add the layer directly to our inherited grid_layers_
+            // Note: We need to access the protected member through the parent class
+            // For now, let's use a workaround by creating a GridLayer and manipulating it
+            
+            // First create an empty grid with correct dimensions, then replace its data
+            geotiv::Raster::addGrid(static_cast<uint32_t>(grid.cols()), 
+                                   static_cast<uint32_t>(grid.rows()), name, type, properties);
+            
+            // Now replace the last added grid's data with our provided grid
+            if (hasGrids()) {
+                auto& lastLayer = const_cast<geotiv::GridLayer&>(getGrid(gridCount() - 1));
+                lastLayer.grid = grid;
+            }
+            
+            syncToGlobalProperties();
+        }
+
       private:
         void syncToGlobalProperties() {
             if (hasGrids()) {

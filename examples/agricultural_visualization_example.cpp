@@ -20,27 +20,29 @@ int main() {
     }
 
     // Set up realistic agricultural coordinates
-    // Use Wageningen University area (Netherlands) as reference - real agricultural research location
-    concord::Datum datum{51.9851, 5.6656, 7.0}; // WUR campus area
+    // Use Wageningen Research Labs (Netherlands) as reference - real agricultural research location
+    concord::Datum datum{51.98776171041831, 5.662378206146002, 0.0}; // Wageningen Research Labs
+    
+    // Define raster size for high-resolution agricultural monitoring
+    concord::Size raster_size{150, 100, 0}; // 150x100 grid for 300x200m field
 
     // Create a realistic agricultural zone (wheat field)
-    zoneout::Zone wheat_field("Wheat_Field_North", "field");
-    
+    zoneout::Zone wheat_field("Wheat_Field_North", "field", datum, raster_size);
+
     // Create field boundary in local ENU coordinates (meters from datum)
     concord::Polygon boundary;
     boundary.addPoint(concord::Point(0.0, 0.0, 0.0));     // SW corner
     boundary.addPoint(concord::Point(300.0, 0.0, 0.0));   // SE corner
     boundary.addPoint(concord::Point(300.0, 200.0, 0.0)); // NE corner
     boundary.addPoint(concord::Point(0.0, 200.0, 0.0));   // NW corner
-    
+
     wheat_field.poly_data_.setFieldBoundary(boundary);
     wheat_field.setProperty("crop_type", "wheat");
     wheat_field.setProperty("planting_date", "2024-10-15");
     wheat_field.setProperty("area_hectares", "6.0");
 
-    std::cout << "Created zone: " << wheat_field.getName() 
-              << " (" << wheat_field.getType() << "): " 
-              << wheat_field.poly_data_.area() << " m²" << std::endl;
+    std::cout << "Created zone: " << wheat_field.getName() << " (" << wheat_field.getType()
+              << "): " << wheat_field.poly_data_.area() << " m²" << std::endl;
 
     // Visualize the zone
     std::cout << "\nSending visualization data to Rerun..." << std::endl;
