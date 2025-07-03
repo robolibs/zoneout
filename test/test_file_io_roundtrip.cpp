@@ -93,7 +93,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         
         // Create a zone with various element types
         auto field_boundary = createRectangle(0, 0, 200, 150);
-        Zone original_zone("Test Agricultural Zone", "field", field_boundary, WAGENINGEN_DATUM, base_grid);
+        Zone original_zone("Test Agricultural Zone", "field", field_boundary, base_grid, WAGENINGEN_DATUM);
         
         // Set zone properties
         original_zone.setProperty("crop_type", "wheat");

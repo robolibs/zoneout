@@ -31,7 +31,8 @@ int main() {
     concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
     
     // Create a realistic agricultural zone (wheat field)
-    zoneout::Zone wheat_field("Wheat_Field_North", "field", datum, base_grid);
+    concord::Polygon default_boundary;
+    zoneout::Zone wheat_field("Wheat_Field_North", "field", default_boundary, base_grid, datum);
 
     // Create field boundary in local ENU coordinates (meters from datum)
     concord::Polygon boundary;

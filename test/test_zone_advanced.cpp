@@ -29,7 +29,7 @@ TEST_CASE("Zone field elements management") {
     concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
     
     auto boundary = createRectangle(0, 0, 200, 100);
-    Zone zone("Field Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
+    Zone zone("Field Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
 
     SUBCASE("Add irrigation lines") {
         std::vector<concord::Point> line_points;
@@ -142,7 +142,7 @@ TEST_CASE("Zone raster layers management") {
     concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
     
     auto boundary = createRectangle(0, 0, 100, 50);
-    Zone zone("Raster Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
+    Zone zone("Raster Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
 
     SUBCASE("Add elevation layer") {
         concord::Grid<uint8_t> elevation_grid(10, 20, 5.0, true, concord::Pose{});
@@ -162,7 +162,7 @@ TEST_CASE("Zone raster layers management") {
         for (size_t r = 0; r < elevation_grid.rows(); ++r) {
             for (size_t c = 0; c < elevation_grid.cols(); ++c) {
                 auto cell = elevation_grid(r, c);
-                raster_grid.set_value(r, c, cell.second);
+                raster_grid.set_value(r, c, cell);
             }
         }
 
@@ -195,7 +195,7 @@ TEST_CASE("Zone raster layers management") {
         for (size_t r = 0; r < moisture_grid.rows(); ++r) {
             for (size_t c = 0; c < moisture_grid.cols(); ++c) {
                 auto cell = moisture_grid(r, c);
-                raster_grid.set_value(r, c, cell.second);
+                raster_grid.set_value(r, c, cell);
             }
         }
 
@@ -222,7 +222,7 @@ TEST_CASE("Zone raster layers management") {
         for (size_t r = 0; r < health_grid.rows(); ++r) {
             for (size_t c = 0; c < health_grid.cols(); ++c) {
                 auto cell = health_grid(r, c);
-                raster_grid.set_value(r, c, cell.second);
+                raster_grid.set_value(r, c, cell);
             }
         }
 
@@ -293,7 +293,7 @@ TEST_CASE("Zone raster layers management") {
         for (size_t r = 0; r < custom_grid.rows(); ++r) {
             for (size_t c = 0; c < custom_grid.cols(); ++c) {
                 auto cell = custom_grid(r, c);
-                raster_grid.set_value(r, c, cell.second);
+                raster_grid.set_value(r, c, cell);
             }
         }
 
@@ -309,7 +309,7 @@ TEST_CASE("Zone raster sampling") {
     concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
     
     auto boundary = createRectangle(0, 0, 100, 50);
-    Zone zone("Sampling Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
+    Zone zone("Sampling Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
 
     // Create elevation grid with known pattern
     concord::Grid<uint8_t> elevation_grid(10, 20, 5.0, true, concord::Pose{});
@@ -326,7 +326,7 @@ TEST_CASE("Zone raster sampling") {
     for (size_t r = 0; r < elevation_grid.rows(); ++r) {
         for (size_t c = 0; c < elevation_grid.cols(); ++c) {
             auto cell = elevation_grid(r, c);
-            raster_grid.set_value(r, c, cell.second);
+            raster_grid.set_value(r, c, cell);
         }
     }
 
@@ -336,11 +336,11 @@ TEST_CASE("Zone raster sampling") {
         
         // Sample at grid cell (2, 2) - should have value 100 + 2 + 2 = 104
         auto cell = layer.grid(2, 2);
-        CHECK(cell.second == 104);
+        CHECK(cell == 104);
         
         // Sample at grid cell (5, 10) - should have value 100 + 5 + 10 = 115
         auto cell2 = layer.grid(5, 10);
-        CHECK(cell2.second == 115);
+        CHECK(cell2 == 115);
     }
 
     SUBCASE("Sample at grid corners") {
@@ -348,11 +348,11 @@ TEST_CASE("Zone raster sampling") {
         
         // Sample at corner (0, 0) - should have value 100 + 0 + 0 = 100
         auto corner = layer.grid(0, 0);
-        CHECK(corner.second == 100);
+        CHECK(corner == 100);
         
         // Sample at opposite corner (9, 19) - should have value 100 + 9 + 19 = 128
         auto far_corner = layer.grid(9, 19);
-        CHECK(far_corner.second == 128);
+        CHECK(far_corner == 128);
     }
 }
 
@@ -364,7 +364,7 @@ TEST_CASE("Zone geometric operations") {
         
         // Rectangle: 100m x 50m = 5000 m²
         auto boundary = createRectangle(0, 0, 100, 50);
-        Zone zone("Geometry Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
+        Zone zone("Geometry Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
 
         CHECK(zone.poly_data_.area() == doctest::Approx(5000.0));
         CHECK(zone.poly_data_.perimeter() == doctest::Approx(300.0)); // 2 * (100 + 50)
@@ -376,7 +376,7 @@ TEST_CASE("Zone geometric operations") {
         concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
         
         auto boundary = createRectangle(10, 10, 80, 60);
-        Zone zone("Containment Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
+        Zone zone("Containment Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
 
         // Points inside
         CHECK(zone.poly_data_.contains(concord::Point(50, 40, 0)));
@@ -408,7 +408,7 @@ TEST_CASE("Zone geometric operations") {
         concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
         
         concord::Polygon l_boundary(l_points);
-        Zone l_zone("L-Shape Zone", "field", l_boundary, WAGENINGEN_DATUM, base_grid);
+        Zone l_zone("L-Shape Zone", "field", l_boundary, base_grid, WAGENINGEN_DATUM);
 
         // Points in different parts of the L
         CHECK(l_zone.poly_data_.contains(concord::Point(15, 15, 0))); // Bottom part
@@ -461,11 +461,11 @@ TEST_CASE("Zone validation rules") {
         concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
         
         auto boundary = createRectangle(0, 0, 100, 50);
-        Zone valid_zone("Valid Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
+        Zone valid_zone("Valid Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(valid_zone.is_valid());
 
         // Zone with just name and boundary is valid
-        Zone minimal_zone("Minimal", "other", boundary, WAGENINGEN_DATUM, base_grid);
+        Zone minimal_zone("Minimal", "other", boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(minimal_zone.is_valid());
     }
 
@@ -475,16 +475,17 @@ TEST_CASE("Zone validation rules") {
         concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
         
         // No boundary
-        Zone no_boundary("No Boundary", "field", WAGENINGEN_DATUM, base_grid);
+        concord::Polygon default_boundary;
+        Zone no_boundary("No Boundary", "field", default_boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(!no_boundary.is_valid());
 
         // Empty name
         auto boundary = createRectangle(0, 0, 100, 50);
-        Zone empty_name("", "field", boundary, WAGENINGEN_DATUM, base_grid);
+        Zone empty_name("", "field", boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(!empty_name.is_valid());
 
-        // Both empty name and no boundary
-        Zone completely_invalid("", "field", WAGENINGEN_DATUM, base_grid);
+        // Both empty name and no boundary  
+        Zone completely_invalid("", "field", default_boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(!completely_invalid.is_valid());
     }
 }
@@ -495,7 +496,7 @@ TEST_CASE("Zone file I/O operations") {
     concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
     
     auto boundary = createRectangle(0, 0, 100, 50);
-    Zone zone("File I/O Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
+    Zone zone("File I/O Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
 
     // Add some data to make it interesting
     concord::Grid<uint8_t> elevation_grid(5, 10, 10.0, true, concord::Pose{});
@@ -511,7 +512,7 @@ TEST_CASE("Zone file I/O operations") {
     for (size_t r = 0; r < elevation_grid.rows(); ++r) {
         for (size_t c = 0; c < elevation_grid.cols(); ++c) {
             auto cell = elevation_grid(r, c);
-            raster_grid.set_value(r, c, cell.second);
+            raster_grid.set_value(r, c, cell);
         }
     }
 
@@ -545,7 +546,8 @@ TEST_CASE("Zone property edge cases") {
     concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
     concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
     
-    Zone zone("Edge Case Zone", "field", WAGENINGEN_DATUM, base_grid);
+    concord::Polygon default_boundary;
+    Zone zone("Edge Case Zone", "field", default_boundary, base_grid, WAGENINGEN_DATUM);
 
     SUBCASE("Property overwrites") {
         zone.setProperty("test_key", "value1");

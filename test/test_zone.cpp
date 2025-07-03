@@ -28,7 +28,8 @@ TEST_CASE("Zone creation and basic properties") {
         concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
         concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
         
-        Zone zone(WAGENINGEN_DATUM, base_grid);
+        concord::Polygon default_boundary;
+        Zone zone("", "other", default_boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(zone.getName().empty());
         CHECK(zone.getType() == "other");
         CHECK(!zone.poly_data_.hasFieldBoundary());
@@ -40,7 +41,8 @@ TEST_CASE("Zone creation and basic properties") {
         concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
         concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
         
-        Zone zone("Test Zone", "field", WAGENINGEN_DATUM, base_grid);
+        concord::Polygon default_boundary;
+        Zone zone("Test Zone", "field", default_boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(zone.getName() == "Test Zone");
         CHECK(zone.getType() == "field");
         CHECK(!zone.poly_data_.hasFieldBoundary());
@@ -53,11 +55,139 @@ TEST_CASE("Zone creation and basic properties") {
         concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
         
         auto boundary = createRectangle(0, 0, 100, 50);
-        Zone zone("Test Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
+        Zone zone("Test Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(zone.getName() == "Test Zone");
         CHECK(zone.getType() == "field");
         CHECK(zone.poly_data_.hasFieldBoundary());
         CHECK(zone.poly_data_.area() == 5000.0); // 100 * 50
+    }
+}
+
+TEST_CASE("Zone constructor with auto-generated grid") {
+    SUBCASE("Constructor with default resolution (1.0)") {
+        // Create a 100x50 rectangle - default resolution should be 1.0
+        auto boundary = createRectangle(0, 0, 100, 50);
+        Zone zone("Auto Grid Zone", "field", boundary, WAGENINGEN_DATUM);
+        
+        CHECK(zone.getName() == "Auto Grid Zone");
+        CHECK(zone.getType() == "field");
+        CHECK(zone.poly_data_.hasFieldBoundary());
+        CHECK(zone.grid_data_.gridCount() == 1); // Should have the auto-generated base grid with noise
+        
+        // Check that grid dimensions are reasonable for the polygon size
+        // For a 100x50 rectangle with resolution 1.0, we expect roughly 100x50 cells
+        auto grid_info = zone.getRasterInfo();
+        CHECK(!grid_info.empty());
+    }
+    
+    SUBCASE("Constructor with custom resolution (2.0)") {
+        // Create a 100x50 rectangle with 2x2 cell resolution
+        auto boundary = createRectangle(0, 0, 100, 50);
+        Zone zone("Custom Resolution Zone", "field", boundary, WAGENINGEN_DATUM, 2.0);
+        
+        CHECK(zone.getName() == "Custom Resolution Zone");
+        CHECK(zone.getType() == "field");
+        CHECK(zone.poly_data_.hasFieldBoundary());
+        CHECK(zone.grid_data_.gridCount() == 1);
+        
+        // With resolution 2.0, grid should have roughly half the cells in each dimension
+        auto grid_info = zone.getRasterInfo();
+        CHECK(!grid_info.empty());
+    }
+    
+    SUBCASE("Constructor with fine resolution (0.5)") {
+        // Create a smaller polygon with fine resolution
+        auto boundary = createRectangle(0, 0, 10, 5);
+        Zone zone("Fine Resolution Zone", "field", boundary, WAGENINGEN_DATUM, 0.5);
+        
+        CHECK(zone.getName() == "Fine Resolution Zone");
+        CHECK(zone.getType() == "field");
+        CHECK(zone.poly_data_.hasFieldBoundary());
+        CHECK(zone.grid_data_.gridCount() == 1);
+        
+        // With resolution 0.5, grid should have more cells for the same area
+        auto grid_info = zone.getRasterInfo();
+        CHECK(!grid_info.empty());
+    }
+    
+    SUBCASE("Constructor with complex polygon") {
+        // Create L-shaped polygon
+        std::vector<concord::Point> l_points;
+        l_points.emplace_back(0, 0, 0);
+        l_points.emplace_back(60, 0, 0);
+        l_points.emplace_back(60, 30, 0);
+        l_points.emplace_back(30, 30, 0);
+        l_points.emplace_back(30, 60, 0);
+        l_points.emplace_back(0, 60, 0);
+        
+        concord::Polygon l_boundary(l_points);
+        Zone zone("L-Shape Auto Grid", "field", l_boundary, WAGENINGEN_DATUM);
+        
+        CHECK(zone.getName() == "L-Shape Auto Grid");
+        CHECK(zone.getType() == "field");
+        CHECK(zone.poly_data_.hasFieldBoundary());
+        CHECK(zone.grid_data_.gridCount() == 1);
+        
+        // Grid should be generated based on the OBB of the L-shape
+        auto grid_info = zone.getRasterInfo();
+        CHECK(!grid_info.empty());
+    }
+}
+
+TEST_CASE("Zone poly_cut functionality") {
+    SUBCASE("addRasterLayer with poly_cut=true") {
+        // Create an L-shaped polygon
+        std::vector<concord::Point> l_points;
+        l_points.emplace_back(0, 0, 0);
+        l_points.emplace_back(60, 0, 0);
+        l_points.emplace_back(60, 30, 0);
+        l_points.emplace_back(30, 30, 0);
+        l_points.emplace_back(30, 60, 0);
+        l_points.emplace_back(0, 60, 0);
+        concord::Polygon l_boundary(l_points);
+        
+        Zone zone("L-Shape Zone", "field", l_boundary, WAGENINGEN_DATUM);
+        
+        // Create a separate grid that covers the entire bounding box
+        concord::Pose shift{concord::Point{30.0, 30.0, 0.0}, concord::Euler{0, 0, 0}};
+        concord::Grid<uint8_t> full_grid(60, 60, 1.0, true, shift);
+        
+        // Fill the entire grid with value 255
+        for (size_t r = 0; r < full_grid.rows(); ++r) {
+            for (size_t c = 0; c < full_grid.cols(); ++c) {
+                full_grid.set_value(r, c, 255);
+            }
+        }
+        
+        // Add the grid with poly_cut=true - should zero out cells outside the L-shape
+        zone.addRasterLayer(full_grid, "test_layer", "test", {}, true);
+        
+        CHECK(zone.grid_data_.gridCount() == 2); // Base grid + test layer
+        
+        // Verify the layer was added
+        auto layer_names = zone.grid_data_.getGridNames();
+        CHECK(std::find(layer_names.begin(), layer_names.end(), "test_layer") != layer_names.end());
+    }
+    
+    SUBCASE("addRasterLayer with poly_cut=false (default)") {
+        auto boundary = createRectangle(0, 0, 100, 50);
+        Zone zone("Test Zone", "field", boundary, WAGENINGEN_DATUM);
+        
+        // Create a grid
+        concord::Pose shift{concord::Point{50.0, 25.0, 0.0}, concord::Euler{0, 0, 0}};
+        concord::Grid<uint8_t> test_grid(50, 100, 1.0, true, shift);
+        
+        // Fill with test values
+        for (size_t r = 0; r < test_grid.rows(); ++r) {
+            for (size_t c = 0; c < test_grid.cols(); ++c) {
+                test_grid.set_value(r, c, 128);
+            }
+        }
+        
+        // Add without poly_cut - should preserve all values
+        zone.addRasterLayer(test_grid, "no_cut_layer", "test");
+        
+        CHECK(zone.grid_data_.gridCount() == 2); // Base grid + no_cut_layer
     }
 }
 
@@ -69,7 +199,7 @@ TEST_CASE("Zone factory methods") {
         concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
         concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
         
-        auto field = Zone("Wheat Field", "field", boundary, WAGENINGEN_DATUM, base_grid);
+        auto field = Zone("Wheat Field", "field", boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(field.getName() == "Wheat Field");
         CHECK(field.getType() == "field");
         CHECK(field.poly_data_.hasFieldBoundary());
@@ -80,7 +210,7 @@ TEST_CASE("Zone factory methods") {
         concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
         concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
         
-        auto barn = Zone("Main Barn", "barn", boundary, WAGENINGEN_DATUM, base_grid);
+        auto barn = Zone("Main Barn", "barn", boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(barn.getName() == "Main Barn");
         CHECK(barn.getType() == "barn");
         CHECK(barn.poly_data_.hasFieldBoundary());
@@ -91,7 +221,7 @@ TEST_CASE("Zone factory methods") {
         concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
         concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
         
-        auto greenhouse = Zone("Tomato House", "greenhouse", boundary, WAGENINGEN_DATUM, base_grid);
+        auto greenhouse = Zone("Tomato House", "greenhouse", boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(greenhouse.getName() == "Tomato House");
         CHECK(greenhouse.getType() == "greenhouse");
         CHECK(greenhouse.poly_data_.hasFieldBoundary());
@@ -103,7 +233,8 @@ TEST_CASE("Zone properties") {
     concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
     concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
     
-    Zone zone("Test Zone", "field", WAGENINGEN_DATUM, base_grid);
+    concord::Polygon default_boundary;
+    Zone zone("Test Zone", "field", default_boundary, base_grid, WAGENINGEN_DATUM);
     
     SUBCASE("Set and get properties") {
         zone.setProperty("crop_type", "wheat");
@@ -121,7 +252,7 @@ TEST_CASE("Zone field elements") {
     concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
     
     auto boundary = createRectangle(0, 0, 100, 50);
-    Zone zone("Test Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
+    Zone zone("Test Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
     
     SUBCASE("Add crop rows") {
         std::vector<concord::Point> row_points;
@@ -145,7 +276,7 @@ TEST_CASE("Zone raster layers") {
     concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
     
     auto boundary = createRectangle(0, 0, 100, 50);
-    Zone zone("Test Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
+    Zone zone("Test Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
     
     SUBCASE("Add elevation layer") {
         concord::Grid<uint8_t> elevation_grid(10, 20, 5.0, true, concord::Pose{});
@@ -173,7 +304,7 @@ TEST_CASE("Zone point containment") {
     concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
     
     auto boundary = createRectangle(0, 0, 100, 50);
-    Zone zone("Test Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
+    Zone zone("Test Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
     
     SUBCASE("Point inside") {
         concord::Point inside_point(50, 25, 0);
@@ -200,7 +331,7 @@ TEST_CASE("Zone validation") {
         concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
         
         auto boundary = createRectangle(0, 0, 100, 50);
-        Zone zone("Test Zone", "field", boundary, WAGENINGEN_DATUM, base_grid);
+        Zone zone("Test Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(zone.is_valid());
     }
     
@@ -209,7 +340,8 @@ TEST_CASE("Zone validation") {
         concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
         concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
         
-        Zone zone("Test Zone", "field", WAGENINGEN_DATUM, base_grid);
+        concord::Polygon default_boundary;
+        Zone zone("Test Zone", "field", default_boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(!zone.is_valid());
     }
     
@@ -219,7 +351,7 @@ TEST_CASE("Zone validation") {
         concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
         
         auto boundary = createRectangle(0, 0, 100, 50);
-        Zone zone("", "field", boundary, WAGENINGEN_DATUM, base_grid);
+        Zone zone("", "field", boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(!zone.is_valid());
     }
 }
