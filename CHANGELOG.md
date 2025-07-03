@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.4] - 2025-07-03
+
+### <!-- 0 -->⛰️  Features
+
+- Enhance zone generation and raster data handling
+
 ## [0.0.3] - 2025-06-29
 
 ### <!-- 2 -->🚜 Refactor
