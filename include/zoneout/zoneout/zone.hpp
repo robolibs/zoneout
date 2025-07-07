@@ -74,21 +74,22 @@ namespace zoneout {
             noise.SetFrequency(sz / 300000.0f);
             noise.SetSeed(std::random_device{}());
 
-            // Get indices of cells that are within the polygon
-            auto indices_in_polygon = generated_grid.indices_within(boundary);
-
+            // Use the same robust point-in-polygon testing as addRasterLayer
             // Initialize all cells to zero (outside polygon)
             for (size_t r = 0; r < generated_grid.rows(); ++r) {
                 for (size_t c = 0; c < generated_grid.cols(); ++c) {
-                    generated_grid.set_value(r, c, 0);
+                    // Get the world coordinates of this grid cell center
+                    auto cell_center = generated_grid.get_point(r, c);
+                    
+                    // Test if the cell center is inside the polygon
+                    if (boundary.contains(cell_center)) {
+                        // Cell is inside polygon - set to white (255)
+                        generated_grid.set_value(r, c, 255);
+                    } else {
+                        // Cell is outside polygon - set to black (0)
+                        generated_grid.set_value(r, c, 0);
+                    }
                 }
-            }
-
-            // Set cells inside polygon to 255 (full white/value)
-            for (auto idx : indices_in_polygon) {
-                size_t r = idx / generated_grid.cols();
-                size_t c = idx % generated_grid.cols();
-                generated_grid.set_value(r, c, 255);
             }
 
             // Add the generated grid as the base layer
