@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <iostream>
 #include <memory>
 #include <random>
 #include <sstream>
@@ -83,15 +84,11 @@ namespace zoneout {
                 }
             }
 
-            // Apply noise only to cells within the polygon
+            // Set cells inside polygon to 255 (full white/value)
             for (auto idx : indices_in_polygon) {
                 size_t r = idx / generated_grid.cols();
                 size_t c = idx % generated_grid.cols();
-
-                // Generate noise value and map to 0-255 range
-                float noise_val = noise.GetNoise(static_cast<float>(r), static_cast<float>(c));
-                uint8_t value = static_cast<uint8_t>(128 + noise_val * 127); // Map from [-1,1] to [1,255]
-                generated_grid.set_value(r, c, value);
+                generated_grid.set_value(r, c, 255);
             }
 
             // Add the generated grid as the base layer
@@ -143,7 +140,7 @@ namespace zoneout {
         // Add raster layer with actual grid data
         void addRasterLayer(const concord::Grid<uint8_t> &grid, const std::string &name, const std::string &type = "",
                             const std::unordered_map<std::string, std::string> &properties = {},
-                            bool poly_cut = false) {
+                            bool poly_cut = false, int layer_index = -1) {
             if (poly_cut && poly_data_.hasFieldBoundary()) {
                 // Create a copy of the grid to modify
                 auto modified_grid = grid;
@@ -151,21 +148,77 @@ namespace zoneout {
                 // Get the boundary polygon
                 auto boundary = poly_data_.getFieldBoundary();
 
-                // Get indices of cells that are outside the polygon
-                auto indices_in_polygon = modified_grid.indices_within(boundary);
-
-                // Create a set for fast lookup of indices within polygon
-                std::unordered_set<size_t> in_polygon_set(indices_in_polygon.begin(), indices_in_polygon.end());
-
-                // Zero out all cells that are outside the polygon
+                // Debug polygon information
+                auto polygon_points = boundary.getPoints();
+                std::cout << "\n=== POLYGON DEBUG ===" << std::endl;
+                std::cout << "Polygon vertices (" << polygon_points.size() << " points):" << std::endl;
+                for (size_t i = 0; i < polygon_points.size(); ++i) {
+                    const auto& pt = polygon_points[i];
+                    std::cout << "  Point " << i << ": (" << pt.x << ", " << pt.y << ", " << pt.z << ")" << std::endl;
+                }
+                
+                auto polygon_obb = boundary.get_obb();
+                std::cout << "Polygon OBB center: (" << polygon_obb.pose.point.x << ", " 
+                         << polygon_obb.pose.point.y << ", " << polygon_obb.pose.point.z << ")" << std::endl;
+                std::cout << "Polygon OBB size: (" << polygon_obb.size.x << " x " 
+                         << polygon_obb.size.y << ")" << std::endl;
+                std::cout << "Polygon area: " << boundary.area() << std::endl;
+                
+                // Debug grid information
+                std::cout << "\n=== GRID DEBUG ===" << std::endl;
+                std::cout << "Grid dimensions: " << modified_grid.rows() << " x " << modified_grid.cols() << std::endl;
+                
+                auto grid_corners = modified_grid.corners();
+                std::cout << "Grid corners:" << std::endl;
+                for (size_t i = 0; i < grid_corners.size(); ++i) {
+                    const auto& corner = grid_corners[i];
+                    std::cout << "  Corner " << i << ": (" << corner.x << ", " << corner.y << ", " << corner.z << ")" << std::endl;
+                }
+                
+                // Sample some grid cell centers
+                std::cout << "Sample grid cell centers:" << std::endl;
+                auto point_00 = modified_grid.get_point(0, 0);
+                std::cout << "  Cell (0,0): (" << point_00.x << ", " << point_00.y << ", " << point_00.z << ")" << std::endl;
+                auto point_0end = modified_grid.get_point(0, modified_grid.cols()-1);
+                std::cout << "  Cell (0," << (modified_grid.cols()-1) << "): (" << point_0end.x << ", " << point_0end.y << ", " << point_0end.z << ")" << std::endl;
+                auto point_end0 = modified_grid.get_point(modified_grid.rows()-1, 0);
+                std::cout << "  Cell (" << (modified_grid.rows()-1) << ",0): (" << point_end0.x << ", " << point_end0.y << ", " << point_end0.z << ")" << std::endl;
+                auto point_endend = modified_grid.get_point(modified_grid.rows()-1, modified_grid.cols()-1);
+                std::cout << "  Cell (" << (modified_grid.rows()-1) << "," << (modified_grid.cols()-1) << "): (" 
+                         << point_endend.x << ", " << point_endend.y << ", " << point_endend.z << ")" << std::endl;
+                
+                // Test center cell
+                size_t center_r = modified_grid.rows() / 2;
+                size_t center_c = modified_grid.cols() / 2;
+                auto center_point = modified_grid.get_point(center_r, center_c);
+                std::cout << "  Center cell (" << center_r << "," << center_c << "): (" << center_point.x << ", " << center_point.y << ", " << center_point.z << ")" << std::endl;
+                std::cout << "  Center cell in polygon: " << (boundary.contains(center_point) ? "YES" : "NO") << std::endl;
+                
+                // Use robust point-in-polygon testing for raster-vector overlay
+                std::cout << "\n=== POINT-IN-POLYGON TESTING ===" << std::endl;
+                size_t cells_inside = 0;
+                size_t total_cells = modified_grid.rows() * modified_grid.cols();
+                
                 for (size_t r = 0; r < modified_grid.rows(); ++r) {
                     for (size_t c = 0; c < modified_grid.cols(); ++c) {
-                        size_t idx = r * modified_grid.cols() + c;
-                        if (in_polygon_set.find(idx) == in_polygon_set.end()) {
+                        // Get the world coordinates of this grid cell center
+                        auto cell_center = modified_grid.get_point(r, c);
+                        
+                        // Test if the cell center is inside the polygon
+                        if (boundary.contains(cell_center)) {
+                            cells_inside++;
+                            // Cell is inside polygon - keep original value
+                        } else {
+                            // Cell is outside polygon - zero it out
                             modified_grid.set_value(r, c, 0);
                         }
                     }
                 }
+                
+                // Debug output
+                std::cout << "Poly cut result: " << cells_inside << "/" << total_cells 
+                         << " cells inside polygon (" << (100.0 * cells_inside / total_cells) << "%)" << std::endl;
+                std::cout << "=== END DEBUG ===\n" << std::endl;
 
                 grid_data_.addGrid(modified_grid, name, type, properties);
             } else {

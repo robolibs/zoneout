@@ -2,58 +2,33 @@
 #include <random>
 
 #include "entropy/generator.hpp"
+#include "geoget/geoget.hpp"
 #include "zoneout/zoneout.hpp"
-
-// Helper function to generate noise-based grid data
-concord::Grid<uint8_t> generate_noise(const concord::Size &size, entropy::NoiseGen::NoiseType noise_type,
-                                      float frequency, uint8_t min_val, uint8_t max_val) {
-    // Create grid with proper spatial positioning
-    concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
-    concord::Grid<uint8_t> grid(static_cast<size_t>(size.y), static_cast<size_t>(size.x), 1.0, true, shift);
-
-    // Configure noise generator
-    entropy::NoiseGen noise;
-    noise.SetNoiseType(noise_type);
-    noise.SetFrequency(frequency);
-    noise.SetSeed(std::random_device{}());
-
-    // Fill grid with noise data
-    for (size_t r = 0; r < grid.rows(); ++r) {
-        for (size_t c = 0; c < grid.cols(); ++c) {
-            // Get noise value (-1 to 1) and convert to desired range
-            float noise_val = noise.GetNoise(static_cast<float>(r), static_cast<float>(c));
-            uint8_t value = static_cast<uint8_t>(min_val + (noise_val + 1.0f) * 0.5f * (max_val - min_val));
-            grid.set_value(r, c, value);
-        }
-    }
-
-    return grid;
-}
 
 int main() {
     std::cout << "Simple Zone Example" << std::endl;
 
     // Wageningen Research Labs coordinates
-    const concord::Datum WAGENINGEN_DATUM{51.98776171041831, 5.662378206146002, 0.0};
 
-    // Create an L-shaped polygon
-    std::vector<concord::Point> l_points;
-    l_points.emplace_back(0, 0, 0);    // Bottom-left corner
-    l_points.emplace_back(100, 0, 0);  // Bottom-right of horizontal part
-    l_points.emplace_back(100, 30, 0); // Top-right of horizontal part
-    l_points.emplace_back(30, 30, 0);  // Inner corner of L
-    l_points.emplace_back(30, 80, 0);  // Top-right of vertical part
-    l_points.emplace_back(0, 80, 0);   // Top-left corner
-    concord::Polygon l_boundary(l_points);
+    geoget::PolygonDrawer drawer;
+    if (!drawer.start(8080)) {
+        std::cerr << "Failed to start server" << std::endl;
+        return 1;
+    }
+    auto datum = drawer.add_datum();
+    const concord::Datum WAGENINGEN_DATUM{datum.lat, datum.lon, 0.0};
+
+    drawer.stop();
+    if (!drawer.start(8081)) {
+        std::cerr << "Failed to start server" << std::endl;
+        return 1;
+    }
+
+    const auto l_boundary = drawer.get_polygons();
 
     // Create field zone - constructor automatically generates base layer with noise inside polygon
-    zoneout::Zone field("L-Shaped Field", "field", l_boundary, WAGENINGEN_DATUM);
+    zoneout::Zone field("L-Shaped Field", "field", l_boundary[0], WAGENINGEN_DATUM, 0.1);
 
-    std::cout << "Created field: " << field.getName() << std::endl;
-    std::cout << "Field area: " << field.poly_data_.area() << " m²" << std::endl;
-    std::cout << field.getRasterInfo() << std::endl;
-
-    // Get grid configuration from the auto-generated base layer
     const auto &base_grid = field.grid_data_.getGrid(0).grid;
 
     // Create new grids with the SAME spatial configuration as the base layer
@@ -90,6 +65,7 @@ int main() {
 
     // Add second raster - WITH poly_cut (zeros outside L-shape)
     field.addRasterLayer(moisture_grid, "moisture_cut", "environmental", {{"units", "percentage"}}, true);
+    field.addRasterLayer(moisture_grid, "moisture", "environmental", {{"units", "percentage"}}, true);
 
     std::cout << "\nFinal result: " << field.getRasterInfo() << std::endl;
 
