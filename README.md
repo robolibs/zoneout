@@ -9,52 +9,67 @@ Zoneout provides comprehensive zone management for agricultural robotics, enabli
 
 ## 🚀 Overview
 
-Zoneout is a modern C++ library designed for **agricultural robotics coordination** through intelligent zone management. It combines vector geometry (field boundaries, crop rows, irrigation) with raster data (elevation, soil moisture, vegetation health) to create a comprehensive spatial framework for autonomous farming operations.
+Zoneout is a modern C++ library designed for **agricultural robotics coordination** through intelligent single-zone management. It combines vector geometry (zone boundaries, internal elements) with raster data (elevation, soil moisture, vegetation health) to create a comprehensive spatial framework for individual workspace management in autonomous farming operations.
+
+Each Zone represents a single workspace (field, barn, greenhouse, etc.) containing polygon features as internal elements and multi-layer raster data for environmental information.
 
 ### Core Concepts
 
 ```
-📍 Zone = Vector Boundary + Raster Layers + Robot Coordination
+📍 Zone = Single Workspace (Field/Barn/etc.) + Internal Elements + Raster Data
 ┌─────────────────────────────────────────────────────────────┐
-│  FARM: Multiple Zones with Spatial Indexing                │
-│  ┌───────────────┐  ┌─────────────┐  ┌──────────────────┐  │
-│  │   FIELD A     │  │   BARN      │  │   GREENHOUSE     │  │
-│  │               │  │             │  │                  │  │
-│  │ 🌾 Crop Rows  │  │ 🐄 Animals  │  │ 🍅 Controlled   │  │
-│  │ 💧 Irrigation │  │ 📦 Storage  │  │ 🌡️  Environment │  │
-│  │ 🚜 Robot #1   │  │             │  │ 🤖 Robot #3     │  │
-│  └───────────────┘  └─────────────┘  └──────────────────┘  │
-│            │                                               │
-│  ┌─────────────────────────────────────────────────────────┼──
-│  │ R-TREE SPATIAL INDEX: O(log n) zone queries            │
-│  │ • Point containment: "Which zone contains robot?"      │
-│  │ • Radius search: "Zones within 100m of position"      │
-│  │ • Intersection: "Zones overlapping with path"         │
-│  └─────────────────────────────────────────────────────────┘
+│                      SINGLE ZONE                           │
+│                   (e.g., Field or Barn)                    │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │                ZONE BOUNDARY                            │ │
+│  │                                                         │ │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐              │ │
+│  │  │ Element  │  │ Element  │  │ Element  │              │ │
+│  │  │ #1       │  │ #2       │  │ #3      │              │ │
+│  │  │ 🌾 crop  │  │ 🚜 park  │  │ 💧 irrig │              │ │
+│  │  │ area     │  │ space    │  │ system   │              │ │
+│  │  └──────────┘  └──────────┘  └──────────┘              │ │
+│  │                                                         │ │
+│  │  POLYGON FEATURES (Elements within this zone):         │ │
+│  │  • Automatic boundary validation (must fit in zone)    │ │
+│  │  • Visual representation on raster base layer          │ │
+│  │  • Functional areas (parking, storage, crop areas)     │ │
+│  │  • Infrastructure elements (irrigation, paths)         │ │
+│  └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│  RASTER LAYERS (Environmental data for this zone):         │
+│  • Base layer: Generated from zone boundary                │
+│  • Environmental data: Temperature, moisture, elevation    │
+│  • Visualization: Elements drawn on base layer             │
 └─────────────────────────────────────────────────────────────┘
+
+Note: Multiple zones (Farm-level management) will be a future concept
 ```
 
 ## 🏗️ Architecture
 
 ### 🎯 Zone Structure
-Each zone combines **vector** and **raster** data for complete spatial understanding:
+Each zone represents a **single workspace** with internal elements and environmental data:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                         ZONE                                │
+│                    SINGLE ZONE                             │
 ├─────────────────────┬───────────────────────────────────────┤
-│     VECTOR DATA     │           RASTER DATA                 │
+│   POLYGON FEATURES  │           RASTER DATA                 │
+│   (Internal Elements)│                                      │
 │                     │                                       │
-│ 🔲 Field Boundary   │ 📊 Multi-Layer Grids:                │
-│ 🌾 Crop Rows        │   • Elevation (meters)               │
-│ 💧 Irrigation Lines │   • Soil Moisture (%)                │
-│ 🚧 Obstacles        │   • Vegetation Health (NDVI)         │
-│ 🛤️  Access Paths    │   • Temperature (°C)                 │
-│                     │   • Custom layers...                 │
-│ Properties:         │                                       │
-│ • Type: "field"     │ Sampling: sample_at(point)           │
-│ • Crop: "wheat"     │ Resolution: 10m per pixel             │
-│ • Owner: Robot #1   │ Positioning: GPS coordinates         │
+│ 🔲 Zone Boundary    │ 📊 Multi-Layer Grids:                │
+│ 🌾 Crop Areas       │   • Base layer (auto-generated)      │
+│ 🚜 Parking Spaces   │   • Elevation (meters)               │
+│ 📦 Storage Areas    │   • Soil Moisture (%)                │
+│ 💧 Irrigation Systems│   • Temperature (°C)                │
+│ 🛤️  Access Routes   │   • Custom layers...                 │
+│                     │                                       │
+│ Features:           │ Properties:                           │
+│ • UUID identification│ • Automatic boundary cutting         │
+│ • Type/subtype      │ • Resolution: configurable           │
+│ • Custom metadata   │ • Positioning: GPS coordinates       │
+│ • Boundary validation│ • Element visualization              │
 └─────────────────────┴───────────────────────────────────────┘
 ```
 
@@ -66,19 +81,24 @@ Zoneout uses real-world coordinates with proper positioning:
              ↓
     Y (North) │ 
       ↑       │
-      │   500,300 ──────────────────┐
-      │       │                     │
-      │   400 │     FIELD A         │ 200m
-      │       │   (Robot #1)        │
-      │   300 │                     │
-      │       │                     │
-      │   200 ├─────────────────────┤
-      │       │     BARN            │ 100m  
-      │   100 │   (Storage)         │
-      │       │                     │
-      │     0 └─────────────────────┘────→ X (East)
-            0   100   200   300   500
-                   500m
+      │   300 ┌─────────────────────────────┐
+      │       │        FIELD ZONE           │
+      │   250 │  ┌────┐  ┌────┐  ┌────┐    │ 
+      │       │  │Crop│  │Park│  │Irrig│   │ 200m
+      │   200 │  │Area│  │Spot│  │Zone│    │
+      │       │  └────┘  └────┘  └────┘    │
+      │   150 │                            │
+      │       │     Single Zone with       │
+      │   100 │     Internal Elements      │
+      │       │                            │
+      │    50 │                            │
+      │       │                            │
+      │     0 └────────────────────────────┘────→ X (East)
+            0   50  100  150  200  250  300
+                        300m
+
+Note: Each Zone is independent. Multiple zones would be managed
+      by a higher-level system (Future: Farm/Field management)
 ```
 
 ## 📦 Quick Start
@@ -98,237 +118,313 @@ make test  # Verify everything works
 #include "zoneout/zoneout.hpp"
 using namespace zoneout;
 
-// Create field boundary (GPS coordinates)
+// Create zone boundary (GPS coordinates)
 std::vector<concord::Point> boundary_points = {
     {0.0, 0.0, 0.0},      // Southwest corner
-    {500.0, 0.0, 0.0},    // Southeast corner  
-    {500.0, 300.0, 0.0},  // Northeast corner
-    {0.0, 300.0, 0.0}     // Northwest corner
+    {300.0, 0.0, 0.0},    // Southeast corner  
+    {300.0, 200.0, 0.0},  // Northeast corner
+    {0.0, 200.0, 0.0}     // Northwest corner
 };
-concord::Polygon field_boundary(boundary_points);
+concord::Polygon zone_boundary(boundary_points);
 
-// Create agricultural zone
-Zone wheat_field = Zone::createField("North Field", field_boundary);
-wheat_field.setProperty("crop_type", "winter_wheat");
-wheat_field.setProperty("planting_date", "2024-03-15");
+// Create single agricultural zone with auto-generated base layer
+const concord::Datum DATUM{51.98776, 5.662378, 0.0};
+Zone field_zone("North Field", "field", zone_boundary, DATUM, 0.5);  // 0.5m resolution
 
-std::cout << "Created field: " << wheat_field.getName() 
-          << " (" << wheat_field.area() << " m²)" << std::endl;
-// Output: Created field: North Field (150000 m²)
+// Set zone properties
+field_zone.setProperty("crop_type", "winter_wheat");
+field_zone.setProperty("planting_date", "2024-03-15");
+
+std::cout << "Created zone: " << field_zone.getName() 
+          << " (" << field_zone.poly_data_.area() << " m²)" << std::endl;
+std::cout << "Raster info: " << field_zone.getRasterInfo() << std::endl;
+// Output: Created zone: North Field (60000 m²)
+// Output: Raster size: 400x600 (1 layers)
 ```
 
-### Adding Field Elements
+### Adding Polygon Features
 ```cpp
-// Add crop rows for precision farming
-for (int row = 1; row <= 15; row++) {
-    std::vector<concord::Point> row_path = {
-        {10.0, 20.0 + row * 18.0, 0.0},   // Row start
-        {490.0, 20.0 + row * 18.0, 0.0}   // Row end
-    };
-    
-    std::unordered_map<std::string, std::string> row_props;
-    row_props["row_number"] = std::to_string(row);
-    row_props["seed_density"] = "120kg/hectare";
-    
-    wheat_field.add_element(concord::Path(row_path), "crop_row", row_props);
-}
+// Modern polygon feature API with automatic visualization
+// Features are automatically drawn on the base raster layer with random colors (50-200)
 
-// Add irrigation system
-std::vector<concord::Point> irrigation_line = {
-    {50.0, 150.0, 0.0}, {450.0, 150.0, 0.0}
+// Create crop zones within the field
+std::vector<concord::Point> corn_zone_points = {
+    {50.0, 50.0, 0.0}, {200.0, 50.0, 0.0}, 
+    {200.0, 150.0, 0.0}, {50.0, 150.0, 0.0}
 };
-std::unordered_map<std::string, std::string> irrigation_props;
-irrigation_props["flow_rate"] = "200L/min";
-irrigation_props["coverage_width"] = "30m";
+concord::Polygon corn_zone(corn_zone_points);
 
-wheat_field.add_element(concord::Path(irrigation_line), "irrigation_line", irrigation_props);
+std::unordered_map<std::string, std::string> corn_props = {
+    {"crop_type", "corn"},
+    {"management", "organic"},
+    {"priority", "8"},
+    {"season", "spring_2024"},
+    {"area_m2", std::to_string(static_cast<int>(corn_zone.area()))}
+};
 
-// Add facilities (parking, storage, etc.)
-concord::Polygon parking_area = createRectangle(520, 50, 30, 20);
-std::unordered_map<std::string, std::string> parking_props;
-parking_props["name"] = "main_parking";
-parking_props["capacity"] = "5_vehicles";
-parking_props["surface"] = "gravel";
+// Add polygon feature - automatically validates boundaries and draws on base layer
+wheat_field.addPolygonFeature(corn_zone, "corn_section_1", "agricultural", "crop_zone", corn_props);
 
-wheat_field.add_element(parking_area, "parking_space", parking_props);
+// Create irrigation zone
+std::vector<concord::Point> irrigation_zone_points = {
+    {250.0, 100.0, 0.0}, {400.0, 100.0, 0.0},
+    {400.0, 200.0, 0.0}, {250.0, 200.0, 0.0}
+};
+concord::Polygon irrigation_zone(irrigation_zone_points);
 
-// Add storage area
-concord::Polygon storage_area = createRectangle(80, 70, 25, 20);
-std::unordered_map<std::string, std::string> storage_props;
-storage_props["name"] = "equipment_storage";
-storage_props["max_weight"] = "500kg_per_m2";
-storage_props["weather_protection"] = "covered";
+std::unordered_map<std::string, std::string> irrigation_props = {
+    {"system_type", "drip_irrigation"},
+    {"flow_rate", "200L/min"},
+    {"coverage", "complete"},
+    {"efficiency", "95_percent"}
+};
 
-wheat_field.add_element(storage_area, "storage_area", storage_props);
+wheat_field.addPolygonFeature(irrigation_zone, "irrigation_zone_1", "infrastructure", "irrigation", irrigation_props);
 
-// Add access routes  
-std::vector<concord::Point> access_path = {{5, 50, 0}, {95, 50, 0}};
-std::unordered_map<std::string, std::string> route_props;
-route_props["name"] = "main_access";
-route_props["width"] = "4m";
-route_props["surface"] = "dirt_road";
+// Create equipment storage area
+std::vector<concord::Point> storage_points = {
+    {450.0, 50.0, 0.0}, {490.0, 50.0, 0.0},
+    {490.0, 90.0, 0.0}, {450.0, 90.0, 0.0}
+};
+concord::Polygon storage_area(storage_points);
 
-wheat_field.add_element(concord::Path(access_path), "access_route", route_props);
+std::unordered_map<std::string, std::string> storage_props = {
+    {"storage_type", "equipment"},
+    {"capacity", "500kg_per_m2"},
+    {"weather_protection", "covered"},
+    {"access_level", "high"}
+};
 
-// Add equipment points
-concord::Point water_station(60, 40, 0);
-std::unordered_map<std::string, std::string> station_props;
-station_props["name"] = "water_station";
-station_props["type"] = "irrigation_hub";
-station_props["flow_rate"] = "100L_per_min";
+wheat_field.addPolygonFeature(storage_area, "equipment_storage", "facility", "storage", storage_props);
 
-wheat_field.add_element(water_station, "equipment_point", station_props);
+// Get feature information
+std::cout << "Zone features: " << wheat_field.getFeatureInfo() << std::endl;
+// Output: Features: 3 polygons, 0 lines, 0 points (3 total)
 ```
 
 ### Raster Data Integration
 ```cpp
-// Create elevation grid (25x50 cells, 10m resolution)
-concord::Pose grid_pose;
-grid_pose.point = concord::Point(250, 150, 0); // Center over field
-concord::Grid<uint8_t> elevation_grid(25, 50, 10.0, true, grid_pose);
+// Create zone with automatic base layer generation
+zoneout::Zone field("North Field", "field", field_boundary, WAGENINGEN_DATUM, 0.1);
 
-// Fill with elevation data (95-105 meters)
-for (size_t row = 0; row < 25; row++) {
-    for (size_t col = 0; col < 50; col++) {
-        uint8_t elevation = 95 + (row + col) * 10 / 75; // Gentle slope
-        elevation_grid.set_value(row, col, elevation);
+// Access base grid for creating additional layers with same spatial configuration
+const auto &base_grid = field.grid_data_.getGrid(0).grid;
+
+// Create temperature grid with same spatial properties
+auto temp_grid = base_grid;  // Copy spatial configuration
+for (size_t r = 0; r < temp_grid.rows(); ++r) {
+    for (size_t c = 0; c < temp_grid.cols(); ++c) {
+        // Fill with temperature data (15-35°C range with noise)
+        uint8_t temp_value = static_cast<uint8_t>(15 + noise_function(r, c) * 20);
+        temp_grid.set_value(r, c, temp_value);
     }
 }
 
-// Add to zone
-wheat_field.add_layer("elevation", "terrain", elevation_grid, {{"units", "meters"}});
+// Add raster layers with poly_cut option
+field.addRasterLayer(temp_grid, "temperature_full", "environmental", 
+                     {{"units", "celsius"}}, false);  // Full coverage
 
-// Sample elevation at robot position
-concord::Point robot_pos(250, 150, 0);
-auto elevation = wheat_field.sample_at("elevation", robot_pos);
-if (elevation) {
-    std::cout << "Ground elevation: " << (int)*elevation << "m" << std::endl;
-    // Output: Ground elevation: 99m
+// Create moisture grid
+auto moisture_grid = base_grid;  // Copy spatial configuration
+for (size_t r = 0; r < moisture_grid.rows(); ++r) {
+    for (size_t c = 0; c < moisture_grid.cols(); ++c) {
+        uint8_t moisture_value = static_cast<uint8_t>(20 + noise_function(r, c) * 60);
+        moisture_grid.set_value(r, c, moisture_value);
+    }
 }
+
+// Add with boundary cutting - zeros outside field boundary
+field.addRasterLayer(moisture_grid, "soil_moisture", "environmental", 
+                     {{"units", "percentage"}}, true);  // Cut to field shape
+
+// Get raster information
+std::cout << "Raster info: " << field.getRasterInfo() << std::endl;
+// Output: Raster size: 50x30 (3 layers)
+
+// Get feature information  
+std::cout << "Feature info: " << field.getFeatureInfo() << std::endl;
+// Output: Features: 3 polygons, 0 lines, 0 points (3 total)
 ```
 
-### Farm-Level Management
+### Zone Queries & Robot Coordination
 ```cpp
-// Create farm with multiple zones (snake_case API)
-Farm smart_farm("Precision Agriculture Demo");
-
-// Add zones to farm
-smart_farm.add_zone(std::make_unique<Zone>(std::move(wheat_field)));
-auto& barn = smart_farm.create_barn("Storage Barn", createRectangle(600, 0, 80, 60));
-auto& greenhouse = smart_farm.create_greenhouse("Tomato House", createRectangle(0, 350, 200, 100));
-
-std::cout << "Farm overview:" << std::endl;
-std::cout << "• Total area: " << smart_farm.total_area() << " m²" << std::endl;
-std::cout << "• Number of zones: " << smart_farm.num_zones() << std::endl;
-std::cout << "• Field area: " << smart_farm.area_by_type("field") << " m²" << std::endl;
-```
-
-### Spatial Queries & Robot Coordination
-```cpp
-// Robot navigation queries (snake_case API)
+// Robot position tracking within zones
 concord::Point robot_position(250, 150, 0);
 
-// Which zone contains the robot?
-auto current_zones = smart_farm.find_zones_containing(robot_position);
-if (!current_zones.empty()) {
-    std::cout << "Robot is in: " << current_zones[0]->getName() << std::endl;
+// Check if robot is within field boundary
+if (field.poly_data_.contains(robot_position)) {
+    std::cout << "Robot is within field: " << field.getName() << std::endl;
 }
 
-// Find zones within operational radius
-auto nearby_zones = smart_farm.find_zones_within_radius(robot_position, 100.0);
-std::cout << "Zones within 100m: " << nearby_zones.size() << std::endl;
-
-// Query elements within the current zone
-if (!current_zones.empty()) {
-    auto parking_spaces = current_zones[0]->get_elements("parking_space");
-    auto storage_areas = current_zones[0]->get_elements("storage_area");
-    std::cout << "Available parking: " << parking_spaces.size() << std::endl;
-    std::cout << "Storage areas: " << storage_areas.size() << std::endl;
-    
-    for (const auto& space : parking_spaces) {
-        auto name_it = space.properties.find("name");
-        auto capacity_it = space.properties.find("capacity");
-        if (name_it != space.properties.end()) {
-            std::cout << "- " << name_it->second;
-            if (capacity_it != space.properties.end()) {
-                std::cout << " (" << capacity_it->second << ")";
-            }
-            std::cout << std::endl;
+// Query polygon features near robot position
+const auto& polygon_elements = field.poly_data_.getPolygonElements();
+for (const auto& element : polygon_elements) {
+    if (element.geometry.contains(robot_position)) {
+        std::cout << "Robot is in feature: " << element.name 
+                  << " (type: " << element.type << ")" << std::endl;
+        
+        // Access feature properties
+        auto crop_it = element.properties.find("crop_type");
+        auto mgmt_it = element.properties.find("management");
+        if (crop_it != element.properties.end()) {
+            std::cout << "Crop type: " << crop_it->second << std::endl;
+        }
+        if (mgmt_it != element.properties.end()) {
+            std::cout << "Management: " << mgmt_it->second << std::endl;
         }
     }
 }
 
-// Find nearest facility for resupply
-auto nearest_barn = smart_farm.find_nearest_zone(robot_position);
-if (nearest_barn && nearest_barn->getType() == "barn") {
-    std::cout << "Nearest resupply: " << nearest_barn->getName() << std::endl;
+// Sample environmental data at robot position
+if (field.grid_data_.gridCount() > 0) {
+    const auto& base_grid = field.grid_data_.getGrid(0).grid;
+    // Get grid cell value at robot position
+    // Note: You would implement sampling logic based on your grid structure
+    std::cout << "Environmental data available at position" << std::endl;
 }
 
-// Robot ownership for coordination
-UUID harvester_robot = generateUUID();
-current_zones[0]->setOwnerRobot(harvester_robot);
-std::cout << "Zone assigned to robot: " << harvester_robot.toString() << std::endl;
+// Zone area and geometry queries
+std::cout << "Field area: " << field.poly_data_.area() << " m²" << std::endl;
+std::cout << "Field perimeter: " << field.poly_data_.perimeter() << " m" << std::endl;
 ```
 
 ## 🔧 Advanced Features
 
-### 🌐 Distributed Coordination
+### 🌐 Zone-Level Operations
 ```cpp
-// Lamport logical clocks for distributed systems
-LamportClock field_clock;
-field_clock.tick(); // Local event
-field_clock.update(42); // Sync with remote clock
+// Zone boundary and feature validation
+std::cout << "Zone valid: " << field.is_valid() << std::endl;
 
-// Zone ownership with automatic conflict resolution
-if (!wheat_field.hasOwner()) {
-    wheat_field.setOwnerRobot(robot_id);
-    // Distributed algorithms can use Lamport timestamps for ordering
+// Direct access to underlying data structures
+// Vector data access
+const auto& polygon_features = field.poly_data_.getPolygonElements();
+const auto& line_features = field.poly_data_.getLineElements(); 
+const auto& point_features = field.poly_data_.getPointElements();
+
+// Raster data access
+if (field.grid_data_.gridCount() > 0) {
+    const auto& base_layer = field.grid_data_.getGrid(0);
+    std::cout << "Base layer: " << base_layer.name << " (" << base_layer.type << ")" << std::endl;
 }
+
+// Feature filtering by type/subtype
+auto crop_zones = field.poly_data_.getPolygonsByType("agricultural");
+auto irrigation_zones = field.poly_data_.getPolygonsBySubtype("irrigation");
+
+std::cout << "Found " << crop_zones.size() << " agricultural zones" << std::endl;
+std::cout << "Found " << irrigation_zones.size() << " irrigation zones" << std::endl;
 ```
 
-### 📊 Spatial Index Performance
+### 📊 Performance Characteristics
 ```cpp
-// R-tree spatial indexing for O(log n) queries
-auto stats = smart_farm.getSpatialIndexStats();
-std::cout << "Spatial index efficiency:" << std::endl;
-std::cout << "• Indexed zones: " << stats.total_entries << std::endl;
+// Zone operations are designed for efficiency:
+// • Boundary validation: O(n) where n = polygon vertices
+// • Feature lookup: Direct vector access
+// • Grid sampling: O(1) cell access
+// • File I/O: Dual-format (GeoJSON + GeoTIFF) with validation
 
-// Efficient bulk operations
-std::vector<concord::Point> survey_points = generateSurveyGrid(1000);
-auto start = std::chrono::high_resolution_clock::now();
-
-for (const auto& point : survey_points) {
-    auto zones = smart_farm.findZonesContaining(point); // O(log n)
-}
-
-auto duration = std::chrono::high_resolution_clock::now() - start;
-std::cout << "1000 point queries: " << duration.count() << "ms" << std::endl;
+// Memory usage is minimal:
+// • Header-only library design
+// • Efficient grid storage
+// • UUID-based feature identification
+// • Property maps for flexible metadata
 ```
 
 ### 💾 Persistence & File I/O
 ```cpp
 // Save zone data (dual-format: GeoJSON + GeoTIFF)
-std::string vector_path = "/tmp/wheat_field.geojson";
-std::string raster_path = "/tmp/wheat_field.tiff";
-
-wheat_field.toFiles(vector_path, raster_path);
+field.toFiles("/tmp/field.geojson", "/tmp/field.tiff");
 /*
 Creates:
-📄 wheat_field.geojson - Vector data (boundaries, elements, properties)
-🗺️ wheat_field.tiff   - Raster data (elevation, soil data, etc.)
+📄 field.geojson - Vector data (boundaries, polygon features, properties)
+🗺️ field.tiff   - Raster data (base layer + additional layers)
 */
 
 // Load zone from files (round-trip preservation)
-Zone loaded_field = Zone::fromFiles(vector_path, raster_path);
+auto loaded_field = zoneout::Zone::fromFiles("/tmp/field.geojson", "/tmp/field.tiff");
 std::cout << "Loaded: " << loaded_field.getName() << std::endl;
-std::cout << "Elements: " << loaded_field.get_elements().size() << std::endl;
-std::cout << "Layers: " << loaded_field.num_layers() << std::endl;
+std::cout << "Raster: " << loaded_field.getRasterInfo() << std::endl;
+std::cout << "Features: " << loaded_field.getFeatureInfo() << std::endl;
+std::cout << "Area preserved: " << (field.poly_data_.area() == loaded_field.poly_data_.area() ? "Yes" : "No") << std::endl;
 
 // All data preserved through save/load cycle:
 // ✓ Zone properties (name, type, custom properties)
-// ✓ Vector elements (crop rows, irrigation, obstacles)
-// ✓ Raster layers (elevation, soil moisture, NDVI)
+// ✓ Polygon features with metadata and UUID tracking
+// ✓ Raster layers with automatic boundary cutting support
 // ✓ Grid data and spatial positioning
+// ✓ Automatic visualization on base layer
+```
+
+### 🎯 Complete Example (from examples/main.cpp)
+```cpp
+#include "zoneout/zoneout.hpp"
+#include "geoget/geoget.hpp"
+
+int main() {
+    // Set up coordinate system
+    const concord::Datum WAGENINGEN_DATUM{51.98776171041831, 5.662378206146002, 0.0};
+    
+    // Interactive polygon drawing (web interface at localhost:8080)
+    geoget::PolygonDrawer drawer(WAGENINGEN_DATUM);
+    drawer.start(8080);
+    const auto l_boundary = drawer.get_polygons();
+    
+    // Create field zone with automatic base layer generation (0.1m resolution)
+    zoneout::Zone field("L-Shaped Field", "field", l_boundary[0], WAGENINGEN_DATUM, 0.1);
+    
+    // Create environmental raster layers
+    const auto &base_grid = field.grid_data_.getGrid(0).grid;
+    auto temp_grid = base_grid;      // Copy spatial configuration
+    auto moisture_grid = base_grid;  // Copy spatial configuration
+    
+    // Fill with realistic environmental data using noise
+    entropy::NoiseGen temp_noise, moisture_noise;
+    temp_noise.SetNoiseType(entropy::NoiseGen::NoiseType_Perlin);
+    moisture_noise.SetNoiseType(entropy::NoiseGen::NoiseType_OpenSimplex2);
+    
+    for (size_t r = 0; r < temp_grid.rows(); ++r) {
+        for (size_t c = 0; c < temp_grid.cols(); ++c) {
+            // Temperature: 15-35°C range
+            float temp_noise_val = temp_noise.GetNoise(r, c);
+            uint8_t temp_value = static_cast<uint8_t>(15 + (temp_noise_val + 1.0f) * 0.5f * 20);
+            temp_grid.set_value(r, c, temp_value);
+            
+            // Moisture: 20-80% range
+            float moisture_noise_val = moisture_noise.GetNoise(r, c);
+            uint8_t moisture_value = static_cast<uint8_t>(20 + (moisture_noise_val + 1.0f) * 0.5f * 60);
+            moisture_grid.set_value(r, c, moisture_value);
+        }
+    }
+    
+    // Add raster layers
+    field.addRasterLayer(temp_grid, "temperature", "environmental", {{"units", "celsius"}}, false);
+    field.addRasterLayer(moisture_grid, "soil_moisture", "environmental", {{"units", "percentage"}}, true);
+    
+    // Add polygon features from additional drawn boundaries
+    for (size_t i = 1; i < l_boundary.size(); ++i) {
+        std::unordered_map<std::string, std::string> properties = {
+            {"crop_type", "corn"},
+            {"management", "organic"},
+            {"priority", "8"},
+            {"season", "spring_2024"},
+            {"area_m2", std::to_string(static_cast<int>(l_boundary[i].area()))}
+        };
+        
+        std::string feature_name = "field_section_" + std::to_string(i);
+        field.addPolygonFeature(l_boundary[i], feature_name, "agricultural", "crop_zone", properties);
+    }
+    
+    // Display results
+    std::cout << "Raster: " << field.getRasterInfo() << std::endl;
+    std::cout << "Features: " << field.getFeatureInfo() << std::endl;
+    
+    // Save and load verification
+    field.toFiles("/tmp/field.geojson", "/tmp/field.tiff");
+    auto loaded = zoneout::Zone::fromFiles("/tmp/field.geojson", "/tmp/field.tiff");
+    std::cout << "Round-trip successful: " << (field.poly_data_.area() == loaded.poly_data_.area()) << std::endl;
+    
+    return 0;
+}
 ```
 
 ## 🎯 Use Cases
@@ -365,40 +461,44 @@ Robot Task Planning:
 ### Zone Class
 ```cpp
 class Zone {
-    // Construction
-    Zone(const std::string& name, const std::string& type, const concord::Polygon& boundary);
-    static Zone createField(const std::string& name, const concord::Polygon& boundary);
-    static Zone createBarn(const std::string& name, const concord::Polygon& boundary);
-    static Zone createGreenhouse(const std::string& name, const concord::Polygon& boundary);
+    // Construction  
+    Zone(const std::string& name, const std::string& type, const concord::Polygon& boundary,
+         const concord::Grid<uint8_t>& initial_grid, const concord::Datum& datum);
+    Zone(const std::string& name, const std::string& type, const concord::Polygon& boundary,
+         const concord::Datum& datum, double resolution = 1.0);  // Auto-generates base grid
     
-    // Geometry (snake_case API)
-    double area() const;
-    double perimeter() const;
-    bool contains(const concord::Point& point) const;
-    void set_boundary(const concord::Polygon& boundary);
-    const concord::Polygon& get_boundary() const;
-    bool has_boundary() const;
+    // Basic Properties
+    const UUID& getId() const;
+    const std::string& getName() const;
+    const std::string& getType() const;
+    void setName(const std::string& name);
+    void setType(const std::string& type);
     
-    // Field Elements (generic methods - user-defined types)
-    void add_element(const geoson::Geometry& geom, const std::string& type, const Properties& props = {});
-    std::vector<geoson::Element> get_elements(const std::string& type = "") const;
-    
-    // Raster Layers (generic methods - user-defined types)
-    void add_layer(const std::string& name, const std::string& type, const concord::Grid<uint8_t>& grid, const Properties& props = {});
-    std::optional<uint8_t> sample_at(const std::string& layer, const concord::Point& point) const;
-    bool has_layer(const std::string& name) const;
-    size_t num_layers() const;
-    std::vector<std::string> get_layer_names() const;
-    
-    // Properties
+    // Zone Properties
     void setProperty(const std::string& key, const std::string& value);
     std::string getProperty(const std::string& key, const std::string& default_value = "") const;
     const std::unordered_map<std::string, std::string>& getProperties() const;
     
-    // Robot Coordination
-    void setOwnerRobot(const UUID& robot_id);
-    bool hasOwner() const;
-    void releaseOwnership();
+    // Datum Management
+    const concord::Datum& getDatum() const;
+    void setDatum(const concord::Datum& datum);
+    
+    // Raster Layer Management
+    void addRasterLayer(const concord::Grid<uint8_t>& grid, const std::string& name, 
+                        const std::string& type = "", 
+                        const std::unordered_map<std::string, std::string>& properties = {},
+                        bool poly_cut = false, int layer_index = -1);
+    std::string getRasterInfo() const;  // Returns layer count and dimensions
+    
+    // Polygon Feature Management (NEW)
+    void addPolygonFeature(const concord::Polygon& geometry, const std::string& name,
+                          const std::string& type = "", const std::string& subtype = "default",
+                          const std::unordered_map<std::string, std::string>& properties = {});
+    std::string getFeatureInfo() const;  // Returns feature counts by type
+    
+    // Direct Data Access
+    Poly poly_data_;  // Vector data (boundaries + polygon features)
+    Grid grid_data_;  // Raster data (multiple layers)
     
     // Validation
     bool is_valid() const;
@@ -409,30 +509,59 @@ class Zone {
 };
 ```
 
-### Farm Class  
+### Key Features of New Polygon API
 ```cpp
-class Farm {
-    // Zone Management (snake_case API)
-    void add_zone(std::unique_ptr<Zone> zone);
-    Zone& create_field(const std::string& name, const concord::Polygon& boundary);
-    Zone& create_barn(const std::string& name, const concord::Polygon& boundary);  
-    Zone& create_greenhouse(const std::string& name, const concord::Polygon& boundary);
-    size_t num_zones() const;
+// Automatic boundary validation - polygons must be inside field boundary
+void addPolygonFeature(geometry, name, type, subtype, properties);
+
+// Automatic visualization - features drawn on base layer with random colors (50-200)
+// UUID generation - each feature gets unique identifier  
+// Property storage - arbitrary key-value metadata
+// Type system - organize features by type and subtype
+
+// Feature information summary
+std::string getFeatureInfo() const;
+// Returns: "Features: 3 polygons, 2 lines, 1 points (6 total)"
+
+// Raster information summary  
+std::string getRasterInfo() const;
+// Returns: "Raster size: 50x30 (4 layers)"
+```
+
+### Poly and Grid Classes (Direct Access)
+```cpp
+// Poly class - Vector data management
+class Poly : public geoson::Vector {
+    // Structured element access
+    const std::vector<PolygonElement>& getPolygonElements() const;
+    const std::vector<LineElement>& getLineElements() const;
+    const std::vector<PointElement>& getPointElements() const;
     
-    // Spatial Queries (O(log n) with R-tree indexing)
-    std::vector<Zone*> find_zones_containing(const concord::Point& point);
-    std::vector<Zone*> find_zones_within_radius(const concord::Point& center, double radius);
-    std::vector<Zone*> find_zones_intersecting(const concord::Polygon& area);
-    Zone* find_nearest_zone(const concord::Point& point);
+    // Element filtering
+    std::vector<PolygonElement> getPolygonsByType(const std::string& type) const;
+    std::vector<PolygonElement> getPolygonsBySubtype(const std::string& subtype) const;
     
-    // Statistics
-    double total_area() const;
-    double area_by_type(const std::string& type) const;
-    std::optional<concord::AABB> get_bounding_box() const;
+    // Geometry operations  
+    double area() const;
+    double perimeter() const;
+    bool contains(const concord::Point& point) const;
+    bool hasFieldBoundary() const;
+    bool isValid() const;
+};
+
+// Grid class - Raster data management  
+class Grid : public geotiv::Raster {
+    // Grid access
+    size_t gridCount() const;
+    const GridLayer& getGrid(size_t index) const;
     
-    // File I/O
-    void save_to_directory(const std::filesystem::path& dir) const;
-    static Farm load_from_directory(const std::filesystem::path& dir, const std::string& name);
+    // Grid management
+    void addGrid(const concord::Grid<uint8_t>& grid, const std::string& name,
+                 const std::string& type, const std::unordered_map<std::string, std::string>& properties = {});
+    
+    // Validation
+    bool hasGrids() const;
+    bool isValid() const;
 };
 ```
 
@@ -459,10 +588,12 @@ make test
 
 ## 📈 Performance
 
-- **Spatial Queries**: O(log n) with R-tree indexing vs O(n) brute force
+- **Zone Operations**: Efficient boundary validation and feature management
 - **Memory Usage**: Header-only design, minimal overhead
-- **Scalability**: Tested with 1000+ zones, sub-millisecond queries
-- **Concurrency**: Thread-safe UUID generation, read-only operations
+- **Grid Access**: O(1) cell access for raster data sampling
+- **File I/O**: Optimized dual-format persistence (GeoJSON + GeoTIFF)
+- **Feature Lookup**: Direct vector access for polygon elements
+- **UUID Generation**: Thread-safe unique identifiers
 
 ## 🤝 Contributing
 
