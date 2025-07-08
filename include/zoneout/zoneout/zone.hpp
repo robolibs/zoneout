@@ -46,31 +46,118 @@ namespace zoneout {
             syncToPolyGrid();
         }
 
-        // Constructor that generates grid from polygon's oriented bounding box with noise
+        // Constructor that generates grid from polygon's axis-aligned bounding box with noise
         Zone(const std::string &name, const std::string &type, const concord::Polygon &boundary,
              const concord::Datum &datum, double resolution = 1.0)
             : id_(generateUUID()), name_(name), type_(type), poly_data_(name, type, "default", boundary),
               grid_data_(name, type, "default") {
             setDatum(datum);
 
-            // Get oriented bounding box from polygon
-            auto obb = boundary.get_obb();
+            // Get axis-aligned bounding box from polygon  
+            auto aabb = boundary.getAABB();
 
-            // Calculate grid dimensions based on OBB size and resolution
-            size_t grid_rows = static_cast<size_t>(std::ceil(obb.size.x / resolution));
-            size_t grid_cols = static_cast<size_t>(std::ceil(obb.size.y / resolution));
+            // Calculate grid dimensions based on AABB size and resolution
+            // Add padding to ensure we fully encompass the polygon bounds
+            double padding = resolution * 2.0; // Add 2 cell padding on each side
+            double grid_width = aabb.size().x + padding;
+            double grid_height = aabb.size().y + padding;
+            
+            // Standard grid convention: rows = Y dimension, cols = X dimension
+            size_t grid_rows = static_cast<size_t>(std::ceil(grid_height / resolution));  // rows = Y dimension
+            size_t grid_cols = static_cast<size_t>(std::ceil(grid_width / resolution));   // cols = X dimension
 
             // Ensure minimum grid size
             grid_rows = std::max(grid_rows, static_cast<size_t>(1));
             grid_cols = std::max(grid_cols, static_cast<size_t>(1));
 
-            // Create grid using the OBB pose (center and orientation)
-            concord::Grid<uint8_t> generated_grid(grid_rows, grid_cols, resolution, true, obb.pose);
+            // Since Grid constructor uses pose as center, we can directly use AABB center
+            // The grid will extend half its size in each direction from this center
+            // Use reverse_y=true to match mathematical coordinate system (Y increases upward)
+            concord::Pose grid_pose(aabb.center(), concord::Euler{0, 0, 0});
+            concord::Grid<uint8_t> generated_grid(grid_rows, grid_cols, resolution, true, grid_pose, true);
+            
+            // Debug: Check if grid properly encompasses polygon
+            auto grid_corners = generated_grid.corners();
+            auto polygon_points = boundary.getPoints();
+            
+            std::cout << "\n=== GRID vs POLYGON BOUNDS DEBUG ===" << std::endl;
+            std::cout << "AABB center: (" << aabb.center().x << ", " << aabb.center().y << ", " << aabb.center().z << ")" << std::endl;
+            std::cout << "AABB size: (" << aabb.size().x << " x " << aabb.size().y << ")" << std::endl;
+            std::cout << "AABB bounds: (" << aabb.min_point.x << ", " << aabb.min_point.y << ") to (" << aabb.max_point.x << ", " << aabb.max_point.y << ")" << std::endl;
+            std::cout << "Grid pose center: (" << grid_pose.point.x << ", " << grid_pose.point.y << ", " << grid_pose.point.z << ")" << std::endl;
+            std::cout << "Grid dimensions: " << grid_rows << " rows x " << grid_cols << " cols @ " << resolution << " res" << std::endl;
+            std::cout << "Grid size with padding: " << grid_width << " x " << grid_height << " (padding: " << padding << ")" << std::endl;
+            std::cout << "Actual grid world size: " << (grid_cols * resolution) << " x " << (grid_rows * resolution) << std::endl;
+            std::cout << "Grid corners:" << std::endl;
+            for (size_t i = 0; i < grid_corners.size(); ++i) {
+                const auto& corner = grid_corners[i];
+                std::cout << "  Corner " << i << ": (" << corner.x << ", " << corner.y << ", " << corner.z << ")" << std::endl;
+            }
+            // Calculate actual grid extent from corners
+            // Based on output: 0=bottom-left, 1=top-left, 2=top-right, 3=bottom-right
+            double corner_width = grid_corners[2].x - grid_corners[0].x;
+            double corner_height = grid_corners[1].y - grid_corners[0].y;
+            std::cout << "Grid extent from corners: " << corner_width << " x " << corner_height << std::endl;
+            
+            // Test coordinate mapping accuracy using new Grid methods
+            std::cout << "\n=== COORDINATE MAPPING TEST ===" << std::endl;
+            auto test_point = polygon_points[0]; // Use first polygon vertex
+            std::cout << "Test polygon point: (" << test_point.x << ", " << test_point.y << ")" << std::endl;
+            
+            // Use Grid's built-in coordinate conversion
+            auto [grid_row, grid_col] = generated_grid.world_to_grid(test_point);
+            auto mapped_point = generated_grid.grid_to_world(grid_row, grid_col);
+            
+            std::cout << "Grid cell from world_to_grid: (" << grid_row << ", " << grid_col << ")" << std::endl;
+            std::cout << "Grid cell center from grid_to_world: (" << mapped_point.x << ", " << mapped_point.y << ")" << std::endl;
+            
+            double distance = std::sqrt(std::pow(mapped_point.x - test_point.x, 2) + std::pow(mapped_point.y - test_point.y, 2));
+            std::cout << "Distance from polygon point: " << distance << std::endl;
+            std::cout << "Coordinate accuracy: " << (distance < resolution ? "GOOD" : "NEEDS_WORK") << std::endl;
+            std::cout << "=== END COORDINATE TEST ===\n" << std::endl;
+            
+            // Find polygon bounds
+            double poly_min_x = polygon_points[0].x, poly_max_x = polygon_points[0].x;
+            double poly_min_y = polygon_points[0].y, poly_max_y = polygon_points[0].y;
+            for (const auto& pt : polygon_points) {
+                poly_min_x = std::min(poly_min_x, pt.x);
+                poly_max_x = std::max(poly_max_x, pt.x);
+                poly_min_y = std::min(poly_min_y, pt.y);
+                poly_max_y = std::max(poly_max_y, pt.y);
+            }
+            
+            // Find grid bounds
+            double grid_min_x = grid_corners[0].x, grid_max_x = grid_corners[0].x;
+            double grid_min_y = grid_corners[0].y, grid_max_y = grid_corners[0].y;
+            for (const auto& corner : grid_corners) {
+                grid_min_x = std::min(grid_min_x, corner.x);
+                grid_max_x = std::max(grid_max_x, corner.x);
+                grid_min_y = std::min(grid_min_y, corner.y);
+                grid_max_y = std::max(grid_max_y, corner.y);
+            }
+            
+            std::cout << "Polygon bounds: (" << poly_min_x << ", " << poly_min_y << ") to (" << poly_max_x << ", " << poly_max_y << ")" << std::endl;
+            std::cout << "Grid bounds: (" << grid_min_x << ", " << grid_min_y << ") to (" << grid_max_x << ", " << grid_max_y << ")" << std::endl;
+            
+            // Check if polygon exceeds grid bounds
+            bool polygon_exceeds_grid = (poly_min_x < grid_min_x) || (poly_max_x > grid_max_x) || 
+                                       (poly_min_y < grid_min_y) || (poly_max_y > grid_max_y);
+            
+            std::cout << "Polygon exceeds grid bounds: " << (polygon_exceeds_grid ? "YES - PROBLEM!" : "NO - OK") << std::endl;
+            
+            if (polygon_exceeds_grid) {
+                std::cout << "PROBLEM DETAILS:" << std::endl;
+                if (poly_min_x < grid_min_x) std::cout << "  Polygon extends " << (grid_min_x - poly_min_x) << " units left of grid" << std::endl;
+                if (poly_max_x > grid_max_x) std::cout << "  Polygon extends " << (poly_max_x - grid_max_x) << " units right of grid" << std::endl;
+                if (poly_min_y < grid_min_y) std::cout << "  Polygon extends " << (grid_min_y - poly_min_y) << " units below grid" << std::endl;
+                if (poly_max_y > grid_max_y) std::cout << "  Polygon extends " << (poly_max_y - grid_max_y) << " units above grid" << std::endl;
+            }
+            std::cout << "=== END BOUNDS DEBUG ===\n" << std::endl;
 
             // Configure noise generator
             entropy::NoiseGen noise;
             noise.SetNoiseType(entropy::NoiseGen::NoiseType_OpenSimplex2);
-            auto sz = std::max(obb.size.x, obb.size.y);
+            auto sz = std::max(aabb.size().x, aabb.size().y);
             noise.SetFrequency(sz / 300000.0f);
             noise.SetSeed(std::random_device{}());
 
@@ -158,11 +245,11 @@ namespace zoneout {
                     std::cout << "  Point " << i << ": (" << pt.x << ", " << pt.y << ", " << pt.z << ")" << std::endl;
                 }
                 
-                auto polygon_obb = boundary.get_obb();
-                std::cout << "Polygon OBB center: (" << polygon_obb.pose.point.x << ", " 
-                         << polygon_obb.pose.point.y << ", " << polygon_obb.pose.point.z << ")" << std::endl;
-                std::cout << "Polygon OBB size: (" << polygon_obb.size.x << " x " 
-                         << polygon_obb.size.y << ")" << std::endl;
+                auto polygon_aabb = boundary.getAABB();
+                std::cout << "Polygon AABB center: (" << polygon_aabb.center().x << ", " 
+                         << polygon_aabb.center().y << ", " << polygon_aabb.center().z << ")" << std::endl;
+                std::cout << "Polygon AABB size: (" << polygon_aabb.size().x << " x " 
+                         << polygon_aabb.size().y << ")" << std::endl;
                 std::cout << "Polygon area: " << boundary.area() << std::endl;
                 
                 // Debug grid information

@@ -30,6 +30,25 @@ int main() {
     zoneout::Zone field("L-Shaped Field", "field", l_boundary[0], WAGENINGEN_DATUM, 0.1);
 
     const auto &base_grid = field.grid_data_.getGrid(0).grid;
+    
+    // If we have a second polygon, draw it with value 0.5 (128) on the base layer for coordinate testing
+    if (l_boundary.size() > 1) {
+        std::cout << "\nDrawing test polygon (polygon[1]) with value 0.5 on base layer..." << std::endl;
+        auto &mutable_base_grid = field.grid_data_.getGrid(0).grid;
+        
+        // Draw the test polygon with value 128 (0.5 in normalized range)
+        for (size_t r = 0; r < mutable_base_grid.rows(); ++r) {
+            for (size_t c = 0; c < mutable_base_grid.cols(); ++c) {
+                auto cell_center = mutable_base_grid.get_point(r, c);
+                if (l_boundary[1].contains(cell_center)) {
+                    mutable_base_grid.set_value(r, c, 128); // 0.5 in uint8_t range
+                }
+            }
+        }
+        std::cout << "Test polygon drawn on base layer with value 128 (0.5)" << std::endl;
+    } else {
+        std::cout << "\nNo second polygon drawn - only one polygon provided" << std::endl;
+    }
 
     // Create new grids with the SAME spatial configuration as the base layer
     auto temp_grid = base_grid;     // Copy spatial properties (pose, resolution, size)
