@@ -1,5 +1,8 @@
 #include <iostream>
 #include <random>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "entropy/generator.hpp"
 #include "geoget/geoget.hpp"
@@ -9,17 +12,10 @@ int main() {
     std::cout << "Simple Zone Example" << std::endl;
 
     // Wageningen Research Labs coordinates
+    const concord::Datum WAGENINGEN_DATUM{51.98776171041831, 5.662378206146002, 0.0};
 
-    geoget::PolygonDrawer drawer;
+    geoget::PolygonDrawer drawer(WAGENINGEN_DATUM);
     if (!drawer.start(8080)) {
-        std::cerr << "Failed to start server" << std::endl;
-        return 1;
-    }
-    auto datum = drawer.add_datum();
-    const concord::Datum WAGENINGEN_DATUM{datum.lat, datum.lon, 0.0};
-
-    drawer.stop();
-    if (!drawer.start(8081)) {
         std::cerr << "Failed to start server" << std::endl;
         return 1;
     }
@@ -30,25 +26,6 @@ int main() {
     zoneout::Zone field("L-Shaped Field", "field", l_boundary[0], WAGENINGEN_DATUM, 0.1);
 
     const auto &base_grid = field.grid_data_.getGrid(0).grid;
-    
-    // If we have a second polygon, draw it with value 0.5 (128) on the base layer for coordinate testing
-    if (l_boundary.size() > 1) {
-        std::cout << "\nDrawing test polygon (polygon[1]) with value 0.5 on base layer..." << std::endl;
-        auto &mutable_base_grid = field.grid_data_.getGrid(0).grid;
-        
-        // Draw the test polygon with value 128 (0.5 in normalized range)
-        for (size_t r = 0; r < mutable_base_grid.rows(); ++r) {
-            for (size_t c = 0; c < mutable_base_grid.cols(); ++c) {
-                auto cell_center = mutable_base_grid.get_point(r, c);
-                if (l_boundary[1].contains(cell_center)) {
-                    mutable_base_grid.set_value(r, c, 128); // 0.5 in uint8_t range
-                }
-            }
-        }
-        std::cout << "Test polygon drawn on base layer with value 128 (0.5)" << std::endl;
-    } else {
-        std::cout << "\nNo second polygon drawn - only one polygon provided" << std::endl;
-    }
 
     // Create new grids with the SAME spatial configuration as the base layer
     auto temp_grid = base_grid;     // Copy spatial properties (pose, resolution, size)
@@ -92,6 +69,40 @@ int main() {
     std::cout << "- base_layer: Auto-generated noise only inside L-shape (from constructor)" << std::endl;
     std::cout << "- temperature_full: Full rectangular coverage (poly_cut=false)" << std::endl;
     std::cout << "- moisture_cut: Cut to L-shape only (poly_cut=true)" << std::endl;
+
+    // Add polygon features from boundary polygons (except n=0)
+    std::cout << "\nAdding polygon features..." << std::endl;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> crop_dist(1, 4);
+    std::uniform_int_distribution<> priority_dist(1, 10);
+
+    std::vector<std::string> crop_types = {"corn", "wheat", "soybean", "barley"};
+    std::vector<std::string> management_types = {"organic", "conventional", "precision", "sustainable"};
+
+    for (size_t i = 1; i < l_boundary.size(); ++i) {
+        std::string crop_type = crop_types[crop_dist(gen) - 1];
+        std::string management_type = management_types[crop_dist(gen) - 1];
+
+        std::unordered_map<std::string, std::string> properties = {
+            {"crop_type", crop_type},
+            {"management", management_type},
+            {"priority", std::to_string(priority_dist(gen))},
+            {"season", "spring_2024"},
+            {"area_m2", std::to_string(static_cast<int>(l_boundary[i].area()))}};
+
+        std::string feature_name = "field_section_" + std::to_string(i);
+
+        try {
+            field.addPolygonFeature(l_boundary[i], feature_name, "agricultural", "crop_zone", properties);
+            std::cout << "Added feature: " << feature_name << " (" << crop_type << ", " << management_type << ")"
+                      << std::endl;
+        } catch (const std::exception &e) {
+            std::cout << "Failed to add feature " << feature_name << ": " << e.what() << std::endl;
+        }
+    }
+
+    std::cout << "\nFinal features: " << field.getFeatureInfo() << std::endl;
 
     // Save to files
     field.toFiles("/tmp/a_field.geojson", "/tmp/a_field.tiff");

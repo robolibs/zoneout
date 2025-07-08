@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <random>
 #include <sstream>
@@ -53,7 +54,7 @@ namespace zoneout {
               grid_data_(name, type, "default") {
             setDatum(datum);
 
-            // Get axis-aligned bounding box from polygon  
+            // Get axis-aligned bounding box from polygon
             auto aabb = boundary.getAABB();
 
             // Calculate grid dimensions based on AABB size and resolution
@@ -61,10 +62,10 @@ namespace zoneout {
             double padding = resolution * 2.0; // Add 2 cell padding on each side
             double grid_width = aabb.size().x + padding;
             double grid_height = aabb.size().y + padding;
-            
+
             // Standard grid convention: rows = Y dimension, cols = X dimension
-            size_t grid_rows = static_cast<size_t>(std::ceil(grid_height / resolution));  // rows = Y dimension
-            size_t grid_cols = static_cast<size_t>(std::ceil(grid_width / resolution));   // cols = X dimension
+            size_t grid_rows = static_cast<size_t>(std::ceil(grid_height / resolution)); // rows = Y dimension
+            size_t grid_cols = static_cast<size_t>(std::ceil(grid_width / resolution));  // cols = X dimension
 
             // Ensure minimum grid size
             grid_rows = std::max(grid_rows, static_cast<size_t>(1));
@@ -75,84 +76,6 @@ namespace zoneout {
             // Use reverse_y=true to match mathematical coordinate system (Y increases upward)
             concord::Pose grid_pose(aabb.center(), concord::Euler{0, 0, 0});
             concord::Grid<uint8_t> generated_grid(grid_rows, grid_cols, resolution, true, grid_pose, true);
-            
-            // Debug: Check if grid properly encompasses polygon
-            auto grid_corners = generated_grid.corners();
-            auto polygon_points = boundary.getPoints();
-            
-            std::cout << "\n=== GRID vs POLYGON BOUNDS DEBUG ===" << std::endl;
-            std::cout << "AABB center: (" << aabb.center().x << ", " << aabb.center().y << ", " << aabb.center().z << ")" << std::endl;
-            std::cout << "AABB size: (" << aabb.size().x << " x " << aabb.size().y << ")" << std::endl;
-            std::cout << "AABB bounds: (" << aabb.min_point.x << ", " << aabb.min_point.y << ") to (" << aabb.max_point.x << ", " << aabb.max_point.y << ")" << std::endl;
-            std::cout << "Grid pose center: (" << grid_pose.point.x << ", " << grid_pose.point.y << ", " << grid_pose.point.z << ")" << std::endl;
-            std::cout << "Grid dimensions: " << grid_rows << " rows x " << grid_cols << " cols @ " << resolution << " res" << std::endl;
-            std::cout << "Grid size with padding: " << grid_width << " x " << grid_height << " (padding: " << padding << ")" << std::endl;
-            std::cout << "Actual grid world size: " << (grid_cols * resolution) << " x " << (grid_rows * resolution) << std::endl;
-            std::cout << "Grid corners:" << std::endl;
-            for (size_t i = 0; i < grid_corners.size(); ++i) {
-                const auto& corner = grid_corners[i];
-                std::cout << "  Corner " << i << ": (" << corner.x << ", " << corner.y << ", " << corner.z << ")" << std::endl;
-            }
-            // Calculate actual grid extent from corners
-            // Based on output: 0=bottom-left, 1=top-left, 2=top-right, 3=bottom-right
-            double corner_width = grid_corners[2].x - grid_corners[0].x;
-            double corner_height = grid_corners[1].y - grid_corners[0].y;
-            std::cout << "Grid extent from corners: " << corner_width << " x " << corner_height << std::endl;
-            
-            // Test coordinate mapping accuracy using new Grid methods
-            std::cout << "\n=== COORDINATE MAPPING TEST ===" << std::endl;
-            auto test_point = polygon_points[0]; // Use first polygon vertex
-            std::cout << "Test polygon point: (" << test_point.x << ", " << test_point.y << ")" << std::endl;
-            
-            // Use Grid's built-in coordinate conversion
-            auto [grid_row, grid_col] = generated_grid.world_to_grid(test_point);
-            auto mapped_point = generated_grid.grid_to_world(grid_row, grid_col);
-            
-            std::cout << "Grid cell from world_to_grid: (" << grid_row << ", " << grid_col << ")" << std::endl;
-            std::cout << "Grid cell center from grid_to_world: (" << mapped_point.x << ", " << mapped_point.y << ")" << std::endl;
-            
-            double distance = std::sqrt(std::pow(mapped_point.x - test_point.x, 2) + std::pow(mapped_point.y - test_point.y, 2));
-            std::cout << "Distance from polygon point: " << distance << std::endl;
-            std::cout << "Coordinate accuracy: " << (distance < resolution ? "GOOD" : "NEEDS_WORK") << std::endl;
-            std::cout << "=== END COORDINATE TEST ===\n" << std::endl;
-            
-            // Find polygon bounds
-            double poly_min_x = polygon_points[0].x, poly_max_x = polygon_points[0].x;
-            double poly_min_y = polygon_points[0].y, poly_max_y = polygon_points[0].y;
-            for (const auto& pt : polygon_points) {
-                poly_min_x = std::min(poly_min_x, pt.x);
-                poly_max_x = std::max(poly_max_x, pt.x);
-                poly_min_y = std::min(poly_min_y, pt.y);
-                poly_max_y = std::max(poly_max_y, pt.y);
-            }
-            
-            // Find grid bounds
-            double grid_min_x = grid_corners[0].x, grid_max_x = grid_corners[0].x;
-            double grid_min_y = grid_corners[0].y, grid_max_y = grid_corners[0].y;
-            for (const auto& corner : grid_corners) {
-                grid_min_x = std::min(grid_min_x, corner.x);
-                grid_max_x = std::max(grid_max_x, corner.x);
-                grid_min_y = std::min(grid_min_y, corner.y);
-                grid_max_y = std::max(grid_max_y, corner.y);
-            }
-            
-            std::cout << "Polygon bounds: (" << poly_min_x << ", " << poly_min_y << ") to (" << poly_max_x << ", " << poly_max_y << ")" << std::endl;
-            std::cout << "Grid bounds: (" << grid_min_x << ", " << grid_min_y << ") to (" << grid_max_x << ", " << grid_max_y << ")" << std::endl;
-            
-            // Check if polygon exceeds grid bounds
-            bool polygon_exceeds_grid = (poly_min_x < grid_min_x) || (poly_max_x > grid_max_x) || 
-                                       (poly_min_y < grid_min_y) || (poly_max_y > grid_max_y);
-            
-            std::cout << "Polygon exceeds grid bounds: " << (polygon_exceeds_grid ? "YES - PROBLEM!" : "NO - OK") << std::endl;
-            
-            if (polygon_exceeds_grid) {
-                std::cout << "PROBLEM DETAILS:" << std::endl;
-                if (poly_min_x < grid_min_x) std::cout << "  Polygon extends " << (grid_min_x - poly_min_x) << " units left of grid" << std::endl;
-                if (poly_max_x > grid_max_x) std::cout << "  Polygon extends " << (poly_max_x - grid_max_x) << " units right of grid" << std::endl;
-                if (poly_min_y < grid_min_y) std::cout << "  Polygon extends " << (grid_min_y - poly_min_y) << " units below grid" << std::endl;
-                if (poly_max_y > grid_max_y) std::cout << "  Polygon extends " << (poly_max_y - grid_max_y) << " units above grid" << std::endl;
-            }
-            std::cout << "=== END BOUNDS DEBUG ===\n" << std::endl;
 
             // Configure noise generator
             entropy::NoiseGen noise;
@@ -167,7 +90,7 @@ namespace zoneout {
                 for (size_t c = 0; c < generated_grid.cols(); ++c) {
                     // Get the world coordinates of this grid cell center
                     auto cell_center = generated_grid.get_point(r, c);
-                    
+
                     // Test if the cell center is inside the polygon
                     if (boundary.contains(cell_center)) {
                         // Cell is inside polygon - set to white (255)
@@ -227,8 +150,8 @@ namespace zoneout {
         // ========== Raster Layer Management ==========
         // Add raster layer with actual grid data
         void addRasterLayer(const concord::Grid<uint8_t> &grid, const std::string &name, const std::string &type = "",
-                            const std::unordered_map<std::string, std::string> &properties = {},
-                            bool poly_cut = false, int layer_index = -1) {
+                            const std::unordered_map<std::string, std::string> &properties = {}, bool poly_cut = false,
+                            int layer_index = -1) {
             if (poly_cut && poly_data_.hasFieldBoundary()) {
                 // Create a copy of the grid to modify
                 auto modified_grid = grid;
@@ -236,62 +159,15 @@ namespace zoneout {
                 // Get the boundary polygon
                 auto boundary = poly_data_.getFieldBoundary();
 
-                // Debug polygon information
-                auto polygon_points = boundary.getPoints();
-                std::cout << "\n=== POLYGON DEBUG ===" << std::endl;
-                std::cout << "Polygon vertices (" << polygon_points.size() << " points):" << std::endl;
-                for (size_t i = 0; i < polygon_points.size(); ++i) {
-                    const auto& pt = polygon_points[i];
-                    std::cout << "  Point " << i << ": (" << pt.x << ", " << pt.y << ", " << pt.z << ")" << std::endl;
-                }
-                
-                auto polygon_aabb = boundary.getAABB();
-                std::cout << "Polygon AABB center: (" << polygon_aabb.center().x << ", " 
-                         << polygon_aabb.center().y << ", " << polygon_aabb.center().z << ")" << std::endl;
-                std::cout << "Polygon AABB size: (" << polygon_aabb.size().x << " x " 
-                         << polygon_aabb.size().y << ")" << std::endl;
-                std::cout << "Polygon area: " << boundary.area() << std::endl;
-                
-                // Debug grid information
-                std::cout << "\n=== GRID DEBUG ===" << std::endl;
-                std::cout << "Grid dimensions: " << modified_grid.rows() << " x " << modified_grid.cols() << std::endl;
-                
-                auto grid_corners = modified_grid.corners();
-                std::cout << "Grid corners:" << std::endl;
-                for (size_t i = 0; i < grid_corners.size(); ++i) {
-                    const auto& corner = grid_corners[i];
-                    std::cout << "  Corner " << i << ": (" << corner.x << ", " << corner.y << ", " << corner.z << ")" << std::endl;
-                }
-                
-                // Sample some grid cell centers
-                std::cout << "Sample grid cell centers:" << std::endl;
-                auto point_00 = modified_grid.get_point(0, 0);
-                std::cout << "  Cell (0,0): (" << point_00.x << ", " << point_00.y << ", " << point_00.z << ")" << std::endl;
-                auto point_0end = modified_grid.get_point(0, modified_grid.cols()-1);
-                std::cout << "  Cell (0," << (modified_grid.cols()-1) << "): (" << point_0end.x << ", " << point_0end.y << ", " << point_0end.z << ")" << std::endl;
-                auto point_end0 = modified_grid.get_point(modified_grid.rows()-1, 0);
-                std::cout << "  Cell (" << (modified_grid.rows()-1) << ",0): (" << point_end0.x << ", " << point_end0.y << ", " << point_end0.z << ")" << std::endl;
-                auto point_endend = modified_grid.get_point(modified_grid.rows()-1, modified_grid.cols()-1);
-                std::cout << "  Cell (" << (modified_grid.rows()-1) << "," << (modified_grid.cols()-1) << "): (" 
-                         << point_endend.x << ", " << point_endend.y << ", " << point_endend.z << ")" << std::endl;
-                
-                // Test center cell
-                size_t center_r = modified_grid.rows() / 2;
-                size_t center_c = modified_grid.cols() / 2;
-                auto center_point = modified_grid.get_point(center_r, center_c);
-                std::cout << "  Center cell (" << center_r << "," << center_c << "): (" << center_point.x << ", " << center_point.y << ", " << center_point.z << ")" << std::endl;
-                std::cout << "  Center cell in polygon: " << (boundary.contains(center_point) ? "YES" : "NO") << std::endl;
-                
                 // Use robust point-in-polygon testing for raster-vector overlay
-                std::cout << "\n=== POINT-IN-POLYGON TESTING ===" << std::endl;
                 size_t cells_inside = 0;
                 size_t total_cells = modified_grid.rows() * modified_grid.cols();
-                
+
                 for (size_t r = 0; r < modified_grid.rows(); ++r) {
                     for (size_t c = 0; c < modified_grid.cols(); ++c) {
                         // Get the world coordinates of this grid cell center
                         auto cell_center = modified_grid.get_point(r, c);
-                        
+
                         // Test if the cell center is inside the polygon
                         if (boundary.contains(cell_center)) {
                             cells_inside++;
@@ -302,11 +178,6 @@ namespace zoneout {
                         }
                     }
                 }
-                
-                // Debug output
-                std::cout << "Poly cut result: " << cells_inside << "/" << total_cells 
-                         << " cells inside polygon (" << (100.0 * cells_inside / total_cells) << "%)" << std::endl;
-                std::cout << "=== END DEBUG ===\n" << std::endl;
 
                 grid_data_.addGrid(modified_grid, name, type, properties);
             } else {
@@ -323,6 +194,66 @@ namespace zoneout {
                        " layers)";
             }
             return "No raster layers";
+        }
+
+        // ========== Polygon Feature Management ==========
+        // Add polygon feature with geometry and metadata
+        void addPolygonFeature(const concord::Polygon &geometry, const std::string &name, const std::string &type = "",
+                               const std::string &subtype = "default",
+                               const std::unordered_map<std::string, std::string> &properties = {}) {
+            // Validate that polygon is within field boundary
+            if (poly_data_.hasFieldBoundary()) {
+                auto boundary = poly_data_.getFieldBoundary();
+
+                // Check all points of the polygon are inside boundary
+                for (const auto &point : geometry.getPoints()) {
+                    if (!boundary.contains(point)) {
+                        throw std::runtime_error("Polygon feature '" + name +
+                                                 "' is not valid: points must be inside field boundary");
+                    }
+                }
+            }
+
+            // Generate random color between 50-200 for visualization
+            static std::random_device rd;
+            static std::mt19937 gen(rd());
+            static std::uniform_int_distribution<> color_dist(50, 200);
+            uint8_t polygon_color = static_cast<uint8_t>(color_dist(gen));
+
+            // Draw the polygon on the base grid if it exists
+            if (grid_data_.gridCount() > 0) {
+                auto &base_grid = grid_data_.getGrid(0).grid;
+                for (size_t r = 0; r < base_grid.rows(); ++r) {
+                    for (size_t c = 0; c < base_grid.cols(); ++c) {
+                        auto cell_center = base_grid.get_point(r, c);
+                        if (geometry.contains(cell_center)) {
+                            base_grid.set_value(r, c, polygon_color);
+                        }
+                    }
+                }
+            }
+
+            // Generate UUID for the new feature
+            UUID feature_id = generateUUID();
+
+            // Add the polygon element to the poly_data_
+            poly_data_.addPolygonElement(feature_id, name, type, subtype, geometry, properties);
+        }
+
+        // Helper to display feature configuration
+        std::string getFeatureInfo() const {
+            const auto &polygon_elements = poly_data_.getPolygonElements();
+            const auto &line_elements = poly_data_.getLineElements();
+            const auto &point_elements = poly_data_.getPointElements();
+
+            size_t total_features = polygon_elements.size() + line_elements.size() + point_elements.size();
+
+            if (total_features > 0) {
+                return "Features: " + std::to_string(polygon_elements.size()) + " polygons, " +
+                       std::to_string(line_elements.size()) + " lines, " + std::to_string(point_elements.size()) +
+                       " points (" + std::to_string(total_features) + " total)";
+            }
+            return "No features";
         }
 
         // ========== Validation ==========
@@ -454,6 +385,8 @@ namespace zoneout {
             grid_data_.setType(type_);
             grid_data_.setId(id_); // This ensures UUID consistency
         }
+
+      private:
     };
 
 } // namespace zoneout

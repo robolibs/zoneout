@@ -27,10 +27,8 @@ namespace zoneout {
         // Check if element has all required fields
         static bool isValid(const geoson::Element &element) {
             const auto &props = element.properties;
-            return props.find("uuid") != props.end() &&
-                   props.find("name") != props.end() &&
-                   props.find("type") != props.end() &&
-                   props.find("subtype") != props.end();
+            return props.find("uuid") != props.end() && props.find("name") != props.end() &&
+                   props.find("type") != props.end() && props.find("subtype") != props.end();
         }
 
         // Create from geoson::Element if valid
@@ -39,8 +37,8 @@ namespace zoneout {
                 return std::nullopt;
 
             const auto &props = element.properties;
-            return StructuredElement(UUID(props.at("uuid")), props.at("name"),
-                                     props.at("type"), props.at("subtype"), props);
+            return StructuredElement(UUID(props.at("uuid")), props.at("name"), props.at("type"), props.at("subtype"),
+                                     props);
         }
 
         // Convert to properties map for storage
@@ -248,7 +246,7 @@ namespace zoneout {
 
             // Load structured elements from Vector elements
             poly.loadStructuredElements();
-            
+
             // If we have a :border: element, use it as the field boundary
             poly.applyBoundaryFromElements();
 
@@ -258,7 +256,7 @@ namespace zoneout {
         void toFile(const std::filesystem::path &file_path, geoson::CRS crs = geoson::CRS::ENU) const {
             // Ensure global properties are synced
             const_cast<Poly *>(this)->syncToGlobalProperties();
-            
+
             // Ensure field boundary is saved as a structured element with :border: type
             const_cast<Poly *>(this)->ensureBoundaryElement();
 
@@ -276,8 +274,9 @@ namespace zoneout {
 
         // Ensure field boundary is saved as a structured element
         void ensureBoundaryElement() {
-            if (!hasFieldBoundary()) return;
-            
+            if (!hasFieldBoundary())
+                return;
+
             // Check if boundary element already exists
             bool hasBoundaryElement = false;
             for (const auto &elem : polygon_elements_) {
@@ -286,33 +285,33 @@ namespace zoneout {
                     break;
                 }
             }
-            
+
             // If no boundary element exists, create one
             if (!hasBoundaryElement) {
                 auto boundary = getFieldBoundary();
                 addPolygonElement(generateUUID(), name_ + "_boundary", "border", "field", boundary, {});
             }
         }
-        
+
         // Apply boundary from loaded elements if border type exists
         void applyBoundaryFromElements() {
             // Find boundary element in the underlying Vector's elements
             for (size_t i = 0; i < elementCount(); ++i) {
                 const auto &element = getElement(i);
                 auto props = element.properties;
-                
+
                 if (props.find("type") != props.end() && props.at("type") == "border") {
                     // Convert element to polygon and set as field boundary
                     if (std::holds_alternative<concord::Polygon>(element.geometry)) {
                         setFieldBoundary(std::get<concord::Polygon>(element.geometry));
                     }
-                    
+
                     // Remove the boundary element from the Vector's elements list
                     removeElement(i);
                     break;
                 }
             }
-            
+
             // Now reload structured elements (without the boundary element)
             loadStructuredElements();
         }
