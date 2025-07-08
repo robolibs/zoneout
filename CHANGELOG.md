@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.1.0] - 2025-07-08
+
+### <!-- 0 -->⛰️  Features
+
+- Refactor polygon creation and initialization logic
+- Refactor grid generation using AABB and add debug info
+- Refactor and enhance geospatial processing with improved polygon tools
+
+### <!-- 2 -->🚜 Refactor
+
+- Refactor zone management and integrate polygon features
+
+### <!-- 4 -->⚡ Performance
+
+- Use robust point-in-polygon instead of `indices_within`
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Remove pigment as an external dependency
+
 ## [0.0.4] - 2025-07-03
 
 ### <!-- 0 -->⛰️  Features
