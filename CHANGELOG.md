@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0] - 2025-07-09
+
+### <!-- 0 -->⛰️  Features
+
+- Refactor Plot to handle tar file saving and loading
+- Add plot management system and I/O capabilities
+- Add `microtar` archive processing library
+
 ## [0.1.0] - 2025-07-08
 
 ### <!-- 0 -->⛰️  Features
