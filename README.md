@@ -355,7 +355,109 @@ std::cout << "Area preserved: " << (field.poly_data_.area() == loaded_field.poly
 // ✓ Automatic visualization on base layer
 ```
 
-### 🎯 Complete Example (from examples/main.cpp)
+### 🎯 Complete Plot Example (from examples/plot.cpp)
+```cpp
+#include "zoneout/zoneout.hpp"
+#include "geoget/geoget.hpp"
+
+void createZoneFromPolygons(zoneout::Plot& plot, const std::string& zone_name, 
+                           const std::string& crop_type, const concord::Datum& datum) {
+    // Interactive polygon drawing (web interface at localhost:8080)
+    geoget::PolygonDrawer drawer(datum);
+    if (drawer.start(8080)) {
+        const auto polygons = drawer.get_polygons();
+        drawer.stop();
+
+        if (!polygons.empty()) {
+            // Create zone from first polygon (boundary)
+            zoneout::Zone zone(zone_name, "field", polygons[0], datum, 0.1);
+            
+            // Add environmental raster layers
+            const auto& base_grid = zone.grid_data_.getGrid(0).grid;
+            auto temp_grid = base_grid;
+            auto moisture_grid = base_grid;
+            
+            // Fill with noise-generated environmental data
+            entropy::NoiseGen temp_noise, moisture_noise;
+            temp_noise.SetNoiseType(entropy::NoiseGen::NoiseType_Perlin);
+            moisture_noise.SetNoiseType(entropy::NoiseGen::NoiseType_OpenSimplex2);
+            
+            for (size_t r = 0; r < temp_grid.rows(); ++r) {
+                for (size_t c = 0; c < temp_grid.cols(); ++c) {
+                    // Temperature: 15-35°C
+                    float temp_noise_val = temp_noise.GetNoise(r, c);
+                    uint8_t temp_value = static_cast<uint8_t>(15 + (temp_noise_val + 1.0f) * 0.5f * 20);
+                    temp_grid.set_value(r, c, temp_value);
+                    
+                    // Moisture: 20-80%
+                    float moisture_noise_val = moisture_noise.GetNoise(r, c);
+                    uint8_t moisture_value = static_cast<uint8_t>(20 + (moisture_noise_val + 1.0f) * 0.5f * 60);
+                    moisture_grid.set_value(r, c, moisture_value);
+                }
+            }
+            
+            zone.addRasterLayer(temp_grid, "temperature", "environmental", {{"units", "celsius"}}, true);
+            zone.addRasterLayer(moisture_grid, "moisture", "environmental", {{"units", "percentage"}}, true);
+            zone.setProperty("crop_type", crop_type);
+            
+            plot.addZone(zone);
+            
+            // Add remaining polygons as features within this zone
+            auto& plot_zone = plot.getZones().back();
+            for (size_t i = 1; i < polygons.size(); ++i) {
+                std::unordered_map<std::string, std::string> properties = {
+                    {"crop_type", crop_type}, {"management", "organic"},
+                    {"priority", "8"}, {"season", "spring_2024"}
+                };
+                std::string feature_name = zone_name + "_feature_" + std::to_string(i);
+                plot_zone.addPolygonFeature(polygons[i], feature_name, "agricultural", "crop_zone", properties);
+            }
+        }
+    }
+}
+
+int main() {
+    const concord::Datum WAGENINGEN_DATUM{51.98776, 5.662378, 0.0};
+    
+    // Create plot for farm management
+    zoneout::Plot farm_plot("Wageningen Farm", "agricultural", WAGENINGEN_DATUM);
+    farm_plot.setProperty("farm_type", "research");
+    farm_plot.setProperty("owner", "Wageningen Research Labs");
+    
+    // Create multiple zones through interactive polygon drawing
+    createZoneFromPolygons(farm_plot, "North Field", "corn", WAGENINGEN_DATUM);
+    createZoneFromPolygons(farm_plot, "South Field", "wheat", WAGENINGEN_DATUM);
+    
+    std::cout << "Created plot with " << farm_plot.getZoneCount() << " zones" << std::endl;
+    
+    // Save plot using both formats
+    farm_plot.save("/tmp/farm_plot");              // Directory format
+    farm_plot.save_tar("/tmp/farm_plot.tar");      // TAR archive format
+    
+    // Load and verify data preservation
+    auto loaded_plot = zoneout::Plot::load("/tmp/farm_plot", "Loaded Farm", "agricultural", WAGENINGEN_DATUM);
+    auto loaded_plot_tar = zoneout::Plot::load_tar("/tmp/farm_plot.tar", "Farm from TAR", "agricultural", WAGENINGEN_DATUM);
+    
+    // Verify all zones and features preserved
+    for (size_t i = 0; i < loaded_plot.getZoneCount(); ++i) {
+        const auto& zone = loaded_plot.getZones()[i];
+        std::cout << "Zone " << (i+1) << ": " << zone.getName() << std::endl;
+        std::cout << "  Features: " << zone.getFeatureInfo() << std::endl;
+        std::cout << "  Raster: " << zone.getRasterInfo() << std::endl;
+        
+        // Access individual polygon features with UUIDs
+        const auto& polygon_elements = zone.poly_data_.getPolygonElements();
+        for (const auto& element : polygon_elements) {
+            std::cout << "  Polygon: " << element.name 
+                      << " (UUID: " << element.uuid.toString() << ")" << std::endl;
+        }
+    }
+    
+    return 0;
+}
+```
+
+### 🎯 Complete Zone Example (from examples/main.cpp)
 ```cpp
 #include "zoneout/zoneout.hpp"
 #include "geoget/geoget.hpp"
@@ -458,6 +560,130 @@ Robot Task Planning:
 
 ## 📚 API Reference
 
+### Plot Class - Multi-Zone Management
+
+The Plot class provides high-level management for collections of zones, enabling farm-level operations with comprehensive save/load functionality.
+
+```cpp
+#include "zoneout/zoneout.hpp"
+using namespace zoneout;
+
+// Create a plot to manage multiple zones
+const concord::Datum WAGENINGEN_DATUM{51.98776, 5.662378, 0.0};
+Plot farm_plot("Wageningen Farm", "agricultural", WAGENINGEN_DATUM);
+
+// Set plot-level properties
+farm_plot.setProperty("farm_type", "research");
+farm_plot.setProperty("owner", "Wageningen Research Labs");
+farm_plot.setProperty("total_area", "500_hectares");
+
+std::cout << "Created plot: " << farm_plot.getName() 
+          << " (ID: " << farm_plot.getId().toString() << ")" << std::endl;
+```
+
+#### Adding Zones to Plot
+```cpp
+// Create zones and add to plot
+// Zone 1: North Field
+std::vector<concord::Point> north_boundary = {
+    {0.0, 200.0, 0.0}, {300.0, 200.0, 0.0}, 
+    {300.0, 400.0, 0.0}, {0.0, 400.0, 0.0}
+};
+concord::Polygon north_field(north_boundary);
+Zone north_zone("North Field", "field", north_field, WAGENINGEN_DATUM, 0.5);
+north_zone.setProperty("crop_type", "corn");
+north_zone.setProperty("irrigation", "drip");
+
+// Zone 2: South Field  
+std::vector<concord::Point> south_boundary = {
+    {0.0, 0.0, 0.0}, {300.0, 0.0, 0.0},
+    {300.0, 200.0, 0.0}, {0.0, 200.0, 0.0}
+};
+concord::Polygon south_field(south_boundary);
+Zone south_zone("South Field", "field", south_field, WAGENINGEN_DATUM, 0.5);
+south_zone.setProperty("crop_type", "wheat");
+south_zone.setProperty("irrigation", "sprinkler");
+
+// Add zones to plot
+farm_plot.addZone(north_zone);
+farm_plot.addZone(south_zone);
+
+std::cout << "Plot contains " << farm_plot.getZoneCount() << " zones" << std::endl;
+```
+
+#### Plot Persistence - Directory-Based
+```cpp
+// Save plot to directory structure
+farm_plot.save("/tmp/farm_plot");
+/*
+Creates directory structure:
+/tmp/farm_plot/
+├── zone_0/
+│   ├── vector.geojson    # North Field vector data
+│   └── raster.tiff       # North Field raster data
+└── zone_1/
+    ├── vector.geojson    # South Field vector data
+    └── raster.tiff       # South Field raster data
+*/
+
+// Load plot from directory
+auto loaded_plot = Plot::load("/tmp/farm_plot", "Loaded Farm", "agricultural", WAGENINGEN_DATUM);
+std::cout << "Loaded plot: " << loaded_plot.getName() << std::endl;
+std::cout << "- Total zones: " << loaded_plot.getZoneCount() << std::endl;
+
+// Verify all zones and their features preserved
+for (size_t i = 0; i < loaded_plot.getZoneCount(); ++i) {
+    const auto& zone = loaded_plot.getZones()[i];
+    std::cout << "Zone " << (i+1) << ": " << zone.getName() 
+              << " - " << zone.getFeatureInfo() << std::endl;
+    std::cout << "  Raster: " << zone.getRasterInfo() << std::endl;
+    
+    // Access polygon features with UUIDs
+    const auto& polygon_elements = zone.poly_data_.getPolygonElements();
+    for (const auto& element : polygon_elements) {
+        std::cout << "  Feature: " << element.name 
+                  << " (UUID: " << element.uuid.toString() << ")" << std::endl;
+    }
+}
+```
+
+#### Plot Persistence - TAR Archives
+```cpp
+// Save plot to compressed tar archive
+farm_plot.save_tar("/tmp/farm_plot.tar");
+std::cout << "Saved farm plot to tar archive" << std::endl;
+
+// Load plot from tar archive
+auto loaded_plot_tar = Plot::load_tar("/tmp/farm_plot.tar", "Farm from TAR", "agricultural", WAGENINGEN_DATUM);
+std::cout << "Loaded from tar: " << loaded_plot_tar.getName() << std::endl;
+std::cout << "- Total zones: " << loaded_plot_tar.getZoneCount() << std::endl;
+
+// All data preserved: zones, features, raster layers, UUIDs, properties
+// TAR format provides single-file portability for complete farm datasets
+```
+
+#### Plot Management Operations
+```cpp
+// Zone management
+bool removed = farm_plot.removeZone(zone_id);
+Zone* zone = farm_plot.getZone(zone_id);  // Get zone by UUID
+const std::vector<Zone>& all_zones = farm_plot.getZones();
+
+// Plot queries
+size_t zone_count = farm_plot.getZoneCount();
+bool is_empty = farm_plot.empty();
+bool is_valid = farm_plot.is_valid();
+
+// Plot properties
+farm_plot.setProperty("season", "spring_2024");
+std::string owner = farm_plot.getProperty("owner");
+const auto& all_properties = farm_plot.getProperties();
+
+// Coordinate system management
+const concord::Datum& datum = farm_plot.getDatum();
+farm_plot.setDatum(new_datum);  // Updates all zones consistently
+```
+
 ### Zone Class
 ```cpp
 class Zone {
@@ -507,6 +733,81 @@ class Zone {
     void toFiles(const std::filesystem::path& vector_path, const std::filesystem::path& raster_path) const;
     static Zone fromFiles(const std::filesystem::path& vector_path, const std::filesystem::path& raster_path);
 };
+```
+
+### Plot Class API
+```cpp
+class Plot {
+    // Construction
+    Plot(const std::string& name, const std::string& type, const concord::Datum& datum);
+    Plot(const UUID& id, const std::string& name, const std::string& type, const concord::Datum& datum);
+    
+    // Basic Properties
+    const UUID& getId() const;
+    const std::string& getName() const;
+    const std::string& getType() const;
+    void setName(const std::string& name);
+    void setType(const std::string& type);
+    
+    // Datum Management
+    const concord::Datum& getDatum() const;
+    void setDatum(const concord::Datum& datum);
+    
+    // Zone Management
+    void addZone(const Zone& zone);
+    bool removeZone(const UUID& zone_id);
+    Zone* getZone(const UUID& zone_id);
+    const Zone* getZone(const UUID& zone_id) const;
+    const std::vector<Zone>& getZones() const;
+    std::vector<Zone>& getZones();
+    size_t getZoneCount() const;
+    bool empty() const;
+    void clear();
+    
+    // Plot Properties
+    void setProperty(const std::string& key, const std::string& value);
+    std::string getProperty(const std::string& key) const;
+    const std::unordered_map<std::string, std::string>& getProperties() const;
+    
+    // Validation
+    bool is_valid() const;
+    
+    // Directory-based Persistence
+    void save(const std::filesystem::path& directory) const;
+    static Plot load(const std::filesystem::path& directory, const std::string& name, 
+                     const std::string& type, const concord::Datum& datum);
+    
+    // TAR Archive Persistence (using microtar)
+    void save_tar(const std::filesystem::path& tar_file) const;
+    static Plot load_tar(const std::filesystem::path& tar_file, const std::string& name,
+                         const std::string& type, const concord::Datum& datum);
+    
+    // Legacy compatibility
+    void toFiles(const std::filesystem::path& directory) const;
+    static Plot fromFiles(const std::filesystem::path& directory, const std::string& name,
+                          const std::string& type, const concord::Datum& datum);
+};
+```
+
+### Plot Features Summary
+```cpp
+// Multi-Zone Management
+✓ Create, add, remove, and query zones
+✓ UUID-based zone identification and lookup
+✓ Coordinate system management across all zones
+✓ Plot-level properties and metadata
+
+// Dual Persistence Formats
+✓ Directory-based: /plot/zone_0/{vector.geojson, raster.tiff}
+✓ TAR archives: single-file portability with microtar
+✓ Complete data preservation: zones, features, raster layers, UUIDs
+✓ Round-trip integrity: save/load preserves all data
+
+// Integration Features
+✓ Automatic temporary directory management
+✓ Recursive file processing for complex zone structures
+✓ Error handling with detailed exception messages
+✓ Cleanup of temporary files after operations
 ```
 
 ### Key Features of New Polygon API
@@ -570,6 +871,9 @@ class Grid : public geotiv::Raster {
 - **[concord](https://github.com/your-org/concord)**: Geometry library (Point, Polygon, Grid, R-tree)
 - **[geoson](https://github.com/your-org/geoson)**: Vector data handling (GeoJSON I/O)  
 - **[geotiv](https://github.com/your-org/geotiv)**: Raster data handling (GeoTIFF I/O)
+- **[microtar](https://github.com/rxi/microtar)**: TAR archive processing (header-only)
+- **[geoget](https://github.com/your-org/geoget)**: Interactive polygon drawing (web interface)
+- **[entropy](https://github.com/your-org/entropy)**: Noise generation for environmental data
 - **C++20**: Modern language features (concepts, modules, ranges)
 
 ## 🧪 Testing
