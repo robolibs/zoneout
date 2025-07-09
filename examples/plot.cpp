@@ -90,7 +90,7 @@ void createZoneFromPolygons(zoneout::Plot &plot, const std::string &zone_name, c
     }
 }
 
-int main() {
+void save_file() {
     // std::cout << "Plot Management Example" << std::endl;
     //
     // // Wageningen Research Labs coordinates
@@ -98,33 +98,33 @@ int main() {
     //
     // // Create a Plot to manage multiple zones
     zoneout::Plot farm_plot("Wageningen Farm", "agricultural", WAGENINGEN_DATUM);
-    // farm_plot.setProperty("farm_type", "research");
-    // farm_plot.setProperty("owner", "Wageningen Research Labs");
-    //
-    // std::cout << "Created plot: " << farm_plot.getName() << " (ID: " << farm_plot.getId().toString() << ")"
-    //           << std::endl;
-    //
-    // // Create first zone
-    // createZoneFromPolygons(farm_plot, "North Field", "corn", WAGENINGEN_DATUM);
-    //
-    // std::cout << "\nPlot Summary:" << std::endl;
-    // std::cout << "- Total zones: " << farm_plot.getZoneCount() << std::endl;
-    // std::cout << "- Plot type: " << farm_plot.getType() << std::endl;
-    // std::cout << "- Owner: " << farm_plot.getProperty("owner") << std::endl;
-    //
-    // // Create second zone
-    // std::cout << "\nCreate second zone..." << std::endl;
-    // createZoneFromPolygons(farm_plot, "South Field", "wheat", WAGENINGEN_DATUM);
-    //
-    // if (farm_plot.getZoneCount() > 0) {
-    //     std::cout << "\nFinal features: " << farm_plot.getZones()[0].getFeatureInfo() << std::endl;
-    // } else {
-    //     std::cout << "\nNo zones in plot to check features." << std::endl;
-    // }
-    //
-    // // Save to files
-    // farm_plot.save("/tmp/farm_plot");
-    // std::cout << "\nSaved farm plot to files" << std::endl;
+    farm_plot.setProperty("farm_type", "research");
+    farm_plot.setProperty("owner", "Wageningen Research Labs");
+
+    std::cout << "Created plot: " << farm_plot.getName() << " (ID: " << farm_plot.getId().toString() << ")"
+              << std::endl;
+
+    // Create first zone
+    createZoneFromPolygons(farm_plot, "North Field", "corn", WAGENINGEN_DATUM);
+
+    std::cout << "\nPlot Summary:" << std::endl;
+    std::cout << "- Total zones: " << farm_plot.getZoneCount() << std::endl;
+    std::cout << "- Plot type: " << farm_plot.getType() << std::endl;
+    std::cout << "- Owner: " << farm_plot.getProperty("owner") << std::endl;
+
+    // Create second zone
+    std::cout << "\nCreate second zone..." << std::endl;
+    createZoneFromPolygons(farm_plot, "South Field", "wheat", WAGENINGEN_DATUM);
+
+    if (farm_plot.getZoneCount() > 0) {
+        std::cout << "\nFinal features: " << farm_plot.getZones()[0].getFeatureInfo() << std::endl;
+    } else {
+        std::cout << "\nNo zones in plot to check features." << std::endl;
+    }
+
+    // Save to files
+    farm_plot.save("/tmp/farm_plot");
+    std::cout << "\nSaved farm plot to files" << std::endl;
 
     // Test loading the saved files
     std::cout << "\nTesting load functionality..." << std::endl;
@@ -148,10 +148,52 @@ int main() {
             const auto &polygon_elements = loaded_plot.getZones()[i].poly_data_.getPolygonElements();
             for (size_t j = 0; j < polygon_elements.size(); ++j) {
                 std::cout << "- Zone " << (i + 1) << " polygon feature " << (j + 1) << ": "
-                          << polygon_elements[j].uuid.toString() << " (" << polygon_elements[j].name << ")" << std::endl;
+                          << polygon_elements[j].uuid.toString() << " (" << polygon_elements[j].name << ")"
+                          << std::endl;
             }
         }
     }
+}
 
+void save_tar() {
+    const concord::Datum WAGENINGEN_DATUM{51.98776171041831, 5.662378206146002, 0.0};
+
+    auto farm_plot = zoneout::Plot::load("/tmp/farm_plot", "Loaded Wageningen Farm", "agricultural", WAGENINGEN_DATUM);
+
+    // Save to tar file
+    farm_plot.save_tar("/tmp/farm_plot.tar");
+    std::cout << "\nSaved farm plot to tar file" << std::endl;
+
+    // Test loading the tar file
+    std::cout << "\nTesting tar load functionality..." << std::endl;
+    auto loaded_plot_tar =
+        zoneout::Plot::load_tar("/tmp/farm_plot.tar", "Loaded Wageningen Farm (tar)", "agricultural", WAGENINGEN_DATUM);
+
+    std::cout << "Loaded plot from tar: " << loaded_plot_tar.getName() << " (ID: " << loaded_plot_tar.getId().toString()
+              << ")" << std::endl;
+    std::cout << "- Total zones loaded from tar: " << loaded_plot_tar.getZoneCount() << std::endl;
+    std::cout << "- Plot type: " << loaded_plot_tar.getType() << std::endl;
+
+    if (loaded_plot_tar.getZoneCount() > 0) {
+        for (size_t i = 0; i < loaded_plot_tar.getZoneCount(); ++i) {
+            std::cout << "- Zone " << (i + 1) << ": " << loaded_plot_tar.getZones()[i].getName()
+                      << " (ID: " << loaded_plot_tar.getZones()[i].getId().toString() << ")" << std::endl;
+            std::cout << "- Zone " << (i + 1) << " features: " << loaded_plot_tar.getZones()[i].getFeatureInfo()
+                      << std::endl;
+            std::cout << "- Zone " << (i + 1) << " raster info: " << loaded_plot_tar.getZones()[i].getRasterInfo()
+                      << std::endl;
+            // print the zone's polygon features UUIDs
+            const auto &polygon_elements = loaded_plot_tar.getZones()[i].poly_data_.getPolygonElements();
+            for (size_t j = 0; j < polygon_elements.size(); ++j) {
+                std::cout << "- Zone " << (i + 1) << " polygon feature " << (j + 1) << ": "
+                          << polygon_elements[j].uuid.toString() << " (" << polygon_elements[j].name << ")"
+                          << std::endl;
+            }
+        }
+    }
+}
+
+int main() {
+    save_tar();
     return 0;
 }
