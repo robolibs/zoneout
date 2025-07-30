@@ -42,6 +42,10 @@ namespace zoneout {
             : id_(generateUUID()), name_(name), type_(type), poly_data_(name, type, "default", boundary),
               grid_data_(name, type, "default") {
             setDatum(datum);
+            // Calculate the shift from the boundary polygon's AABB center
+            auto aabb = boundary.getAABB();
+            concord::Pose grid_pose(aabb.center(), concord::Euler{0, 0, 0});
+            grid_data_.setShift(grid_pose);
             // Add the initial grid as the first layer
             grid_data_.addGrid(initial_grid, "base_layer", "terrain");
             syncToPolyGrid();
@@ -76,6 +80,9 @@ namespace zoneout {
             // Use reverse_y=true to match mathematical coordinate system (Y increases upward)
             concord::Pose grid_pose(aabb.center(), concord::Euler{0, 0, 0});
             concord::Grid<uint8_t> generated_grid(grid_rows, grid_cols, resolution, true, grid_pose, true);
+            
+            // Set the shift on the grid_data_ to match the calculated pose
+            grid_data_.setShift(grid_pose);
 
             // Configure noise generator
             entropy::NoiseGen noise;

@@ -7,7 +7,8 @@ TEST_CASE("Raster Global Properties - Save and Load") {
     // Create a raster with multiple layers
     concord::Datum datum{52.0, 4.0, 10.0};
     concord::Euler heading{0.0, 0.0, 1.5};
-    geotiv::Raster raster(datum, heading, geotiv::CRS::ENU, 1.0);
+    concord::Pose pose{concord::Point{0, 0, 0}, heading};
+    geotiv::Raster raster(datum, pose, 1.0);
     
     // Add three different layers
     raster.addElevationGrid(100, 100, "elevation");
@@ -143,7 +144,8 @@ TEST_CASE("Raster Global Properties - Save and Load") {
 TEST_CASE("Raster Global Properties - Empty Properties") {
     // Test raster with no global properties
     concord::Datum datum{52.0, 4.0, 10.0};
-    geotiv::Raster raster(datum);
+    concord::Pose pose{concord::Point{0, 0, 0}, concord::Euler{0, 0, 0}};
+    geotiv::Raster raster(datum, pose);
     raster.addGrid(50, 50, "single_layer");
     
     const std::filesystem::path test_file = "/tmp/test_raster_empty_props.tiff";

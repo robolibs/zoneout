@@ -37,7 +37,7 @@ FetchContent_Declare(geoson GIT_REPOSITORY https://github.com/smolfetch/geoson.g
 FetchContent_MakeAvailable(geoson)
 list(APPEND ext_deps geoson::geoson) 
 
-FetchContent_Declare(geotiv GIT_REPOSITORY https://github.com/smolfetch/geotiv.git GIT_TAG 1.1.4)
+FetchContent_Declare(geotiv GIT_REPOSITORY https://github.com/smolfetch/geotiv.git GIT_TAG 2.0.0)
 FetchContent_MakeAvailable(geotiv)
 list(APPEND ext_deps geotiv::geotiv)
 

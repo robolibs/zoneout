@@ -32,8 +32,8 @@ namespace zoneout {
         }
 
         Grid(const std::string &name, const std::string &type, const std::string &subtype, const concord::Datum &datum,
-             const concord::Euler &heading, geotiv::CRS crs, double resolution)
-            : geotiv::Raster(datum, heading, crs, resolution), id_(generateUUID()), name_(name), type_(type),
+             const concord::Pose &shift, double resolution)
+            : geotiv::Raster(datum, shift, resolution), id_(generateUUID()), name_(name), type_(type),
               subtype_(subtype) {
         }
 

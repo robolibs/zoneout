@@ -155,7 +155,7 @@ void save_file() {
     }
 }
 
-void save_tar() {
+void load_tar() {
     const concord::Datum WAGENINGEN_DATUM{51.98776171041831, 5.662378206146002, 0.0};
 
     auto farm_plot = zoneout::Plot::load("/tmp/farm_plot", "Loaded Wageningen Farm", "agricultural", WAGENINGEN_DATUM);
@@ -194,7 +194,7 @@ void save_tar() {
 }
 
 int main() {
-    // save_file();
-    save_tar();
+    save_file();
+    load_tar();
     return 0;
 }
