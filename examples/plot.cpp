@@ -54,7 +54,7 @@ void createZoneFromPolygons(zoneout::Plot &plot, const std::string &zone_name, c
             std::cout << "Added zone: " << zone.getName() << " (ID: " << zone.getId().toString() << ")" << std::endl;
 
             // Add remaining polygons as features to the zone that's now in the plot
-            if (plot.getZoneCount() > 0) {
+            if (plot.getZoneCount() > 1) {
                 auto &plot_zone = plot.getZones().back(); // Get the zone we just added
 
                 std::random_device rd;
