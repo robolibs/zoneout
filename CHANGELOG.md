@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.1] - 2025-07-30
+
+### <!-- 0 -->⛰️  Features
+
+- Update geotiff processing and documentation
+
+### <!-- 2 -->🚜 Refactor
+
+- Disable function `record_api_data` call
+
+### <!-- 3 -->📚 Documentation
+
+- Add plotting classes and examples
+
 ## [0.2.0] - 2025-07-09
 
 ### <!-- 0 -->⛰️  Features
