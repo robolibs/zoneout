@@ -80,7 +80,7 @@ namespace zoneout {
             // Use reverse_y=true to match mathematical coordinate system (Y increases upward)
             concord::Pose grid_pose(aabb.center(), concord::Euler{0, 0, 0});
             concord::Grid<uint8_t> generated_grid(grid_rows, grid_cols, resolution, true, grid_pose, true);
-            
+
             // Set the shift on the grid_data_ to match the calculated pose
             grid_data_.setShift(grid_pose);
 
@@ -395,17 +395,26 @@ namespace zoneout {
 
         // Get border polygon - returns the polygon of a feature with property type = border
         concord::Polygon get_border() const {
-            const auto& polygon_elements = poly_data_.getPolygonElements();
-            
-            for (const auto& element : polygon_elements) {
+            const auto &polygon_elements = poly_data_.getPolygonElements();
+            for (const auto &element : polygon_elements) {
                 auto type_it = element.properties.find("type");
                 if (type_it != element.properties.end() && type_it->second == "border") {
                     return element.geometry;
                 }
             }
-            
-            // If no border found, throw an exception
             throw std::runtime_error("No feature with type='border' found in zone");
+        }
+
+        std::vector<concord::Polygon> get_obstacles() const {
+            std::vector<concord::Polygon> obstacles;
+            const auto &polygon_elements = poly_data_.getPolygonElements();
+            for (const auto &element : polygon_elements) {
+                auto type_it = element.properties.find("type");
+                if (type_it != element.properties.end() && type_it->second == "obstacle") {
+                    obstacles.push_back(element.geometry);
+                }
+            }
+            return obstacles;
         }
 
       private:
