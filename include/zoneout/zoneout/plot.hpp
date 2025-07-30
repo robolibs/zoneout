@@ -110,11 +110,11 @@ namespace zoneout {
             save(temp_dir);
 
             // Add all zone files to tar
-            for (const auto& entry : std::filesystem::recursive_directory_iterator(temp_dir)) {
+            for (const auto &entry : std::filesystem::recursive_directory_iterator(temp_dir)) {
                 if (entry.is_regular_file()) {
                     auto relative_path = std::filesystem::relative(entry.path(), temp_dir);
                     std::ifstream file(entry.path(), std::ios::binary);
-                    
+
                     if (file.is_open()) {
                         // Get file size
                         file.seekg(0, std::ios::end);
@@ -139,7 +139,8 @@ namespace zoneout {
                                 file.close();
                                 mtar_close(&tar);
                                 std::filesystem::remove_all(temp_dir);
-                                throw std::runtime_error("Could not write file data: " + std::string(mtar_strerror(err)));
+                                throw std::runtime_error("Could not write file data: " +
+                                                         std::string(mtar_strerror(err)));
                             }
                         }
                         file.close();
@@ -153,12 +154,10 @@ namespace zoneout {
             std::filesystem::remove_all(temp_dir);
         }
 
-        void toFiles(const std::filesystem::path &directory) const {
-            save(directory);
-        }
+        void toFiles(const std::filesystem::path &directory) const { save(directory); }
 
         static Plot load_tar(const std::filesystem::path &tar_file, const std::string &name, const std::string &type,
-                              const concord::Datum &datum) {
+                             const concord::Datum &datum) {
             mtar_t tar;
             int err = mtar_open(&tar, tar_file.string().c_str(), "r");
             if (err != MTAR_ESUCCESS) {
@@ -174,14 +173,14 @@ namespace zoneout {
             while ((err = mtar_read_header(&tar, &header)) == MTAR_ESUCCESS) {
                 auto file_path = temp_dir / header.name;
                 std::filesystem::create_directories(file_path.parent_path());
-                
+
                 std::ofstream file(file_path, std::ios::binary);
                 if (file.is_open()) {
                     // Read file data in chunks
                     const size_t chunk_size = 8192;
                     std::vector<char> buffer(chunk_size);
                     size_t remaining = header.size;
-                    
+
                     while (remaining > 0) {
                         size_t to_read = std::min(chunk_size, remaining);
                         err = mtar_read_data(&tar, buffer.data(), to_read);
@@ -196,7 +195,7 @@ namespace zoneout {
                     }
                     file.close();
                 }
-                
+
                 err = mtar_next(&tar);
                 if (err != MTAR_ESUCCESS && err != MTAR_ENULLRECORD) {
                     mtar_close(&tar);
@@ -204,21 +203,22 @@ namespace zoneout {
                     throw std::runtime_error("Could not advance to next file: " + std::string(mtar_strerror(err)));
                 }
             }
-            
+
             mtar_close(&tar);
 
             // Load plot from extracted directory
             Plot plot = load(temp_dir, name, type, datum);
-            
+
             // Cleanup
             std::filesystem::remove_all(temp_dir);
-            
+
             return plot;
         }
 
         static Plot load(const std::filesystem::path &directory, const std::string &name, const std::string &type,
-                         const concord::Datum &datum) {
+                         const concord::Datum &datum = concord::Datum{0.001, 0.001, 1.0}) {
             Plot plot(name, type, datum);
+            concord::Datum plot_datum;
 
             if (std::filesystem::exists(directory)) {
                 for (const auto &entry : std::filesystem::directory_iterator(directory)) {
@@ -227,6 +227,7 @@ namespace zoneout {
                             auto vector_path = entry.path() / "vector.geojson";
                             auto raster_path = entry.path() / "raster.tiff";
                             auto zone = Zone::fromFiles(vector_path, raster_path);
+                            plot_datum = zone.getDatum();
                             plot.addZone(zone);
                         } catch (const std::exception &) {
                             // Skip invalid zone directories
@@ -234,7 +235,7 @@ namespace zoneout {
                     }
                 }
             }
-
+            plot.datum_ = plot_datum;
             return plot;
         }
 

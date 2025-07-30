@@ -393,30 +393,6 @@ namespace zoneout {
             grid_data_.setId(id_); // This ensures UUID consistency
         }
 
-        // Get border polygon - returns the polygon of a feature with property type = border
-        concord::Polygon get_border() const {
-            const auto &polygon_elements = poly_data_.getPolygonElements();
-            for (const auto &element : polygon_elements) {
-                auto type_it = element.properties.find("type");
-                if (type_it != element.properties.end() && type_it->second == "border") {
-                    return element.geometry;
-                }
-            }
-            throw std::runtime_error("No feature with type='border' found in zone");
-        }
-
-        std::vector<concord::Polygon> get_obstacles() const {
-            std::vector<concord::Polygon> obstacles;
-            const auto &polygon_elements = poly_data_.getPolygonElements();
-            for (const auto &element : polygon_elements) {
-                auto type_it = element.properties.find("type");
-                if (type_it != element.properties.end() && type_it->second == "obstacle") {
-                    obstacles.push_back(element.geometry);
-                }
-            }
-            return obstacles;
-        }
-
       private:
     };
 
