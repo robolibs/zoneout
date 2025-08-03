@@ -254,7 +254,7 @@ namespace zoneout {
             return poly;
         }
 
-        void toFile(const std::filesystem::path &file_path, geoson::CRS crs = geoson::CRS::ENU) const {
+        void toFile(const std::filesystem::path &file_path, geoson::CRS crs = geoson::CRS::WGS) const {
             // Ensure global properties are synced
             const_cast<Poly *>(this)->syncToGlobalProperties();
 

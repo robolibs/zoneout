@@ -51,7 +51,7 @@ namespace zoneout {
 
     // Save both Poly and Grid to separate files
     void savePolyGrid(const Poly &poly, const Grid &grid, const std::filesystem::path &vector_path,
-                      const std::filesystem::path &raster_path, geoson::CRS crs = geoson::CRS::ENU) {
+                      const std::filesystem::path &raster_path, geoson::CRS crs = geoson::CRS::WGS) {
         // TODO: Re-enable validation after debugging
         // Validate consistency before saving
         // if (poly.getId() != grid.getId()) {

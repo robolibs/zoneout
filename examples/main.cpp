@@ -89,9 +89,9 @@ int main() {
     rec->log("", rerun::Clear::RECURSIVE);
     rec->log_with_static("", true, rerun::Clear::RECURSIVE);
 
-    // auto farm = create_field("Pea_Field", "pea", concord::Datum{51.73019, 4.23883, 0.0});
-    // farm.save("/home/bresilla/farm_plot_2");
-    auto farm = zoneout::Plot::load("/home/bresilla/farm_plot", "Pea Farm", "agricultural");
+    auto farm = create_field("Pea_Field", "pea", concord::Datum{51.73019, 4.23883, 0.0});
+    farm.save("/home/bresilla/farm_plot_2");
+    // auto farm = zoneout::Plot::load("/home/bresilla/farm_plot", "Pea Farm", "agricultural");
 
     auto zones = farm.getZones();
     std::cout << "Num zones: " << zones.size() << std::endl;
