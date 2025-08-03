@@ -15,7 +15,7 @@ $(info ------------------------------------------)
 $(info Project: $(PROJECT_NAME))
 $(info ------------------------------------------)
 
-.PHONY: build b compile c run r test t help h clean docs release
+.PHONY: build b config c run r test t help h clean docs release
 
 
 build:
@@ -23,13 +23,13 @@ build:
 
 b: build
 
-compile:
+config:
 	@rm -rf $(BUILD_DIR)
 	@mkdir -p $(BUILD_DIR)
 	@echo "cmake -Wno-dev -D$(PROJECT_CAP)_BUILD_EXAMPLES=ON -D$(PROJECT_CAP)_ENABLE_TESTS=ON .."
 	@cd $(BUILD_DIR) && cmake -Wno-dev -D$(PROJECT_CAP)_BUILD_EXAMPLES=ON -D$(PROJECT_CAP)_ENABLE_TESTS=ON ..
 
-c: compile
+c: config
 
 run:
 	@./build/main
@@ -47,7 +47,7 @@ help:
 	@echo
 	@echo "Available targets:"
 	@echo "  build        Build project"
-	@echo "  compile      Configure and generate build files"
+	@echo "  config      Configure and generate build files"
 	@echo "  run          Run the main executable"
 	@echo "  test         Run tests"
 	@echo "  docs         Build documentation (TYPE=mdbook|doxygen)"
