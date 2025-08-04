@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.5] - 2025-08-04
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Clean up build system dependencies
+
 ## [0.2.4] - 2025-08-04
 
 ### <!-- 0 -->⛰️  Features
