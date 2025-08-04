@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.4] - 2025-08-04
+
+### <!-- 0 -->⛰️  Features
+
+- Implement core ISOXML generation and plot persistence
+
+### <!-- 2 -->🚜 Refactor
+
+- Refactor field creation and improve zone visualization
+- Adopt Rerun for enhanced visualization capabilities
+- Refactor plot loading and zone management
+
+### <!-- 3 -->📚 Documentation
+
+- Relocate documentation examples and remove unused tests
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Update GEOJSON and CRS handling
+
 ## [0.2.1] - 2025-07-30
 
 ### <!-- 0 -->⛰️  Features
