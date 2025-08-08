@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.1] - 2025-08-08
+
+### <!-- 0 -->⛰️  Features
+
+- Add Zone object (de)serialization
+
 ## [0.2.6] - 2025-08-08
 
 ### <!-- 1 -->🐛 Bug Fixes
