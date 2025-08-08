@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.6] - 2025-08-08
+
+### <!-- 1 -->🐛 Bug Fixes
+
+- Reverse Y-axis for GIS/image coordinates
+
 ## [0.2.5] - 2025-08-04
 
 ### <!-- 7 -->⚙️ Miscellaneous Tasks
