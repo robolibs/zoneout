@@ -346,6 +346,19 @@ namespace zoneout {
             savePolyGrid(poly_copy, grid_copy, vector_path, raster_path);
         }
 
+        void save(const std::filesystem::path &directory) const {
+            std::filesystem::create_directories(directory);
+            auto vector_path = directory / "vector.geojson";
+            auto raster_path = directory / "raster.tiff";
+            toFiles(vector_path, raster_path);
+        }
+
+        static Zone load(const std::filesystem::path &directory) {
+            auto vector_path = directory / "vector.geojson";
+            auto raster_path = directory / "raster.tiff";
+            return fromFiles(vector_path, raster_path);
+        }
+
         // Legacy accessors for compatibility - prefer direct access to poly_data_ and grid_data_
         const geoson::Vector &getVectorData() const { return poly_data_; }
         const geotiv::Raster &getRasterData() const { return grid_data_; }
