@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.2] - 2025-08-08
+
+### <!-- 6 -->🧪 Testing
+
+- Enhance grid and polygon robustness for varied real-world data
+
 ## [0.3.1] - 2025-08-08
 
 ### <!-- 0 -->⛰️  Features
