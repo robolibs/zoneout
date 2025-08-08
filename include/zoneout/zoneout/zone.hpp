@@ -77,9 +77,9 @@ namespace zoneout {
 
             // Since Grid constructor uses pose as center, we can directly use AABB center
             // The grid will extend half its size in each direction from this center
-            // Use reverse_y=true to match mathematical coordinate system (Y increases upward)
+            // Use reverse_y=false to match GIS/image coordinate system (Y increases downward, top-left reference)
             concord::Pose grid_pose(aabb.center(), concord::Euler{0, 0, 0});
-            concord::Grid<uint8_t> generated_grid(grid_rows, grid_cols, resolution, true, grid_pose, true);
+            concord::Grid<uint8_t> generated_grid(grid_rows, grid_cols, resolution, true, grid_pose, false);
 
             // Set the shift on the grid_data_ to match the calculated pose
             grid_data_.setShift(grid_pose);
