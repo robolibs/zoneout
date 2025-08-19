@@ -23,7 +23,7 @@ include(FetchContent)
 # --------------------------------------------------------------------------------------------------
 set(ext_deps)
 
-FetchContent_Declare(concord GIT_REPOSITORY https://github.com/smolfetch/concord.git GIT_TAG 2.2.2)
+FetchContent_Declare(concord GIT_REPOSITORY https://github.com/smolfetch/concord.git GIT_TAG 2.3.2)
 FetchContent_MakeAvailable(concord)
 list(APPEND ext_deps concord::concord)
 
@@ -35,7 +35,7 @@ FetchContent_Declare(geoson GIT_REPOSITORY https://github.com/smolfetch/geoson.g
 FetchContent_MakeAvailable(geoson)
 list(APPEND ext_deps geoson::geoson) 
 
-FetchContent_Declare(geotiv GIT_REPOSITORY https://github.com/smolfetch/geotiv.git GIT_TAG 2.0.2)
+FetchContent_Declare(geotiv GIT_REPOSITORY https://github.com/smolfetch/geotiv.git GIT_TAG 2.1.0)
 FetchContent_MakeAvailable(geotiv)
 list(APPEND ext_deps geotiv::geotiv)
 
