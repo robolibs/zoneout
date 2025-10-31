@@ -53,6 +53,46 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
             zone.addRasterLayer(temp_grid, "temperature", "environmental", {{"units", "celsius"}}, true);
             zone.addRasterLayer(moisture_grid, "moisture", "environmental", {{"units", "percentage"}}, true);
 
+            // Initialize 3D occlusion layer matching the raster dimensions
+            zone.initializeOcclusionLayer(20, 1.0, "field_obstacles", "occlusion", "robot_navigation");
+
+            // Add realistic farm obstacles to the 3D map
+            if (zone.hasOcclusionLayer()) {
+                auto &occlusion_map = zone.getOcclusionLayer();
+
+                // Add some random obstacles using noise (similar to temp/moisture)
+                entropy::NoiseGen obstacle_noise;
+                obstacle_noise.SetNoiseType(entropy::NoiseGen::NoiseType_Cellular);
+                obstacle_noise.SetFrequency(0.02f);
+                obstacle_noise.SetSeed(std::random_device{}() + 200);
+
+                // Generate obstacles based on grid dimensions
+                for (size_t r = 0; r < occlusion_map.rows(); ++r) {
+                    for (size_t c = 0; c < occlusion_map.cols(); ++c) {
+                        float obstacle_noise_val =
+                            obstacle_noise.GetNoise(static_cast<float>(r), static_cast<float>(c));
+
+                        if (obstacle_noise_val > 0.6f) {
+                            // Create obstacles of varying heights
+                            size_t obstacle_height =
+                                static_cast<size_t>((obstacle_noise_val - 0.6f) / 0.4f * 12) + 1; // 1-12m
+                            uint8_t occlusion_value = static_cast<uint8_t>(100 + (obstacle_noise_val * 155));
+
+                            for (size_t l = 0; l < std::min(obstacle_height, occlusion_map.layers()); ++l) {
+                                occlusion_map(r, c, l) = occlusion_value;
+                            }
+                        }
+                    }
+                }
+
+                // Add perimeter fence at 2m height
+                const auto &boundary = polygons[0];
+                occlusion_map.addPolygonOcclusion(boundary, 0.0, 2.0, 150);
+
+                std::cout << "✓ Added 3D occlusion map: " << occlusion_map.getName() << " (" << occlusion_map.rows()
+                          << "×" << occlusion_map.cols() << "×" << occlusion_map.layers() << ")" << std::endl;
+            }
+
             zone.setProperty("crop_type", crop_type);
             zone.setProperty("planting_date", "2024-04-15");
             zone.setProperty("irrigation", "true");

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.3] - 2025-10-31
+
+### <!-- 0 -->⛰️  Features
+
+- Introduce spatially-referenced data layer
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Update dependency versions for concord and geotiv
+- Update `geotiv` to version 2.0.2
+
 ## [0.3.2] - 2025-08-08
 
 ### <!-- 6 -->🧪 Testing

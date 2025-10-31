@@ -25,8 +25,8 @@ namespace zoneout {
     class Zone {
       public:
         // Primary data storage - Poly for boundaries/elements, Grid for raster data
-        Poly poly_data_; // Field boundaries + elements (irrigation, crop rows, obstacles, etc.)
-        Grid grid_data_; // Multi-layer raster data (elevation, soil, etc.)
+        Poly poly_data_;                  // Field boundaries + elements (irrigation, crop rows, obstacles, etc.)
+        Grid grid_data_;                  // Multi-layer raster data (elevation, soil, etc.)
         std::optional<Layer> layer_data_; // Optional 3D layer data for occlusion mapping
 
       private:
@@ -251,51 +251,70 @@ namespace zoneout {
         }
 
         // ========== 3D Layer Management ==========
-        
-        // Initialize the 3D occlusion layer
-        void initializeOcclusionLayer(size_t rows, size_t cols, size_t height_layers, 
-                                     double cell_size, double layer_height,
-                                     const std::string &name = "occlusion_map",
-                                     const std::string &type = "occlusion",
-                                     const std::string &subtype = "robot_navigation",
-                                     const concord::Pose &pose = concord::Pose{}) {
-            layer_data_ = Layer(name, type, subtype, rows, cols, height_layers, 
-                               cell_size, layer_height, pose);
+
+        // Initialize the 3D occlusion layer - automatically matches raster dimensions
+        void initializeOcclusionLayer(size_t height_layers, double layer_height,
+                                      const std::string &name = "occlusion_map", const std::string &type = "occlusion",
+                                      const std::string &subtype = "robot_navigation") {
+            if (!grid_data_.hasGrids()) {
+                throw std::runtime_error(
+                    "Cannot initialize occlusion layer: Zone has no raster data. Create grid data first.");
+            }
+
+            // Use the first grid as reference for dimensions and properties
+            const auto &base_grid = grid_data_.getGrid(0).grid;
+            size_t rows = base_grid.rows();
+            size_t cols = base_grid.cols();
+            double cell_size = base_grid.inradius(); // Same cell size as base grid
+            concord::Pose pose = base_grid.pose();   // Same position as base grid
+
+            layer_data_ = Layer(name, type, subtype, rows, cols, height_layers, cell_size, layer_height, pose);
+
+            std::cout << "✓ Initialized 3D layer matching raster: " << rows << "×" << cols << "×" << height_layers
+                      << " (cell: " << cell_size << "m, height: " << layer_height << "m)\n";
         }
-        
+
+        // Legacy method with explicit dimensions (for backward compatibility)
+        void initializeOcclusionLayerExplicit(size_t rows, size_t cols, size_t height_layers, double cell_size,
+                                              double layer_height, const std::string &name = "occlusion_map",
+                                              const std::string &type = "occlusion",
+                                              const std::string &subtype = "robot_navigation",
+                                              const concord::Pose &pose = concord::Pose{}) {
+            layer_data_ = Layer(name, type, subtype, rows, cols, height_layers, cell_size, layer_height, pose);
+        }
+
         // Check if zone has 3D layer data
         bool hasOcclusionLayer() const { return layer_data_.has_value(); }
-        
+
         // Get reference to layer data (throws if not initialized)
-        Layer& getOcclusionLayer() {
+        Layer &getOcclusionLayer() {
             if (!layer_data_.has_value()) {
                 throw std::runtime_error("Occlusion layer not initialized. Call initializeOcclusionLayer() first.");
             }
             return *layer_data_;
         }
-        
-        const Layer& getOcclusionLayer() const {
+
+        const Layer &getOcclusionLayer() const {
             if (!layer_data_.has_value()) {
                 throw std::runtime_error("Occlusion layer not initialized. Call initializeOcclusionLayer() first.");
             }
             return *layer_data_;
         }
-        
+
         // Convenience methods that delegate to layer_data_
         void setOcclusion(const concord::Point &world_point, uint8_t value) {
             if (hasOcclusionLayer()) {
                 layer_data_->setOcclusion(world_point, value);
             }
         }
-        
+
         uint8_t getOcclusion(const concord::Point &world_point) const {
             return hasOcclusionLayer() ? layer_data_->getOcclusion(world_point) : 0;
         }
-        
-        bool isPathClear(const concord::Point &start, const concord::Point &end, 
-                        double robot_height = 2.0, uint8_t threshold = 50) const {
-            return hasOcclusionLayer() ? 
-                layer_data_->isPathClear(start, end, robot_height, threshold) : true;
+
+        bool isPathClear(const concord::Point &start, const concord::Point &end, double robot_height = 2.0,
+                         uint8_t threshold = 50) const {
+            return hasOcclusionLayer() ? layer_data_->isPathClear(start, end, robot_height, threshold) : true;
         }
 
         // Helper to display feature configuration
@@ -315,7 +334,7 @@ namespace zoneout {
         }
 
         // ========== Validation ==========
-        bool is_valid() const { 
+        bool is_valid() const {
             bool valid = poly_data_.isValid() && grid_data_.isValid();
             if (hasOcclusionLayer()) {
                 valid = valid && layer_data_->isValid();
@@ -324,8 +343,8 @@ namespace zoneout {
         }
 
         // ========== File I/O ==========
-        static Zone fromFiles(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path, 
-                             const std::optional<std::filesystem::path> &layer_path = std::nullopt) {
+        static Zone fromFiles(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path,
+                              const std::optional<std::filesystem::path> &layer_path = std::nullopt) {
             // Use the loadPolyGrid function to load and validate consistency
             auto [poly, grid] = loadPolyGrid(vector_path, raster_path);
 
@@ -394,7 +413,7 @@ namespace zoneout {
         }
 
         void toFiles(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path,
-                    const std::optional<std::filesystem::path> &layer_path = std::nullopt) const {
+                     const std::optional<std::filesystem::path> &layer_path = std::nullopt) const {
             // Ensure internal consistency before saving
             const_cast<Zone *>(this)->syncToPolyGrid();
 
@@ -413,7 +432,7 @@ namespace zoneout {
 
             // Use the savePolyGrid function for consistency validation
             savePolyGrid(poly_copy, grid_copy, vector_path, raster_path);
-            
+
             // Save layer data if it exists and path provided
             if (hasOcclusionLayer() && layer_path.has_value()) {
                 try {
@@ -436,7 +455,8 @@ namespace zoneout {
             auto vector_path = directory / "vector.geojson";
             auto raster_path = directory / "raster.tiff";
             auto layer_path = directory / "map.tiff";
-            return fromFiles(vector_path, raster_path, std::filesystem::exists(layer_path) ? std::optional(layer_path) : std::nullopt);
+            return fromFiles(vector_path, raster_path,
+                             std::filesystem::exists(layer_path) ? std::optional(layer_path) : std::nullopt);
         }
 
         // Legacy accessors for compatibility - prefer direct access to poly_data_ and grid_data_

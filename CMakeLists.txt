@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 
 set(project_name zoneout)
 
-project(${project_name} VERSION 0.3.2 LANGUAGES CXX)
+project(${project_name} VERSION 0.3.3 LANGUAGES CXX)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options(-Wno-all -Wno-extra -Wno-pedantic -Wno-maybe-uninitialized -Wno-unused-variable -Wno-reorder)
@@ -31,7 +31,7 @@ FetchContent_Declare(entropy GIT_REPOSITORY https://github.com/smolfetch/entropy
 FetchContent_MakeAvailable(entropy)
 list(APPEND ext_deps entropy::entropy)
 
-FetchContent_Declare(geoson GIT_REPOSITORY https://github.com/smolfetch/geoson.git GIT_TAG 1.4.6)
+FetchContent_Declare(geoson GIT_REPOSITORY https://github.com/smolfetch/geoson.git GIT_TAG 1.4.7)
 FetchContent_MakeAvailable(geoson)
 list(APPEND ext_deps geoson::geoson) 
 
@@ -39,8 +39,11 @@ FetchContent_Declare(geotiv GIT_REPOSITORY https://github.com/smolfetch/geotiv.g
 FetchContent_MakeAvailable(geotiv)
 list(APPEND ext_deps geotiv::geotiv)
 
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
-FetchContent_MakeAvailable(json)
+find_package(nlohmann_json QUIET)
+if(NOT nlohmann_json_FOUND)
+    FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+    FetchContent_MakeAvailable(json)
+endif()
 list(APPEND ext_deps nlohmann_json::nlohmann_json)
 
 # --------------------------------------------------------------------------------------------------
@@ -89,8 +92,11 @@ if(${project_name_upper}_BUILD_EXAMPLES)
   FetchContent_MakeAvailable(rerun_sdk)
   list(APPEND ext_deps rerun_sdk)
 
-  FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
-  FetchContent_MakeAvailable(json)
+find_package(nlohmann_json QUIET)
+if(NOT nlohmann_json_FOUND)
+    FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+    FetchContent_MakeAvailable(json)
+endif()
   list(APPEND ext_deps nlohmann_json::nlohmann_json)
 
   file(GLOB exe CONFIGURE_DEPENDS examples/*.cpp)
