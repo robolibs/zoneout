@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.0.0] - 2025-11-01
+
+### <!-- 2 -->🚜 Refactor
+
+- Refactor class structure and update CMake build system
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Refactor build system and migrate class method definitions
+- Update dependencies and remove unused ones
+
+### Build
+
+- Introduce project reconfiguration and dependency updates
+
 ## [0.3.3] - 2025-10-31
 
 ### <!-- 0 -->⛰️  Features
