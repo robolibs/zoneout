@@ -10,7 +10,6 @@
 
 namespace zoneout {
 
-    // Enhanced Grid class - High-level Raster with zone-specific functionality
     class Grid : public geotiv::Raster {
       private:
         UUID id_;
@@ -19,147 +18,35 @@ namespace zoneout {
         std::string subtype_;
 
       public:
-        // ========== Constructors ==========
-        Grid() : geotiv::Raster(), id_(generateUUID()), type_("other"), subtype_("default") {
-        }
-
-        Grid(const std::string &name, const std::string &type, const std::string &subtype = "default")
-            : geotiv::Raster(), id_(generateUUID()), name_(name), type_(type), subtype_(subtype) {
-        }
-
-        Grid(const std::string &name, const std::string &type, const std::string &subtype, const concord::Datum &datum)
-            : geotiv::Raster(datum), id_(generateUUID()), name_(name), type_(type), subtype_(subtype) {
-        }
-
+        Grid();
+        Grid(const std::string &name, const std::string &type, const std::string &subtype = "default");
+        Grid(const std::string &name, const std::string &type, const std::string &subtype, const concord::Datum &datum);
         Grid(const std::string &name, const std::string &type, const std::string &subtype, const concord::Datum &datum,
-             const concord::Pose &shift, double resolution)
-            : geotiv::Raster(datum, shift, resolution), id_(generateUUID()), name_(name), type_(type),
-              subtype_(subtype) {
-        }
+             const concord::Pose &shift, double resolution);
 
-        // ========== Basic Properties ==========
-        const UUID &getId() const { return id_; }
-        const std::string &getName() const { return name_; }
-        const std::string &getType() const { return type_; }
-        const std::string &getSubtype() const { return subtype_; }
+        const UUID &getId() const;
+        const std::string &getName() const;
+        const std::string &getType() const;
+        const std::string &getSubtype() const;
 
-        void setName(const std::string &name) {
-            name_ = name;
-            syncToGlobalProperties();
-        }
+        void setName(const std::string &name);
+        void setType(const std::string &type);
+        void setSubtype(const std::string &subtype);
+        void setId(const UUID &id);
 
-        void setType(const std::string &type) {
-            type_ = type;
-            syncToGlobalProperties();
-        }
+        bool isValid() const;
 
-        void setSubtype(const std::string &subtype) {
-            subtype_ = subtype;
-            syncToGlobalProperties();
-        }
+        static Grid fromFile(const std::filesystem::path &file_path);
+        void toFile(const std::filesystem::path &file_path) const;
 
-        void setId(const UUID &id) {
-            id_ = id;
-            syncToGlobalProperties();
-        }
+        void addGrid(uint32_t width, uint32_t height, const std::string &name, const std::string &type = "",
+                     const std::unordered_map<std::string, std::string> &properties = {});
 
-        // ========== Higher Level Operations ==========
-        bool isValid() const { return hasGrids() && !name_.empty(); }
-
-        // ========== File I/O ==========
-        static Grid fromFile(const std::filesystem::path &file_path) {
-            if (!std::filesystem::exists(file_path)) {
-                throw std::runtime_error("File does not exist: " + file_path.string());
-            }
-
-            // Load raster data using parent class
-            geotiv::Raster raster_data = geotiv::Raster::fromFile(file_path);
-
-            // Create Grid instance
-            Grid grid;
-
-            // Copy raster data
-            static_cast<geotiv::Raster &>(grid) = raster_data;
-
-            // Extract metadata from global properties
-            auto global_props = raster_data.getGlobalProperties();
-
-            auto name_it = global_props.find("name");
-            if (name_it != global_props.end()) {
-                grid.name_ = name_it->second;
-            }
-
-            auto type_it = global_props.find("type");
-            if (type_it != global_props.end()) {
-                grid.type_ = type_it->second;
-            }
-
-            auto subtype_it = global_props.find("subtype");
-            if (subtype_it != global_props.end()) {
-                grid.subtype_ = subtype_it->second;
-            }
-
-            auto uuid_it = global_props.find("uuid");
-            if (uuid_it != global_props.end()) {
-                grid.id_ = UUID(uuid_it->second);
-            }
-
-            return grid;
-        }
-
-        void toFile(const std::filesystem::path &file_path) const {
-            // Ensure global properties are synced
-            const_cast<Grid *>(this)->syncToGlobalProperties();
-
-            // Use parent class to save
-            geotiv::Raster::toFile(file_path);
-        }
-
-        // Override addGrid to sync properties after adding grids
-        void addGrid(uint32_t width, uint32_t height, const std::string& name, 
-                    const std::string& type = "", 
-                    const std::unordered_map<std::string, std::string>& properties = {}) {
-            geotiv::Raster::addGrid(width, height, name, type, properties);
-            syncToGlobalProperties();
-        }
-
-        // Add grid with pre-populated data
-        void addGrid(const concord::Grid<uint8_t>& grid, const std::string& name, 
-                    const std::string& type = "", 
-                    const std::unordered_map<std::string, std::string>& properties = {}) {
-            auto props = properties;
-            if (!type.empty()) {
-                props["type"] = type;
-            }
-            
-            geotiv::GridLayer gridLayer(grid, name, type, props);
-            
-            // Add the layer directly to our inherited grid_layers_
-            // Note: We need to access the protected member through the parent class
-            // For now, let's use a workaround by creating a GridLayer and manipulating it
-            
-            // First create an empty grid with correct dimensions, then replace its data
-            geotiv::Raster::addGrid(static_cast<uint32_t>(grid.cols()), 
-                                   static_cast<uint32_t>(grid.rows()), name, type, properties);
-            
-            // Now replace the last added grid's data with our provided grid
-            if (hasGrids()) {
-                auto& lastLayer = const_cast<geotiv::GridLayer&>(getGrid(gridCount() - 1));
-                lastLayer.grid = grid;
-            }
-            
-            syncToGlobalProperties();
-        }
+        void addGrid(const concord::Grid<uint8_t> &grid, const std::string &name, const std::string &type = "",
+                     const std::unordered_map<std::string, std::string> &properties = {});
 
       private:
-        void syncToGlobalProperties() {
-            if (hasGrids()) {
-                setGlobalProperty("name", name_);
-                setGlobalProperty("type", type_);
-                setGlobalProperty("subtype", subtype_);
-                setGlobalProperty("uuid", id_.toString());
-            }
-        }
+        void syncToGlobalProperties();
     };
 
 } // namespace zoneout

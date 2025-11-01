@@ -12,7 +12,6 @@
 
 namespace zoneout {
 
-    // Structured Element types with required metadata
     struct StructuredElement {
         UUID uuid;
         std::string name;
@@ -21,67 +20,36 @@ namespace zoneout {
         std::unordered_map<std::string, std::string> properties;
 
         StructuredElement(const UUID &id, const std::string &n, const std::string &t, const std::string &st,
-                          const std::unordered_map<std::string, std::string> &props = {})
-            : uuid(id), name(n), type(t), subtype(st), properties(props) {}
+                          const std::unordered_map<std::string, std::string> &props = {});
 
-        // Check if element has all required fields
-        static bool isValid(const geoson::Element &element) {
-            const auto &props = element.properties;
-            return props.find("uuid") != props.end() && props.find("name") != props.end() &&
-                   props.find("type") != props.end() && props.find("subtype") != props.end();
-        }
+        static bool isValid(const geoson::Element &element);
 
-        // Create from geoson::Element if valid
-        static std::optional<StructuredElement> fromElement(const geoson::Element &element) {
-            if (!isValid(element))
-                return std::nullopt;
+        static std::optional<StructuredElement> fromElement(const geoson::Element &element);
 
-            const auto &props = element.properties;
-            return StructuredElement(UUID(props.at("uuid")), props.at("name"), props.at("type"), props.at("subtype"),
-                                     props);
-        }
-
-        // Convert to properties map for storage
-        std::unordered_map<std::string, std::string> toProperties() const {
-            auto props = properties;
-            props["uuid"] = uuid.toString();
-            props["name"] = name;
-            props["type"] = type;
-            props["subtype"] = subtype;
-            // Add border property if not already set
-            if (props.find("border") == props.end()) {
-                props["border"] = "false";
-            }
-            return props;
-        }
+        std::unordered_map<std::string, std::string> toProperties() const;
     };
 
-    // Typed element collections
     struct PolygonElement : public StructuredElement {
         concord::Polygon geometry;
 
         PolygonElement(const UUID &id, const std::string &n, const std::string &t, const std::string &st,
-                       const concord::Polygon &geom, const std::unordered_map<std::string, std::string> &props = {})
-            : StructuredElement(id, n, t, st, props), geometry(geom) {}
+                       const concord::Polygon &geom, const std::unordered_map<std::string, std::string> &props = {});
     };
 
     struct LineElement : public StructuredElement {
         concord::Line geometry;
 
         LineElement(const UUID &id, const std::string &n, const std::string &t, const std::string &st,
-                    const concord::Line &geom, const std::unordered_map<std::string, std::string> &props = {})
-            : StructuredElement(id, n, t, st, props), geometry(geom) {}
+                    const concord::Line &geom, const std::unordered_map<std::string, std::string> &props = {});
     };
 
     struct PointElement : public StructuredElement {
         concord::Point geometry;
 
         PointElement(const UUID &id, const std::string &n, const std::string &t, const std::string &st,
-                     const concord::Point &geom, const std::unordered_map<std::string, std::string> &props = {})
-            : StructuredElement(id, n, t, st, props), geometry(geom) {}
+                     const concord::Point &geom, const std::unordered_map<std::string, std::string> &props = {});
     };
 
-    // Enhanced Poly class - High-level Vector with structured elements
     class Poly : public geoson::Vector {
       private:
         UUID id_;
@@ -89,234 +57,69 @@ namespace zoneout {
         std::string type_;
         std::string subtype_;
 
-        // Structured element collections
         std::vector<PolygonElement> polygon_elements_;
         std::vector<LineElement> line_elements_;
         std::vector<PointElement> point_elements_;
 
       public:
-        // ========== Constructors ==========
-        Poly() : geoson::Vector(concord::Polygon{}), id_(generateUUID()), type_("other"), subtype_("default") {
-            syncToGlobalProperties();
-        }
+        Poly();
 
-        Poly(const std::string &name, const std::string &type, const std::string &subtype = "default")
-            : geoson::Vector(concord::Polygon{}), id_(generateUUID()), name_(name), type_(type), subtype_(subtype) {
-            syncToGlobalProperties();
-            loadStructuredElements();
-        }
+        Poly(const std::string &name, const std::string &type, const std::string &subtype = "default");
 
         Poly(const std::string &name, const std::string &type, const std::string &subtype,
-             const concord::Polygon &boundary)
-            : geoson::Vector(boundary), id_(generateUUID()), name_(name), type_(type), subtype_(subtype) {
-            syncToGlobalProperties();
-            loadStructuredElements();
-        }
+             const concord::Polygon &boundary);
 
         Poly(const std::string &name, const std::string &type, const std::string &subtype,
              const concord::Polygon &boundary, const concord::Datum &datum, const concord::Euler &heading,
-             geoson::CRS crs)
-            : geoson::Vector(boundary, datum, heading, crs), id_(generateUUID()), name_(name), type_(type),
-              subtype_(subtype) {
-            syncToGlobalProperties();
-            loadStructuredElements();
-        }
+             geoson::CRS crs);
 
-        // ========== Basic Properties ==========
-        const UUID &getId() const { return id_; }
-        const std::string &getName() const { return name_; }
-        const std::string &getType() const { return type_; }
-        const std::string &getSubtype() const { return subtype_; }
+        const UUID &getId() const;
+        const std::string &getName() const;
+        const std::string &getType() const;
+        const std::string &getSubtype() const;
 
-        void setName(const std::string &name) {
-            name_ = name;
-            syncToGlobalProperties();
-        }
+        void setName(const std::string &name);
 
-        void setType(const std::string &type) {
-            type_ = type;
-            syncToGlobalProperties();
-        }
+        void setType(const std::string &type);
 
-        void setSubtype(const std::string &subtype) {
-            subtype_ = subtype;
-            syncToGlobalProperties();
-        }
+        void setSubtype(const std::string &subtype);
 
-        void setId(const UUID &id) {
-            id_ = id;
-            syncToGlobalProperties();
-        }
+        void setId(const UUID &id);
 
-        // ========== Structured Element Management ==========
-
-        // Add structured polygon element
         void addPolygonElement(const UUID &id, const std::string &name, const std::string &type,
                                const std::string &subtype, const concord::Polygon &geometry,
-                               const std::unordered_map<std::string, std::string> &props = {}) {
-            polygon_elements_.emplace_back(id, name, type, subtype, geometry, props);
-            // Also add to underlying Vector for storage
-            geoson::Vector::addElement(geometry, type, polygon_elements_.back().toProperties());
-        }
+                               const std::unordered_map<std::string, std::string> &props = {});
 
-        // Add structured line element
         void addLineElement(const UUID &id, const std::string &name, const std::string &type,
                             const std::string &subtype, const concord::Line &geometry,
-                            const std::unordered_map<std::string, std::string> &props = {}) {
-            line_elements_.emplace_back(id, name, type, subtype, geometry, props);
-            // Also add to underlying Vector for storage
-            geoson::Vector::addElement(geometry, type, line_elements_.back().toProperties());
-        }
+                            const std::unordered_map<std::string, std::string> &props = {});
 
-        // Add structured point element
         void addPointElement(const UUID &id, const std::string &name, const std::string &type,
                              const std::string &subtype, const concord::Point &geometry,
-                             const std::unordered_map<std::string, std::string> &props = {}) {
-            point_elements_.emplace_back(id, name, type, subtype, geometry, props);
-            // Also add to underlying Vector for storage
-            geoson::Vector::addElement(geometry, type, point_elements_.back().toProperties());
-        }
+                             const std::unordered_map<std::string, std::string> &props = {});
 
-        // Access structured elements
-        const std::vector<PolygonElement> &getPolygonElements() const { return polygon_elements_; }
-        const std::vector<LineElement> &getLineElements() const { return line_elements_; }
-        const std::vector<PointElement> &getPointElements() const { return point_elements_; }
+        const std::vector<PolygonElement> &getPolygonElements() const;
+        const std::vector<LineElement> &getLineElements() const;
+        const std::vector<PointElement> &getPointElements() const;
 
-        // Filter elements by type/subtype
-        std::vector<PolygonElement> getPolygonsByType(const std::string &type) const {
-            std::vector<PolygonElement> result;
-            for (const auto &elem : polygon_elements_) {
-                if (elem.type == type)
-                    result.push_back(elem);
-            }
-            return result;
-        }
+        std::vector<PolygonElement> getPolygonsByType(const std::string &type) const;
 
-        std::vector<PolygonElement> getPolygonsBySubtype(const std::string &subtype) const {
-            std::vector<PolygonElement> result;
-            for (const auto &elem : polygon_elements_) {
-                if (elem.subtype == subtype)
-                    result.push_back(elem);
-            }
-            return result;
-        }
+        std::vector<PolygonElement> getPolygonsBySubtype(const std::string &subtype) const;
 
-        // ========== Higher Level Operations ==========
-        double area() const { return hasFieldBoundary() ? getFieldBoundary().area() : 0.0; }
-        double perimeter() const { return hasFieldBoundary() ? getFieldBoundary().perimeter() : 0.0; }
-        bool contains(const concord::Point &point) const {
-            return hasFieldBoundary() && getFieldBoundary().contains(point);
-        }
-        bool hasFieldBoundary() const { return !getFieldBoundary().getPoints().empty(); }
-        bool isValid() const { return hasFieldBoundary() && !name_.empty(); }
+        double area() const;
+        double perimeter() const;
+        bool contains(const concord::Point &point) const;
+        bool hasFieldBoundary() const;
+        bool isValid() const;
 
-        // ========== File I/O ==========
-        static Poly fromFile(const std::filesystem::path &file_path) {
-            if (!std::filesystem::exists(file_path)) {
-                throw std::runtime_error("File does not exist: " + file_path.string());
-            }
+        static Poly fromFile(const std::filesystem::path &file_path);
 
-            // Load vector data using parent class
-            geoson::Vector vector_data = geoson::Vector::fromFile(file_path);
-
-            // Create Poly instance
-            Poly poly;
-
-            // Copy vector data
-            static_cast<geoson::Vector &>(poly) = vector_data;
-
-            // Extract metadata from global properties
-            auto global_props = vector_data.getGlobalProperties();
-
-            auto name_it = global_props.find("name");
-            if (name_it != global_props.end()) {
-                poly.name_ = name_it->second;
-            }
-
-            auto type_it = global_props.find("type");
-            if (type_it != global_props.end()) {
-                poly.type_ = type_it->second;
-            }
-
-            auto subtype_it = global_props.find("subtype");
-            if (subtype_it != global_props.end()) {
-                poly.subtype_ = subtype_it->second;
-            }
-
-            auto uuid_it = global_props.find("uuid");
-            if (uuid_it != global_props.end()) {
-                poly.id_ = UUID(uuid_it->second);
-            }
-
-            // Load structured elements from Vector elements
-            poly.loadStructuredElements();
-
-            return poly;
-        }
-
-        void toFile(const std::filesystem::path &file_path, geoson::CRS crs = geoson::CRS::WGS) const {
-            // Ensure global properties are synced
-            const_cast<Poly *>(this)->syncToGlobalProperties();
-
-            // Set border property on the field boundary itself
-            if (hasFieldBoundary()) {
-                const_cast<Poly *>(this)->setFieldProperty("border", "true");
-                
-                // Also set structured element properties on the field boundary
-                const_cast<Poly *>(this)->setFieldProperty("uuid", id_.toString());
-                const_cast<Poly *>(this)->setFieldProperty("name", name_ + "_boundary");
-                const_cast<Poly *>(this)->setFieldProperty("subtype", subtype_);
-            }
-
-            // Use parent class to save (field boundary will be saved with border property)
-            geoson::Vector::toFile(file_path, crs);
-        }
+        void toFile(const std::filesystem::path &file_path, geoson::CRS crs = geoson::CRS::WGS) const;
 
       private:
-        void syncToGlobalProperties() {
-            setGlobalProperty("name", name_);
-            setGlobalProperty("type", type_);
-            setGlobalProperty("subtype", subtype_);
-            setGlobalProperty("uuid", id_.toString());
-        }
+        void syncToGlobalProperties();
 
-
-
-        // Load structured elements from underlying Vector elements
-        void loadStructuredElements() {
-            polygon_elements_.clear();
-            line_elements_.clear();
-            point_elements_.clear();
-
-            // Process all elements from underlying Vector
-            for (size_t i = 0; i < elementCount(); ++i) {
-                const auto &element = getElement(i);
-
-                // Only process elements that have all required structured fields
-                if (!StructuredElement::isValid(element)) {
-                    continue; // Skip elements that don't have UUID, NAME, TYPE, SUBTYPE
-                }
-
-                auto structured = StructuredElement::fromElement(element);
-                if (!structured.has_value())
-                    continue;
-
-                // Extract geometry and create appropriate typed element
-                if (std::holds_alternative<concord::Polygon>(element.geometry)) {
-                    auto polygon = std::get<concord::Polygon>(element.geometry);
-                    polygon_elements_.emplace_back(structured->uuid, structured->name, structured->type,
-                                                   structured->subtype, polygon, structured->properties);
-                } else if (std::holds_alternative<concord::Line>(element.geometry)) {
-                    auto line = std::get<concord::Line>(element.geometry);
-                    line_elements_.emplace_back(structured->uuid, structured->name, structured->type,
-                                                structured->subtype, line, structured->properties);
-                } else if (std::holds_alternative<concord::Point>(element.geometry)) {
-                    auto point = std::get<concord::Point>(element.geometry);
-                    point_elements_.emplace_back(structured->uuid, structured->name, structured->type,
-                                                 structured->subtype, point, structured->properties);
-                }
-            }
-        }
+        void loadStructuredElements();
     };
 
 } // namespace zoneout

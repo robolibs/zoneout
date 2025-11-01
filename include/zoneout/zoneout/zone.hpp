@@ -21,490 +21,102 @@
 
 namespace zoneout {
 
-    // Modern Zone class using Vector and Raster as primary data storage
     class Zone {
       public:
-        // Primary data storage - Poly for boundaries/elements, Grid for raster data
-        Poly poly_data_;                  // Field boundaries + elements (irrigation, crop rows, obstacles, etc.)
-        Grid grid_data_;                  // Multi-layer raster data (elevation, soil, etc.)
-        std::optional<Layer> layer_data_; // Optional 3D layer data for occlusion mapping
+        Poly poly_data_;
+        Grid grid_data_;
+        std::optional<Layer> layer_data_;
 
       private:
         UUID id_;
         std::string name_;
         std::string type_;
 
-        // Zone metadata
         std::unordered_map<std::string, std::string> properties_;
 
       public:
-        // ========== Constructors ==========
         Zone(const std::string &name, const std::string &type, const concord::Polygon &boundary,
-             const concord::Grid<uint8_t> &initial_grid, const concord::Datum &datum)
-            : id_(generateUUID()), name_(name), type_(type), poly_data_(name, type, "default", boundary),
-              grid_data_(name, type, "default") {
-            setDatum(datum);
-            // Calculate the shift from the boundary polygon's AABB center
-            auto aabb = boundary.getAABB();
-            concord::Pose grid_pose(aabb.center(), concord::Euler{0, 0, 0});
-            grid_data_.setShift(grid_pose);
-            // Add the initial grid as the first layer
-            grid_data_.addGrid(initial_grid, "base_layer", "terrain");
-            syncToPolyGrid();
-        }
+             const concord::Grid<uint8_t> &initial_grid, const concord::Datum &datum);
 
-        // Constructor that generates grid from polygon's axis-aligned bounding box with noise
         Zone(const std::string &name, const std::string &type, const concord::Polygon &boundary,
-             const concord::Datum &datum, double resolution = 1.0)
-            : id_(generateUUID()), name_(name), type_(type), poly_data_(name, type, "default", boundary),
-              grid_data_(name, type, "default") {
-            setDatum(datum);
+             const concord::Datum &datum, double resolution = 1.0);
 
-            // Get axis-aligned bounding box from polygon
-            auto aabb = boundary.getAABB();
+        const UUID &getId() const;
+        const std::string &getName() const;
+        const std::string &getType() const;
 
-            // Calculate grid dimensions based on AABB size and resolution
-            // Add padding to ensure we fully encompass the polygon bounds
-            double padding = resolution * 2.0; // Add 2 cell padding on each side
-            double grid_width = aabb.size().x + padding;
-            double grid_height = aabb.size().y + padding;
+        void setName(const std::string &name);
 
-            // Standard grid convention: rows = Y dimension, cols = X dimension
-            size_t grid_rows = static_cast<size_t>(std::ceil(grid_height / resolution)); // rows = Y dimension
-            size_t grid_cols = static_cast<size_t>(std::ceil(grid_width / resolution));  // cols = X dimension
+        void setType(const std::string &type);
 
-            // Ensure minimum grid size
-            grid_rows = std::max(grid_rows, static_cast<size_t>(1));
-            grid_cols = std::max(grid_cols, static_cast<size_t>(1));
+        void setProperty(const std::string &key, const std::string &value);
 
-            // Since Grid constructor uses pose as center, we can directly use AABB center
-            // The grid will extend half its size in each direction from this center
-            // Use reverse_y=false to match GIS/image coordinate system (Y increases downward, top-left reference)
-            concord::Pose grid_pose(aabb.center(), concord::Euler{0, 0, 0});
-            concord::Grid<uint8_t> generated_grid(grid_rows, grid_cols, resolution, true, grid_pose, false);
+        std::string getProperty(const std::string &key, const std::string &default_value = "") const;
 
-            // Set the shift on the grid_data_ to match the calculated pose
-            grid_data_.setShift(grid_pose);
+        const std::unordered_map<std::string, std::string> &getProperties() const;
 
-            // Configure noise generator
-            entropy::NoiseGen noise;
-            noise.SetNoiseType(entropy::NoiseGen::NoiseType_OpenSimplex2);
-            auto sz = std::max(aabb.size().x, aabb.size().y);
-            noise.SetFrequency(sz / 300000.0f);
-            noise.SetSeed(std::random_device{}());
+        const concord::Datum &getDatum() const;
 
-            // Use the same robust point-in-polygon testing as addRasterLayer
-            // Initialize all cells to zero (outside polygon)
-            for (size_t r = 0; r < generated_grid.rows(); ++r) {
-                for (size_t c = 0; c < generated_grid.cols(); ++c) {
-                    // Get the world coordinates of this grid cell center
-                    auto cell_center = generated_grid.get_point(r, c);
+        void setDatum(const concord::Datum &datum);
 
-                    // Test if the cell center is inside the polygon
-                    if (boundary.contains(cell_center)) {
-                        // Cell is inside polygon - set to white (255)
-                        generated_grid.set_value(r, c, 255);
-                    } else {
-                        // Cell is outside polygon - set to black (0)
-                        generated_grid.set_value(r, c, 0);
-                    }
-                }
-            }
-
-            // Add the generated grid as the base layer
-            grid_data_.addGrid(generated_grid, "base_layer", "terrain");
-            syncToPolyGrid();
-        }
-
-        // ========== Basic Properties ==========
-        const UUID &getId() const { return id_; }
-        const std::string &getName() const { return name_; }
-        const std::string &getType() const { return type_; }
-
-        void setName(const std::string &name) {
-            name_ = name;
-            poly_data_.setName(name);
-            grid_data_.setName(name);
-        }
-
-        void setType(const std::string &type) {
-            type_ = type;
-            poly_data_.setType(type);
-            grid_data_.setType(type);
-        }
-
-        // Note: Geometric operations (area, perimeter, contains) are now available directly on poly_data_
-        // Note: Field boundary operations (set_boundary, get_boundary) are now available directly on poly_data_
-        // Note: Field elements operations (add_element, get_elements) are now available directly on poly_data_
-        // Note: Raster operations are now available directly on grid_data_
-
-        // ========== Zone Properties ==========
-        void setProperty(const std::string &key, const std::string &value) { properties_[key] = value; }
-
-        std::string getProperty(const std::string &key, const std::string &default_value = "") const {
-            auto it = properties_.find(key);
-            return (it != properties_.end()) ? it->second : default_value;
-        }
-
-        const std::unordered_map<std::string, std::string> &getProperties() const { return properties_; }
-
-        // ========== Datum Management ==========
-        const concord::Datum &getDatum() const { return poly_data_.getDatum(); }
-
-        void setDatum(const concord::Datum &datum) {
-            poly_data_.setDatum(datum);
-            grid_data_.setDatum(datum);
-            // Note: Layer data doesn't use Datum directly (it uses world coordinates)
-        }
-
-        // ========== Raster Layer Management ==========
-        // Add raster layer with actual grid data
         void addRasterLayer(const concord::Grid<uint8_t> &grid, const std::string &name, const std::string &type = "",
                             const std::unordered_map<std::string, std::string> &properties = {}, bool poly_cut = false,
-                            int layer_index = -1) {
-            if (poly_cut && poly_data_.hasFieldBoundary()) {
-                // Create a copy of the grid to modify
-                auto modified_grid = grid;
+                            int layer_index = -1);
 
-                // Get the boundary polygon
-                auto boundary = poly_data_.getFieldBoundary();
+        std::string getRasterInfo() const;
 
-                // Use robust point-in-polygon testing for raster-vector overlay
-                size_t cells_inside = 0;
-                size_t total_cells = modified_grid.rows() * modified_grid.cols();
-
-                for (size_t r = 0; r < modified_grid.rows(); ++r) {
-                    for (size_t c = 0; c < modified_grid.cols(); ++c) {
-                        // Get the world coordinates of this grid cell center
-                        auto cell_center = modified_grid.get_point(r, c);
-
-                        // Test if the cell center is inside the polygon
-                        if (boundary.contains(cell_center)) {
-                            cells_inside++;
-                            // Cell is inside polygon - keep original value
-                        } else {
-                            // Cell is outside polygon - zero it out
-                            modified_grid.set_value(r, c, 0);
-                        }
-                    }
-                }
-
-                grid_data_.addGrid(modified_grid, name, type, properties);
-            } else {
-                grid_data_.addGrid(grid, name, type, properties);
-            }
-        }
-
-        // Helper to display raster configuration
-        std::string getRasterInfo() const {
-            if (grid_data_.gridCount() > 0) {
-                const auto &first_layer = grid_data_.getGrid(0);
-                return "Raster size: " + std::to_string(first_layer.grid.cols()) + "x" +
-                       std::to_string(first_layer.grid.rows()) + " (" + std::to_string(grid_data_.gridCount()) +
-                       " layers)";
-            }
-            return "No raster layers";
-        }
-
-        // ========== Polygon Feature Management ==========
-        // Add polygon feature with geometry and metadata
         void addPolygonFeature(const concord::Polygon &geometry, const std::string &name, const std::string &type = "",
                                const std::string &subtype = "default",
-                               const std::unordered_map<std::string, std::string> &properties = {}) {
-            // Validate that polygon is within field boundary
-            if (poly_data_.hasFieldBoundary()) {
-                auto boundary = poly_data_.getFieldBoundary();
+                               const std::unordered_map<std::string, std::string> &properties = {});
 
-                // Check all points of the polygon are inside boundary
-                for (const auto &point : geometry.getPoints()) {
-                    if (!boundary.contains(point)) {
-                        throw std::runtime_error("Polygon feature '" + name +
-                                                 "' is not valid: points must be inside field boundary");
-                    }
-                }
-            }
-
-            // Generate random color between 50-200 for visualization
-            static std::random_device rd;
-            static std::mt19937 gen(rd());
-            static std::uniform_int_distribution<> color_dist(50, 200);
-            uint8_t polygon_color = static_cast<uint8_t>(color_dist(gen));
-
-            // Draw the polygon on the base grid if it exists
-            if (grid_data_.gridCount() > 0) {
-                auto &base_grid = grid_data_.getGrid(0).grid;
-                for (size_t r = 0; r < base_grid.rows(); ++r) {
-                    for (size_t c = 0; c < base_grid.cols(); ++c) {
-                        auto cell_center = base_grid.get_point(r, c);
-                        if (geometry.contains(cell_center)) {
-                            base_grid.set_value(r, c, polygon_color);
-                        }
-                    }
-                }
-            }
-
-            // Generate UUID for the new feature
-            UUID feature_id = generateUUID();
-
-            // Add the polygon element to the poly_data_
-            poly_data_.addPolygonElement(feature_id, name, type, subtype, geometry, properties);
-        }
-
-        // ========== 3D Layer Management ==========
-
-        // Initialize the 3D occlusion layer - automatically matches raster dimensions
         void initializeOcclusionLayer(size_t height_layers, double layer_height,
                                       const std::string &name = "occlusion_map", const std::string &type = "occlusion",
-                                      const std::string &subtype = "robot_navigation") {
-            if (!grid_data_.hasGrids()) {
-                throw std::runtime_error(
-                    "Cannot initialize occlusion layer: Zone has no raster data. Create grid data first.");
-            }
+                                      const std::string &subtype = "robot_navigation");
 
-            // Use the first grid as reference for dimensions and properties
-            const auto &base_grid = grid_data_.getGrid(0).grid;
-            size_t rows = base_grid.rows();
-            size_t cols = base_grid.cols();
-            double cell_size = base_grid.inradius(); // Same cell size as base grid
-            concord::Pose pose = base_grid.pose();   // Same position as base grid
-
-            layer_data_ = Layer(name, type, subtype, rows, cols, height_layers, cell_size, layer_height, pose);
-
-            std::cout << "✓ Initialized 3D layer matching raster: " << rows << "×" << cols << "×" << height_layers
-                      << " (cell: " << cell_size << "m, height: " << layer_height << "m)\n";
-        }
-
-        // Legacy method with explicit dimensions (for backward compatibility)
         void initializeOcclusionLayerExplicit(size_t rows, size_t cols, size_t height_layers, double cell_size,
                                               double layer_height, const std::string &name = "occlusion_map",
                                               const std::string &type = "occlusion",
                                               const std::string &subtype = "robot_navigation",
-                                              const concord::Pose &pose = concord::Pose{}) {
-            layer_data_ = Layer(name, type, subtype, rows, cols, height_layers, cell_size, layer_height, pose);
-        }
+                                              const concord::Pose &pose = concord::Pose{});
 
-        // Check if zone has 3D layer data
-        bool hasOcclusionLayer() const { return layer_data_.has_value(); }
+        bool hasOcclusionLayer() const;
 
-        // Get reference to layer data (throws if not initialized)
-        Layer &getOcclusionLayer() {
-            if (!layer_data_.has_value()) {
-                throw std::runtime_error("Occlusion layer not initialized. Call initializeOcclusionLayer() first.");
-            }
-            return *layer_data_;
-        }
+        Layer &getOcclusionLayer();
 
-        const Layer &getOcclusionLayer() const {
-            if (!layer_data_.has_value()) {
-                throw std::runtime_error("Occlusion layer not initialized. Call initializeOcclusionLayer() first.");
-            }
-            return *layer_data_;
-        }
+        const Layer &getOcclusionLayer() const;
 
-        // Convenience methods that delegate to layer_data_
-        void setOcclusion(const concord::Point &world_point, uint8_t value) {
-            if (hasOcclusionLayer()) {
-                layer_data_->setOcclusion(world_point, value);
-            }
-        }
+        void setOcclusion(const concord::Point &world_point, uint8_t value);
 
-        uint8_t getOcclusion(const concord::Point &world_point) const {
-            return hasOcclusionLayer() ? layer_data_->getOcclusion(world_point) : 0;
-        }
+        uint8_t getOcclusion(const concord::Point &world_point) const;
 
         bool isPathClear(const concord::Point &start, const concord::Point &end, double robot_height = 2.0,
-                         uint8_t threshold = 50) const {
-            return hasOcclusionLayer() ? layer_data_->isPathClear(start, end, robot_height, threshold) : true;
-        }
+                         uint8_t threshold = 50) const;
 
-        // Helper to display feature configuration
-        std::string getFeatureInfo() const {
-            const auto &polygon_elements = poly_data_.getPolygonElements();
-            const auto &line_elements = poly_data_.getLineElements();
-            const auto &point_elements = poly_data_.getPointElements();
+        std::string getFeatureInfo() const;
 
-            size_t total_features = polygon_elements.size() + line_elements.size() + point_elements.size();
+        bool is_valid() const;
 
-            if (total_features > 0) {
-                return "Features: " + std::to_string(polygon_elements.size()) + " polygons, " +
-                       std::to_string(line_elements.size()) + " lines, " + std::to_string(point_elements.size()) +
-                       " points (" + std::to_string(total_features) + " total)";
-            }
-            return "No features";
-        }
-
-        // ========== Validation ==========
-        bool is_valid() const {
-            bool valid = poly_data_.isValid() && grid_data_.isValid();
-            if (hasOcclusionLayer()) {
-                valid = valid && layer_data_->isValid();
-            }
-            return valid;
-        }
-
-        // ========== File I/O ==========
         static Zone fromFiles(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path,
-                              const std::optional<std::filesystem::path> &layer_path = std::nullopt) {
-            // Use the loadPolyGrid function to load and validate consistency
-            auto [poly, grid] = loadPolyGrid(vector_path, raster_path);
-
-            // Extract datum from loaded poly (they should match due to validation in loadPolyGrid)
-            auto datum = poly.getDatum();
-
-            // Create a default base grid if no grid exists, or use the first layer
-            concord::Grid<uint8_t> base_grid;
-            if (grid.hasGrids()) {
-                base_grid = grid.getGrid(0).grid;
-            } else {
-                // Create a minimal default grid
-                concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
-                base_grid = concord::Grid<uint8_t>(10, 10, 1.0, true, shift);
-            }
-
-            // Create a default boundary for the zone
-            concord::Polygon default_boundary;
-            Zone zone("", "", default_boundary, base_grid, datum);
-            zone.poly_data_ = poly;
-            // Replace the default grid_data with the loaded one
-            zone.grid_data_ = grid;
-
-            // Extract properties from the loaded components
-            if (poly.getName().empty() && !grid.getName().empty()) {
-                zone.name_ = grid.getName();
-            } else {
-                zone.name_ = poly.getName();
-            }
-
-            if (poly.getType().empty() && !grid.getType().empty()) {
-                zone.type_ = grid.getType();
-            } else {
-                zone.type_ = poly.getType();
-            }
-
-            // Use the UUID from poly (they should match due to validation in loadPolyGrid)
-            if (!poly.getId().isNull()) {
-                zone.id_ = poly.getId();
-            } else if (!grid.getId().isNull()) {
-                zone.id_ = grid.getId();
-            }
-
-            // Load zone properties from poly field properties (those with "prop_" prefix)
-            if (std::filesystem::exists(vector_path)) {
-                auto field_props = poly.getFieldProperties();
-                for (const auto &[key, value] : field_props) {
-                    if (key.substr(0, 5) == "prop_") {
-                        zone.setProperty(key.substr(5), value);
-                    }
-                }
-            }
-
-            // Load layer data if path provided
-            if (layer_path.has_value() && std::filesystem::exists(layer_path.value())) {
-                try {
-                    zone.layer_data_ = Layer::fromFile(layer_path.value());
-                } catch (const std::exception &e) {
-                    // Layer loading failed, but continue without it
-                    std::cerr << "Warning: Failed to load layer data: " << e.what() << std::endl;
-                }
-            }
-
-            zone.syncToPolyGrid();
-            return zone;
-        }
+                              const std::optional<std::filesystem::path> &layer_path = std::nullopt);
 
         void toFiles(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path,
-                     const std::optional<std::filesystem::path> &layer_path = std::nullopt) const {
-            // Ensure internal consistency before saving
-            const_cast<Zone *>(this)->syncToPolyGrid();
+                     const std::optional<std::filesystem::path> &layer_path = std::nullopt) const;
 
-            // Create copies and add zone-specific properties
-            auto poly_copy = poly_data_;
-            auto grid_copy = grid_data_;
+        void save(const std::filesystem::path &directory) const;
 
-            // Ensure copies have the correct UUID (in case they got out of sync)
-            poly_copy.setId(id_);
-            grid_copy.setId(id_);
+        static Zone load(const std::filesystem::path &directory);
 
-            // Add zone properties to poly with prefix to avoid conflicts
-            for (const auto &[key, value] : properties_) {
-                poly_copy.setFieldProperty("prop_" + key, value);
-            }
+        const geoson::Vector &getVectorData() const;
+        const geotiv::Raster &getRasterData() const;
 
-            // Use the savePolyGrid function for consistency validation
-            savePolyGrid(poly_copy, grid_copy, vector_path, raster_path);
+        geoson::Vector &getVectorData();
+        geotiv::Raster &getRasterData();
 
-            // Save layer data if it exists and path provided
-            if (hasOcclusionLayer() && layer_path.has_value()) {
-                try {
-                    layer_data_->toFile(layer_path.value());
-                } catch (const std::exception &e) {
-                    std::cerr << "Warning: Failed to save layer data: " << e.what() << std::endl;
-                }
-            }
-        }
+        std::string getGlobalProperty(const char *global_name) const;
 
-        void save(const std::filesystem::path &directory) const {
-            std::filesystem::create_directories(directory);
-            auto vector_path = directory / "vector.geojson";
-            auto raster_path = directory / "raster.tiff";
-            auto layer_path = directory / "map.tiff";
-            toFiles(vector_path, raster_path, hasOcclusionLayer() ? std::optional(layer_path) : std::nullopt);
-        }
+        void setGlobalProperty(const char *global_name, const std::string &value);
 
-        static Zone load(const std::filesystem::path &directory) {
-            auto vector_path = directory / "vector.geojson";
-            auto raster_path = directory / "raster.tiff";
-            auto layer_path = directory / "map.tiff";
-            return fromFiles(vector_path, raster_path,
-                             std::filesystem::exists(layer_path) ? std::optional(layer_path) : std::nullopt);
-        }
-
-        // Legacy accessors for compatibility - prefer direct access to poly_data_ and grid_data_
-        const geoson::Vector &getVectorData() const { return poly_data_; }
-        const geotiv::Raster &getRasterData() const { return grid_data_; }
-
-        geoson::Vector &getVectorData() { return poly_data_; }
-        geotiv::Raster &getRasterData() { return grid_data_; }
-
-        // ========== Unified Global Property Access ==========
-        // Unified access to global properties - automatically syncs across poly and grid
-        std::string getGlobalProperty(const char *global_name) const {
-            // First try poly, then grid
-            auto field_props = poly_data_.getFieldProperties();
-            auto it = field_props.find(global_name);
-            if (it != field_props.end()) {
-                return it->second;
-            }
-
-            if (grid_data_.hasGrids()) {
-                auto metadata = grid_data_.getGlobalProperties();
-                auto grid_it = metadata.find(global_name);
-                if (grid_it != metadata.end()) {
-                    return grid_it->second;
-                }
-            }
-            return "";
-        }
-
-        // Set global property on both poly and grid for consistency
-        void setGlobalProperty(const char *global_name, const std::string &value) {
-            poly_data_.setFieldProperty(global_name, value);
-            if (grid_data_.hasGrids()) {
-                grid_data_.setGlobalProperty(global_name, value);
-            }
-        }
-
-        // Sync zone properties to both poly and grid using global names
-        void syncToPolyGrid() {
-            // Set consistent properties across poly and grid
-            poly_data_.setName(name_);
-            poly_data_.setType(type_);
-            poly_data_.setId(id_); // This ensures UUID consistency
-
-            grid_data_.setName(name_);
-            grid_data_.setType(type_);
-            grid_data_.setId(id_); // This ensures UUID consistency
-        }
+        void syncToPolyGrid();
 
       private:
     };
