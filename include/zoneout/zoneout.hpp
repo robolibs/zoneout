@@ -3,7 +3,10 @@
 // Zoneout library - Agricultural zone management for robotics
 // Header-only library for managing robotic operation zones and spaces
 
+#ifdef HAS_RERUN
 #include "visualize.hpp"
+#endif
+
 #include "zoneout/zoneout/layer.hpp"
 #include "zoneout/zoneout/plot.hpp"
 #include "zoneout/zoneout/polygrid.hpp"
