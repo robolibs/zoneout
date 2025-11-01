@@ -31,20 +31,13 @@ FetchContent_Declare(entropy GIT_REPOSITORY https://github.com/smolfetch/entropy
 FetchContent_MakeAvailable(entropy)
 list(APPEND ext_deps entropy::entropy)
 
-FetchContent_Declare(geoson GIT_REPOSITORY https://github.com/smolfetch/geoson.git GIT_TAG 1.4.7)
+FetchContent_Declare(geoson GIT_REPOSITORY https://github.com/smolfetch/geoson.git GIT_TAG 2.0.0)
 FetchContent_MakeAvailable(geoson)
 list(APPEND ext_deps geoson::geoson) 
 
 FetchContent_Declare(geotiv GIT_REPOSITORY https://github.com/smolfetch/geotiv.git GIT_TAG 2.1.0)
 FetchContent_MakeAvailable(geotiv)
 list(APPEND ext_deps geotiv::geotiv)
-
-find_package(nlohmann_json QUIET)
-if(NOT nlohmann_json_FOUND)
-    FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
-    FetchContent_MakeAvailable(json)
-endif()
-list(APPEND ext_deps nlohmann_json::nlohmann_json)
 
 # --------------------------------------------------------------------------------------------------
 add_library(${project_name} INTERFACE)
@@ -86,18 +79,8 @@ export(EXPORT ${project_name}Targets
 # --------------------------------------------------------------------------------------------------
 if(${project_name_upper}_BUILD_EXAMPLES)
   add_definitions(-DHAS_RERUN)
-  set(RERUN_DOWNLOAD_AND_BUILD_ARROW OFF CACHE BOOL "" FORCE)
-  set(RERUN_FIND_ARROW OFF CACHE BOOL "" FORCE)
-  FetchContent_Declare(rerun_sdk URL https://github.com/rerun-io/rerun/releases/latest/download/rerun_cpp_sdk.zip)
-  FetchContent_MakeAvailable(rerun_sdk)
+  find_package(rerun_sdk QUIET)
   list(APPEND ext_deps rerun_sdk)
-
-find_package(nlohmann_json QUIET)
-if(NOT nlohmann_json_FOUND)
-    FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
-    FetchContent_MakeAvailable(json)
-endif()
-  list(APPEND ext_deps nlohmann_json::nlohmann_json)
 
   file(GLOB exe CONFIGURE_DEPENDS examples/*.cpp)
 

@@ -7,7 +7,7 @@
     "stdenv@latest",
     "boost@latest",
     "arrow-cpp@latest",
-    "fmt@latest"
+    "rerun@latest"
   ],
   "shell": {
     "init_hook": [
