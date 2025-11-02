@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.0] - 2025-11-02
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Update geoson and devbox packages
+
 ## [1.0.0] - 2025-11-01
 
 ### <!-- 2 -->🚜 Refactor
