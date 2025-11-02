@@ -31,7 +31,7 @@ FetchContent_Declare(entropy GIT_REPOSITORY https://github.com/smolfetch/entropy
 FetchContent_MakeAvailable(entropy)
 list(APPEND ext_deps entropy::entropy)
 
-FetchContent_Declare(geoson GIT_REPOSITORY https://github.com/smolfetch/geoson.git GIT_TAG 2.0.0)
+FetchContent_Declare(geoson GIT_REPOSITORY https://github.com/smolfetch/geoson.git GIT_TAG 2.1.0)
 FetchContent_MakeAvailable(geoson)
 list(APPEND ext_deps geoson::geoson) 
 
