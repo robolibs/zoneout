@@ -41,7 +41,7 @@ list(APPEND ext_deps geotiv::geotiv)
 
 # --------------------------------------------------------------------------------------------------
 # Build library
-file(GLOB SOURCES CONFIGURE_DEPENDS src/*.cpp)
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp)
 
 add_library(${project_name} ${SOURCES})
 add_library(${project_name}::${project_name} ALIAS ${project_name})
