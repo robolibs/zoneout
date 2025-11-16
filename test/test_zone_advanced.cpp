@@ -41,18 +41,18 @@ TEST_CASE("Zone field elements management") {
         props["flow_rate"] = "50L/min";
         props["pressure"] = "2.5bar";
 
-        zone.poly_data_.addElement(irrigation_line, "irrigation_line", props);
+        zone.poly().addElement(irrigation_line, "irrigation_line", props);
 
-        auto irrigation_lines = zone.poly_data_.getElementsByType("irrigation_line");
+        auto irrigation_lines = zone.poly().getElementsByType("irrigation_line");
         CHECK(irrigation_lines.size() == 1);
 
-        auto all_elements = zone.poly_data_.elementCount();
+        auto all_elements = zone.poly().elementCount();
         CHECK(all_elements == 1);
 
-        auto irrigation_only = zone.poly_data_.getElementsByType("irrigation_line");
+        auto irrigation_only = zone.poly().getElementsByType("irrigation_line");
         CHECK(irrigation_only.size() == 1);
 
-        auto crop_rows = zone.poly_data_.getElementsByType("crop_row");
+        auto crop_rows = zone.poly().getElementsByType("crop_row");
         CHECK(crop_rows.size() == 0);
     }
 
@@ -69,13 +69,13 @@ TEST_CASE("Zone field elements management") {
             props["crop_type"] = "wheat";
             props["planting_date"] = "2024-03-15";
 
-            zone.poly_data_.addElement(crop_row, "crop_row", props);
+            zone.poly().addElement(crop_row, "crop_row", props);
         }
 
-        auto crop_rows = zone.poly_data_.getElementsByType("crop_row");
+        auto crop_rows = zone.poly().getElementsByType("crop_row");
         CHECK(crop_rows.size() == 5);
 
-        auto all_elements = zone.poly_data_.elementCount();
+        auto all_elements = zone.poly().elementCount();
         CHECK(all_elements == 5);
     }
 
@@ -88,9 +88,9 @@ TEST_CASE("Zone field elements management") {
         props["height"] = "5.0m";
         props["material"] = "concrete";
 
-        zone.poly_data_.addElement(obstacle_boundary, "obstacle", props);
+        zone.poly().addElement(obstacle_boundary, "obstacle", props);
 
-        auto obstacles = zone.poly_data_.getElementsByType("obstacle");
+        auto obstacles = zone.poly().getElementsByType("obstacle");
         CHECK(obstacles.size() == 1);
     }
 
@@ -107,9 +107,9 @@ TEST_CASE("Zone field elements management") {
         props["surface"] = "gravel";
         props["max_speed"] = "15km/h";
 
-        zone.poly_data_.addElement(access_path, "access_path", props);
+        zone.poly().addElement(access_path, "access_path", props);
 
-        auto access_paths = zone.poly_data_.getElementsByType("access_path");
+        auto access_paths = zone.poly().getElementsByType("access_path");
         CHECK(access_paths.size() == 1);
     }
 
@@ -118,21 +118,21 @@ TEST_CASE("Zone field elements management") {
         std::vector<concord::Point> line_points;
         line_points.emplace_back(10, 30, 0);
         line_points.emplace_back(190, 30, 0);
-        zone.poly_data_.addElement(concord::Path(line_points), "irrigation_line");
+        zone.poly().addElement(concord::Path(line_points), "irrigation_line");
 
         std::vector<concord::Point> row_points;
         row_points.emplace_back(5, 70, 0);
         row_points.emplace_back(195, 70, 0);
-        zone.poly_data_.addElement(concord::Path(row_points), "crop_row");
+        zone.poly().addElement(concord::Path(row_points), "crop_row");
 
         auto obstacle = createRectangle(100, 10, 10, 10);
-        zone.poly_data_.addElement(obstacle, "obstacle");
+        zone.poly().addElement(obstacle, "obstacle");
 
         // Check totals
-        CHECK(zone.poly_data_.getElementsByType("irrigation_line").size() == 1);
-        CHECK(zone.poly_data_.getElementsByType("crop_row").size() == 1);
-        CHECK(zone.poly_data_.getElementsByType("obstacle").size() == 1);
-        CHECK(zone.poly_data_.elementCount() == 3);
+        CHECK(zone.poly().getElementsByType("irrigation_line").size() == 1);
+        CHECK(zone.poly().getElementsByType("crop_row").size() == 1);
+        CHECK(zone.poly().getElementsByType("obstacle").size() == 1);
+        CHECK(zone.poly().elementCount() == 3);
     }
 }
 
@@ -366,8 +366,8 @@ TEST_CASE("Zone geometric operations") {
         auto boundary = createRectangle(0, 0, 100, 50);
         Zone zone("Geometry Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
 
-        CHECK(zone.poly_data_.area() == doctest::Approx(5000.0));
-        CHECK(zone.poly_data_.perimeter() == doctest::Approx(300.0)); // 2 * (100 + 50)
+        CHECK(zone.poly().area() == doctest::Approx(5000.0));
+        CHECK(zone.poly().perimeter() == doctest::Approx(300.0)); // 2 * (100 + 50)
     }
 
     SUBCASE("Point containment") {
@@ -379,18 +379,18 @@ TEST_CASE("Zone geometric operations") {
         Zone zone("Containment Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
 
         // Points inside
-        CHECK(zone.poly_data_.contains(concord::Point(50, 40, 0)));
-        CHECK(zone.poly_data_.contains(concord::Point(20, 20, 0)));
-        CHECK(zone.poly_data_.contains(concord::Point(80, 60, 0)));
+        CHECK(zone.poly().contains(concord::Point(50, 40, 0)));
+        CHECK(zone.poly().contains(concord::Point(20, 20, 0)));
+        CHECK(zone.poly().contains(concord::Point(80, 60, 0)));
 
         // Points outside
-        CHECK(!zone.poly_data_.contains(concord::Point(5, 5, 0)));
-        CHECK(!zone.poly_data_.contains(concord::Point(100, 100, 0)));
-        CHECK(!zone.poly_data_.contains(concord::Point(50, 5, 0)));
+        CHECK(!zone.poly().contains(concord::Point(5, 5, 0)));
+        CHECK(!zone.poly().contains(concord::Point(100, 100, 0)));
+        CHECK(!zone.poly().contains(concord::Point(50, 5, 0)));
 
         // Points on boundary (behavior may vary)
-        zone.poly_data_.contains(concord::Point(10, 40, 0)); // Left edge
-        zone.poly_data_.contains(concord::Point(90, 40, 0)); // Right edge
+        zone.poly().contains(concord::Point(10, 40, 0)); // Left edge
+        zone.poly().contains(concord::Point(90, 40, 0)); // Right edge
     }
 
     SUBCASE("Complex polygon") {
@@ -411,15 +411,15 @@ TEST_CASE("Zone geometric operations") {
         Zone l_zone("L-Shape Zone", "field", l_boundary, base_grid, WAGENINGEN_DATUM);
 
         // Points in different parts of the L
-        CHECK(l_zone.poly_data_.contains(concord::Point(15, 15, 0))); // Bottom part
-        CHECK(l_zone.poly_data_.contains(concord::Point(15, 45, 0))); // Left part
-        CHECK(l_zone.poly_data_.contains(concord::Point(45, 15, 0))); // Right part
+        CHECK(l_zone.poly().contains(concord::Point(15, 15, 0))); // Bottom part
+        CHECK(l_zone.poly().contains(concord::Point(15, 45, 0))); // Left part
+        CHECK(l_zone.poly().contains(concord::Point(45, 15, 0))); // Right part
 
         // Point in the "notch" of the L
-        CHECK(!l_zone.poly_data_.contains(concord::Point(45, 45, 0)));
+        CHECK(!l_zone.poly().contains(concord::Point(45, 45, 0)));
 
         // Area should be: 60*30 + 30*30 = 1800 + 900 = 2700
-        CHECK(l_zone.poly_data_.area() == doctest::Approx(2700.0));
+        CHECK(l_zone.poly().area() == doctest::Approx(2700.0));
     }
 }
 
@@ -520,7 +520,7 @@ TEST_CASE("Zone file I/O operations") {
     std::vector<concord::Point> row_points;
     row_points.emplace_back(10, 25, 0);
     row_points.emplace_back(90, 25, 0);
-    zone.poly_data_.addElement(concord::Path(row_points), "crop_row");
+    zone.poly().addElement(concord::Path(row_points), "crop_row");
 
     SUBCASE("Save and load files") {
         const std::string vector_path = "/tmp/zoneout_test_zone.geojson";

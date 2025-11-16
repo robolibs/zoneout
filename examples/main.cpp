@@ -25,7 +25,7 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
         if (!polygons.empty()) {
             zoneout::Zone zone(zone_name, "field", polygons[0], datum, 0.1);
 
-            const auto &base_grid = zone.grid_data_.getGrid(0).grid;
+            const auto &base_grid = zone.grid().getGrid(0).grid;
             auto temp_grid = base_grid;
             auto moisture_grid = base_grid;
 
@@ -137,7 +137,7 @@ int main() {
     std::cout << "Num zones: " << zones.size() << std::endl;
 
     auto zone0 = zones.at(0);
-    auto boundary = zone0.poly_data_.getFieldBoundary();
+    auto boundary = zone0.poly().getFieldBoundary();
     std::cout << "Zone 0 boundary: " << boundary.getPoints().size() << " points" << std::endl;
 
     for (size_t i = 0; i < zones.size(); ++i) {

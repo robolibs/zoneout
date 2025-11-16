@@ -22,12 +22,11 @@
 namespace zoneout {
 
     class Zone {
-      public:
+      private:
         Poly poly_data_;
         Grid grid_data_;
         std::optional<Layer> layer_data_;
 
-      private:
         UUID id_;
         std::string name_;
         std::string type_;
@@ -117,6 +116,16 @@ namespace zoneout {
         void setGlobalProperty(const char *global_name, const std::string &value);
 
         void syncToPolyGrid();
+
+        // Accessors for internal data structures
+        Poly &poly();
+        const Poly &poly() const;
+
+        Grid &grid();
+        const Grid &grid() const;
+
+        std::optional<Layer> &occlusion_layer();
+        const std::optional<Layer> &occlusion_layer() const;
 
       private:
     };

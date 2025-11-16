@@ -422,4 +422,15 @@ namespace zoneout {
         grid_data_.setId(id_);
     }
 
+    // ========== Accessors for Internal Data Structures ==========
+
+    Poly &Zone::poly() { return poly_data_; }
+    const Poly &Zone::poly() const { return poly_data_; }
+
+    Grid &Zone::grid() { return grid_data_; }
+    const Grid &Zone::grid() const { return grid_data_; }
+
+    std::optional<Layer> &Zone::occlusion_layer() { return layer_data_; }
+    const std::optional<Layer> &Zone::occlusion_layer() const { return layer_data_; }
+
 } // namespace zoneout

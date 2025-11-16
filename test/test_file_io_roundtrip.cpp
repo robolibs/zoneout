@@ -111,7 +111,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         
         // Add parking spaces (polygons)
         auto parking_area1 = createRectangle(210, 10, 25, 20);
-        original_zone.poly_data_.addElement(parking_area1, "parking_space", {
+        original_zone.poly().addElement(parking_area1, "parking_space", {
             {"name", "main_parking"},
             {"capacity", "8_vehicles"},
             {"surface", "asphalt"},
@@ -120,7 +120,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         });
         
         auto parking_area2 = createRectangle(210, 40, 15, 15);
-        original_zone.poly_data_.addElement(parking_area2, "parking_space", {
+        original_zone.poly().addElement(parking_area2, "parking_space", {
             {"name", "equipment_parking"},
             {"capacity", "3_tractors"},
             {"surface", "gravel"},
@@ -129,7 +129,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         
         // Add storage areas (polygons)
         auto storage_building = createRectangle(250, 10, 40, 30);
-        original_zone.poly_data_.addElement(storage_building, "storage_facility", {
+        original_zone.poly().addElement(storage_building, "storage_facility", {
             {"name", "main_warehouse"},
             {"capacity", "500_tons"},
             {"climate_control", "yes"},
@@ -138,7 +138,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         });
         
         auto outdoor_storage = createRectangle(250, 50, 30, 25);
-        original_zone.poly_data_.addElement(outdoor_storage, "storage_area", {
+        original_zone.poly().addElement(outdoor_storage, "storage_area", {
             {"name", "bulk_storage"},
             {"capacity", "200_tons"},
             {"weather_protection", "partial"},
@@ -149,7 +149,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         std::vector<concord::Point> main_road = {
             {-10, 75, 0}, {50, 75, 0}, {150, 75, 0}, {220, 75, 0}, {300, 75, 0}
         };
-        original_zone.poly_data_.addElement(concord::Path(main_road), "access_route", {
+        original_zone.poly().addElement(concord::Path(main_road), "access_route", {
             {"name", "main_access_road"},
             {"width", "6m"},
             {"surface", "paved"},
@@ -160,7 +160,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         std::vector<concord::Point> service_path = {
             {100, 0, 0}, {100, 50, 0}, {100, 100, 0}, {100, 150, 0}
         };
-        original_zone.poly_data_.addElement(concord::Path(service_path), "service_route", {
+        original_zone.poly().addElement(concord::Path(service_path), "service_route", {
             {"name", "north_south_service"},
             {"width", "3m"},
             {"surface", "gravel"},
@@ -168,7 +168,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         });
         
         // Add equipment stations (points)
-        original_zone.poly_data_.addElement(concord::Point(50, 50, 0), "equipment_station", {
+        original_zone.poly().addElement(concord::Point(50, 50, 0), "equipment_station", {
             {"name", "fuel_station"},
             {"fuel_type", "diesel"},
             {"capacity", "5000L"},
@@ -176,7 +176,7 @@ TEST_CASE("Complete file I/O round-trip test") {
             {"safety_zone", "10m_radius"}
         });
         
-        original_zone.poly_data_.addElement(concord::Point(150, 100, 0), "monitoring_point", {
+        original_zone.poly().addElement(concord::Point(150, 100, 0), "monitoring_point", {
             {"name", "weather_station"},
             {"sensors", "temp_humidity_wind_rain"},
             {"data_interval", "5_minutes"},
@@ -184,7 +184,7 @@ TEST_CASE("Complete file I/O round-trip test") {
             {"communication", "4G_cellular"}
         });
         
-        original_zone.poly_data_.addElement(concord::Point(75, 25, 0), "irrigation_hub", {
+        original_zone.poly().addElement(concord::Point(75, 25, 0), "irrigation_hub", {
             {"name", "central_irrigation"},
             {"water_source", "well"},
             {"flow_rate", "200L_per_min"},
@@ -194,7 +194,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         
         // Add work areas with different purposes
         auto spray_zone = createRectangle(20, 20, 60, 40);
-        original_zone.poly_data_.addElement(spray_zone, "treatment_area", {
+        original_zone.poly().addElement(spray_zone, "treatment_area", {
             {"name", "pesticide_application_zone"},
             {"last_treated", "2024-06-20"},
             {"chemical_used", "organic_insecticide"},
@@ -203,7 +203,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         });
         
         auto harvest_zone = createRectangle(120, 80, 70, 50);
-        original_zone.poly_data_.addElement(harvest_zone, "harvest_area", {
+        original_zone.poly().addElement(harvest_zone, "harvest_area", {
             {"name", "ready_for_harvest"},
             {"crop_maturity", "95_percent"},
             {"estimated_yield", "8_tons_per_hectare"},
@@ -261,7 +261,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         });
         
         // Debug: check original grid names
-        auto original_grid_names = original_zone.grid_data_.getGridNames();
+        auto original_grid_names = original_zone.grid().getGridNames();
         std::cout << "Original grid names before save: ";
         for (const auto& name : original_grid_names) {
             std::cout << "\"" << name << "\" ";
@@ -271,7 +271,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         // Verify original zone state
         CHECK(original_zone.getName() == "Test Agricultural Zone");
         CHECK(original_zone.getType() == "field");
-        CHECK(original_zone.poly_data_.elementCount() == 11); // 11 different elements
+        CHECK(original_zone.poly().elementCount() == 11); // 11 different elements
         CHECK(original_zone.getRasterData().gridCount() == 4); // Base grid + 3 raster layers
         CHECK(original_zone.getProperty("crop_type") == "wheat");
         
@@ -293,7 +293,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         // === Verify Basic Zone Properties ===
         CHECK(loaded_zone.getName() == original_zone.getName());
         CHECK(loaded_zone.getType() == original_zone.getType());
-        CHECK(loaded_zone.poly_data_.area() == doctest::Approx(original_zone.poly_data_.area()));
+        CHECK(loaded_zone.poly().area() == doctest::Approx(original_zone.poly().area()));
         
         // Verify zone properties
         CHECK(loaded_zone.getProperty("crop_type") == "wheat");
@@ -302,38 +302,38 @@ TEST_CASE("Complete file I/O round-trip test") {
         CHECK(loaded_zone.getProperty("soil_type") == "clay_loam");
         
         // === Verify Field Boundary ===
-        CHECK(loaded_zone.poly_data_.hasFieldBoundary());
-        CHECK(comparePolygons(loaded_zone.poly_data_.getFieldBoundary(), original_zone.poly_data_.getFieldBoundary()));
+        CHECK(loaded_zone.poly().hasFieldBoundary());
+        CHECK(comparePolygons(loaded_zone.poly().getFieldBoundary(), original_zone.poly().getFieldBoundary()));
         
         // === Verify Vector Elements ===
-        size_t original_elements = original_zone.poly_data_.elementCount();
-        size_t loaded_elements = loaded_zone.poly_data_.elementCount();
+        size_t original_elements = original_zone.poly().elementCount();
+        size_t loaded_elements = loaded_zone.poly().elementCount();
         
         // Note: The exact element count after save/load may vary depending on implementation
         // The important thing is that elements are preserved
         CHECK(loaded_elements >= original_elements); // At minimum, all original elements should be preserved
         
         // Verify specific element types were preserved
-        auto original_parking = original_zone.poly_data_.getElementsByType("parking_space");
-        auto loaded_parking = loaded_zone.poly_data_.getElementsByType("parking_space");
+        auto original_parking = original_zone.poly().getElementsByType("parking_space");
+        auto loaded_parking = loaded_zone.poly().getElementsByType("parking_space");
         CHECK(loaded_parking.size() == original_parking.size());
         CHECK(loaded_parking.size() == 2);
         
-        auto original_storage = original_zone.poly_data_.getElementsByType("storage_facility");
-        auto loaded_storage = loaded_zone.poly_data_.getElementsByType("storage_facility");
+        auto original_storage = original_zone.poly().getElementsByType("storage_facility");
+        auto loaded_storage = loaded_zone.poly().getElementsByType("storage_facility");
         CHECK(loaded_storage.size() == original_storage.size());
         CHECK(loaded_storage.size() == 1);
         
-        auto original_routes = original_zone.poly_data_.getElementsByType("access_route");
-        auto loaded_routes = loaded_zone.poly_data_.getElementsByType("access_route");
+        auto original_routes = original_zone.poly().getElementsByType("access_route");
+        auto loaded_routes = loaded_zone.poly().getElementsByType("access_route");
         CHECK(loaded_routes.size() == original_routes.size());
         CHECK(loaded_routes.size() == 1);
         
         // Verify raster layers were preserved
-        CHECK(loaded_zone.grid_data_.gridCount() == original_zone.grid_data_.gridCount());
-        CHECK(loaded_zone.grid_data_.gridCount() == 4); // Base grid + 3 data layers
+        CHECK(loaded_zone.grid().gridCount() == original_zone.grid().gridCount());
+        CHECK(loaded_zone.grid().gridCount() == 4); // Base grid + 3 data layers
         
-        auto grid_names = loaded_zone.grid_data_.getGridNames();
+        auto grid_names = loaded_zone.grid().getGridNames();
         std::cout << "Available grid names after load: ";
         for (const auto& name : grid_names) {
             std::cout << "\"" << name << "\" ";
@@ -389,18 +389,18 @@ TEST_CASE("Complete file I/O round-trip test") {
 //        
 //        // === Verify Element Type Distribution ===
 //        // Count different element types
-//        auto original_parking = original_zone.poly_data_.getElementsByType("parking_space");
-//        auto loaded_parking = loaded_zone.poly_data_.getElementsByType("parking_space");
+//        auto original_parking = original_zone.poly().getElementsByType("parking_space");
+//        auto loaded_parking = loaded_zone.poly().getElementsByType("parking_space");
 //        CHECK(loaded_parking.size() == original_parking.size());
 //        CHECK(loaded_parking.size() == 2);
 //        
-//        auto original_storage = original_zone.poly_data_.getElementsByType("storage_facility");
-//        auto loaded_storage = loaded_zone.poly_data_.getElementsByType("storage_facility");
+//        auto original_storage = original_zone.poly().getElementsByType("storage_facility");
+//        auto loaded_storage = loaded_zone.poly().getElementsByType("storage_facility");
 //        CHECK(loaded_storage.size() == original_storage.size());
 //        CHECK(loaded_storage.size() == 1);
 //        
-//        auto original_routes = original_zone.poly_data_.getElementsByType("access_route");
-//        auto loaded_routes = loaded_zone.poly_data_.getElementsByType("access_route");
+//        auto original_routes = original_zone.poly().getElementsByType("access_route");
+//        auto loaded_routes = loaded_zone.poly().getElementsByType("access_route");
 //        CHECK(loaded_routes.size() == original_routes.size());
 //        CHECK(loaded_routes.size() == 1);
 //        
@@ -429,7 +429,7 @@ TEST_CASE("Complete file I/O round-trip test") {
 //        
 //        // === Verify Zone Validation ===
 //        CHECK(loaded_zone.is_valid());
-//        CHECK(loaded_zone.poly_data_.hasFieldBoundary());
+//        CHECK(loaded_zone.poly().hasFieldBoundary());
 //        
 //        // Clean up test files
 //        std::filesystem::remove(vector_path);

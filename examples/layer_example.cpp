@@ -95,8 +95,8 @@ int main() {
         std::cout << "✓ Extracted ground-level grid: " << ground_grid.rows() << "×" << ground_grid.cols() << "\n";
 
         // Project an existing grid layer to 3D
-        if (robot_field.grid_data_.gridCount() > 0) {
-            const auto &base_grid = robot_field.grid_data_.getGrid(0).grid;
+        if (robot_field.grid().gridCount() > 0) {
+            const auto &base_grid = robot_field.grid().getGrid(0).grid;
             // Note: This would need grid size compatibility for real use
             std::cout << "✓ Base grid available for projection: " << base_grid.rows() << "×" << base_grid.cols()
                       << "\n";

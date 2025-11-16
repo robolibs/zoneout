@@ -23,7 +23,7 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
 
         if (!polygons.empty()) {
             zoneout::Zone zone(zone_name, "field", polygons.front(), datum, 0.1);
-            const auto &base_grid = zone.grid_data_.getGrid(0).grid;
+            const auto &base_grid = zone.grid().getGrid(0).grid;
 
             auto temp_grid = base_grid;
             auto moisture_grid = base_grid;
@@ -95,12 +95,12 @@ int main() {
     std::cout << "Num zones: " << zones.size() << std::endl;
 
     auto zone0 = zones.at(0);
-    auto boundary = zone0.poly_data_.getFieldBoundary();
+    auto boundary = zone0.poly().getFieldBoundary();
     std::cout << "Zone 0 boundary: " << boundary.getPoints().size() << " points" << std::endl;
 
-    const auto &polygon_elements = zone0.poly_data_.getPolygonElements();
+    const auto &polygon_elements = zone0.poly().getPolygonElements();
     std::cout << "Number of polygon elements: " << polygon_elements.size() << std::endl;
-    std::cout << "Has field boundary: " << zone0.poly_data_.hasFieldBoundary() << std::endl;
+    std::cout << "Has field boundary: " << zone0.poly().hasFieldBoundary() << std::endl;
 
     std::vector<concord::Polygon> obstacles;
     if (!polygon_elements.empty()) {
