@@ -21,6 +21,29 @@
 
 namespace zoneout {
 
+    // ========== Factory Helper ==========
+
+    Zone make_zone(const std::string &name, const std::string &type, const concord::Polygon &boundary,
+                   const concord::Datum &datum, double resolution) {
+        // Validate inputs
+        if (name.empty()) {
+            throw std::invalid_argument("Zone name cannot be empty");
+        }
+        if (type.empty()) {
+            throw std::invalid_argument("Zone type cannot be empty");
+        }
+        if (boundary.getPoints().size() < 3) {
+            throw std::invalid_argument("Boundary polygon must have at least 3 points");
+        }
+        if (resolution <= 0.0) {
+            throw std::invalid_argument("Resolution must be positive");
+        }
+
+        // Create zone with auto-generated grid
+        return Zone(name, type, boundary, datum, resolution);
+    }
+
+
     // ========== Constructors ==========
 
     Zone::Zone(const std::string &name, const std::string &type, const concord::Polygon &boundary,
@@ -222,6 +245,14 @@ namespace zoneout {
                                                 const std::string &subtype, const concord::Pose &pose) {
         layer_data_ = Layer(name, type, subtype, rows, cols, height_layers, cell_size, layer_height, pose);
     }
+
+    void Zone::ensure_occlusion_layer(size_t height_layers, double layer_height, const std::string &name,
+                                      const std::string &type, const std::string &subtype) {
+        if (!has_occlusion_layer()) {
+            initialize_occlusion_layer(height_layers, layer_height, name, type, subtype);
+        }
+    }
+
 
     bool Zone::has_occlusion_layer() const { return layer_data_.has_value(); }
 

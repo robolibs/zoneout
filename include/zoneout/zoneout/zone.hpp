@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "concord/concord.hpp"
+#include "constants.hpp"
 #include "entropy/generator.hpp"
 #include "layer.hpp"
 #include "polygrid.hpp"
@@ -21,6 +22,13 @@
 #include "utils/uuid.hpp"
 
 namespace zoneout {
+
+    // Forward declaration
+    class Zone;
+
+    // Factory helper for creating zones with validation
+    Zone make_zone(const std::string &name, const std::string &type, const concord::Polygon &boundary,
+                   const concord::Datum &datum, double resolution = DEFAULT_RESOLUTION);
 
     class Zone {
       private:
@@ -68,6 +76,10 @@ namespace zoneout {
                                                  const std::string &type = "occlusion",
                                                  const std::string &subtype = "robot_navigation",
                                                  const concord::Pose &pose = concord::Pose{});
+        void ensure_occlusion_layer(size_t height_layers = DEFAULT_HEIGHT_LAYERS,
+                                    double layer_height = DEFAULT_LAYER_HEIGHT,
+                                    const std::string &name = "occlusion_map", const std::string &type = "occlusion",
+                                    const std::string &subtype = "robot_navigation");
         bool has_occlusion_layer() const;
         Layer &get_occlusion_layer();
         const Layer &get_occlusion_layer() const;
