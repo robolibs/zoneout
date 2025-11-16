@@ -32,7 +32,7 @@ TEST_CASE("Zone creation and basic properties") {
         Zone zone("", "other", default_boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(zone.name().empty());
         CHECK(zone.type() == "other");
-        CHECK(!zone.poly().hasFieldBoundary());
+        CHECK(!zone.poly().has_field_boundary());
         CHECK(zone.raster_data().gridCount() == 1); // Zone now includes the base grid
     }
 
@@ -45,7 +45,7 @@ TEST_CASE("Zone creation and basic properties") {
         Zone zone("Test Zone", "field", default_boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(zone.name() == "Test Zone");
         CHECK(zone.type() == "field");
-        CHECK(!zone.poly().hasFieldBoundary());
+        CHECK(!zone.poly().has_field_boundary());
         CHECK(zone.raster_data().gridCount() == 1); // Zone now includes the base grid
     }
 
@@ -58,7 +58,7 @@ TEST_CASE("Zone creation and basic properties") {
         Zone zone("Test Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(zone.name() == "Test Zone");
         CHECK(zone.type() == "field");
-        CHECK(zone.poly().hasFieldBoundary());
+        CHECK(zone.poly().has_field_boundary());
         CHECK(zone.poly().area() == 5000.0); // 100 * 50
     }
 }
@@ -71,7 +71,7 @@ TEST_CASE("Zone constructor with auto-generated grid") {
         
         CHECK(zone.name() == "Auto Grid Zone");
         CHECK(zone.type() == "field");
-        CHECK(zone.poly().hasFieldBoundary());
+        CHECK(zone.poly().has_field_boundary());
         CHECK(zone.grid().gridCount() == 1); // Should have the auto-generated base grid with noise
         
         // Check that grid dimensions are reasonable for the polygon size
@@ -87,7 +87,7 @@ TEST_CASE("Zone constructor with auto-generated grid") {
         
         CHECK(zone.name() == "Custom Resolution Zone");
         CHECK(zone.type() == "field");
-        CHECK(zone.poly().hasFieldBoundary());
+        CHECK(zone.poly().has_field_boundary());
         CHECK(zone.grid().gridCount() == 1);
         
         // With resolution 2.0, grid should have roughly half the cells in each dimension
@@ -102,7 +102,7 @@ TEST_CASE("Zone constructor with auto-generated grid") {
         
         CHECK(zone.name() == "Fine Resolution Zone");
         CHECK(zone.type() == "field");
-        CHECK(zone.poly().hasFieldBoundary());
+        CHECK(zone.poly().has_field_boundary());
         CHECK(zone.grid().gridCount() == 1);
         
         // With resolution 0.5, grid should have more cells for the same area
@@ -125,7 +125,7 @@ TEST_CASE("Zone constructor with auto-generated grid") {
         
         CHECK(zone.name() == "L-Shape Auto Grid");
         CHECK(zone.type() == "field");
-        CHECK(zone.poly().hasFieldBoundary());
+        CHECK(zone.poly().has_field_boundary());
         CHECK(zone.grid().gridCount() == 1);
         
         // Grid should be generated based on the OBB of the L-shape
@@ -202,7 +202,7 @@ TEST_CASE("Zone factory methods") {
         auto field = Zone("Wheat Field", "field", boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(field.name() == "Wheat Field");
         CHECK(field.type() == "field");
-        CHECK(field.poly().hasFieldBoundary());
+        CHECK(field.poly().has_field_boundary());
     }
     
     SUBCASE("createBarn") {
@@ -213,7 +213,7 @@ TEST_CASE("Zone factory methods") {
         auto barn = Zone("Main Barn", "barn", boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(barn.name() == "Main Barn");
         CHECK(barn.type() == "barn");
-        CHECK(barn.poly().hasFieldBoundary());
+        CHECK(barn.poly().has_field_boundary());
     }
     
     SUBCASE("createGreenhouse") {
@@ -224,7 +224,7 @@ TEST_CASE("Zone factory methods") {
         auto greenhouse = Zone("Tomato House", "greenhouse", boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(greenhouse.name() == "Tomato House");
         CHECK(greenhouse.type() == "greenhouse");
-        CHECK(greenhouse.poly().hasFieldBoundary());
+        CHECK(greenhouse.poly().has_field_boundary());
     }
 }
 

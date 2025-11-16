@@ -22,29 +22,29 @@ namespace zoneout {
         Grid(const std::string &name, const std::string &type, const std::string &subtype, const concord::Datum &datum,
              const concord::Pose &shift, double resolution);
 
-        const UUID &getId() const;
-        const std::string &getName() const;
-        const std::string &getType() const;
-        const std::string &getSubtype() const;
+        const UUID &get_id() const;
+        const std::string &get_name() const;
+        const std::string &get_type() const;
+        const std::string &get_subtype() const;
 
-        void setName(const std::string &name);
-        void setType(const std::string &type);
-        void setSubtype(const std::string &subtype);
-        void setId(const UUID &id);
+        void set_name(const std::string &name);
+        void set_type(const std::string &type);
+        void set_subtype(const std::string &subtype);
+        void set_id(const UUID &id);
 
-        bool isValid() const;
+        bool is_valid() const;
 
-        static Grid fromFile(const std::filesystem::path &file_path);
-        void toFile(const std::filesystem::path &file_path) const;
+        static Grid from_file(const std::filesystem::path &file_path);
+        void to_file(const std::filesystem::path &file_path) const;
 
-        void addGrid(uint32_t width, uint32_t height, const std::string &name, const std::string &type = "",
-                     const std::unordered_map<std::string, std::string> &properties = {});
+        void add_grid(uint32_t width, uint32_t height, const std::string &name, const std::string &type = "",
+                      const std::unordered_map<std::string, std::string> &properties = {});
 
-        void addGrid(const concord::Grid<uint8_t> &grid, const std::string &name, const std::string &type = "",
-                     const std::unordered_map<std::string, std::string> &properties = {});
+        void add_grid(const concord::Grid<uint8_t> &grid, const std::string &name, const std::string &type = "",
+                      const std::unordered_map<std::string, std::string> &properties = {});
 
       private:
-        void syncToGlobalProperties();
+        void sync_to_global_properties();
     };
 
 } // namespace zoneout

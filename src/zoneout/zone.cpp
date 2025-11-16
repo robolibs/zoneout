@@ -14,7 +14,6 @@
 
 #include "concord/concord.hpp"
 #include "entropy/generator.hpp"
-#include "zoneout/zoneout/layer.hpp"
 #include "zoneout/zoneout/polygrid.hpp"
 #include "zoneout/zoneout/utils/time.hpp"
 #include "zoneout/zoneout/utils/uuid.hpp"
@@ -54,7 +53,7 @@ namespace zoneout {
         auto aabb = boundary.getAABB();
         concord::Pose grid_pose(aabb.center(), concord::Euler{0, 0, 0});
         grid_data_.setShift(grid_pose);
-        grid_data_.addGrid(initial_grid, "base_layer", "terrain");
+        grid_data_.add_grid(initial_grid, "base_layer", "terrain");
         sync_to_poly_grid();
     }
 
@@ -99,7 +98,7 @@ namespace zoneout {
             }
         }
 
-        grid_data_.addGrid(generated_grid, "base_layer", "terrain");
+        grid_data_.add_grid(generated_grid, "base_layer", "terrain");
         sync_to_poly_grid();
     }
 
@@ -111,14 +110,14 @@ namespace zoneout {
 
     void Zone::set_name(const std::string &name) {
         name_ = name;
-        poly_data_.setName(name);
-        grid_data_.setName(name);
+        poly_data_.set_name(name);
+        grid_data_.set_name(name);
     }
 
     void Zone::set_type(const std::string &type) {
         type_ = type;
-        poly_data_.setType(type);
-        grid_data_.setType(type);
+        poly_data_.set_type(type);
+        grid_data_.set_type(type);
     }
 
     // ========== Zone Properties ==========
@@ -146,7 +145,7 @@ namespace zoneout {
     void Zone::add_raster_layer(const concord::Grid<uint8_t> &grid, const std::string &name, const std::string &type,
                               const std::unordered_map<std::string, std::string> &properties, bool poly_cut,
                               int layer_index) {
-        if (poly_cut && poly_data_.hasFieldBoundary()) {
+        if (poly_cut && poly_data_.has_field_boundary()) {
             auto modified_grid = grid;
 
             auto boundary = poly_data_.getFieldBoundary();
@@ -166,9 +165,9 @@ namespace zoneout {
                 }
             }
 
-            grid_data_.addGrid(modified_grid, name, type, properties);
+            grid_data_.add_grid(modified_grid, name, type, properties);
         } else {
-            grid_data_.addGrid(grid, name, type, properties);
+            grid_data_.add_grid(grid, name, type, properties);
         }
     }
 
@@ -186,7 +185,7 @@ namespace zoneout {
     void Zone::add_polygon_feature(const concord::Polygon &geometry, const std::string &name, const std::string &type,
                                  const std::string &subtype,
                                  const std::unordered_map<std::string, std::string> &properties) {
-        if (poly_data_.hasFieldBoundary()) {
+        if (poly_data_.has_field_boundary()) {
             auto boundary = poly_data_.getFieldBoundary();
 
             for (const auto &point : geometry.getPoints()) {
@@ -216,79 +215,13 @@ namespace zoneout {
 
         UUID feature_id = generateUUID();
 
-        poly_data_.addPolygonElement(feature_id, name, type, subtype, geometry, properties);
-    }
-
-    // ========== 3D Layer Management ==========
-
-    void Zone::initialize_occlusion_layer(size_t height_layers, double layer_height, const std::string &name,
-                                        const std::string &type, const std::string &subtype) {
-        if (!grid_data_.hasGrids()) {
-            throw std::runtime_error(
-                "Cannot initialize occlusion layer: Zone has no raster data. Create grid data first.");
-        }
-
-        const auto &base_grid = grid_data_.getGrid(0).grid;
-        size_t rows = base_grid.rows();
-        size_t cols = base_grid.cols();
-        double cell_size = base_grid.inradius();
-        concord::Pose pose = base_grid.pose();
-
-        layer_data_ = Layer(name, type, subtype, rows, cols, height_layers, cell_size, layer_height, pose);
-
-        std::cout << "✓ Initialized 3D layer matching raster: " << rows << "×" << cols << "×" << height_layers
-                  << " (cell: " << cell_size << "m, height: " << layer_height << "m)\n";
-    }
-
-    void Zone::initialize_occlusion_layer_explicit(size_t rows, size_t cols, size_t height_layers, double cell_size,
-                                                double layer_height, const std::string &name, const std::string &type,
-                                                const std::string &subtype, const concord::Pose &pose) {
-        layer_data_ = Layer(name, type, subtype, rows, cols, height_layers, cell_size, layer_height, pose);
-    }
-
-    void Zone::ensure_occlusion_layer(size_t height_layers, double layer_height, const std::string &name,
-                                      const std::string &type, const std::string &subtype) {
-        if (!has_occlusion_layer()) {
-            initialize_occlusion_layer(height_layers, layer_height, name, type, subtype);
-        }
-    }
-
-
-    bool Zone::has_occlusion_layer() const { return layer_data_.has_value(); }
-
-    Layer &Zone::get_occlusion_layer() {
-        if (!layer_data_.has_value()) {
-            throw std::runtime_error("Occlusion layer not initialized. Call initializeOcclusionLayer() first.");
-        }
-        return *layer_data_;
-    }
-
-    const Layer &Zone::get_occlusion_layer() const {
-        if (!layer_data_.has_value()) {
-            throw std::runtime_error("Occlusion layer not initialized. Call initializeOcclusionLayer() first.");
-        }
-        return *layer_data_;
-    }
-
-    void Zone::set_occlusion(const concord::Point &world_point, uint8_t value) {
-        if (has_occlusion_layer()) {
-            layer_data_->setOcclusion(world_point, value);
-        }
-    }
-
-    uint8_t Zone::get_occlusion(const concord::Point &world_point) const {
-        return has_occlusion_layer() ? layer_data_->getOcclusion(world_point) : 0;
-    }
-
-    bool Zone::is_path_clear(const concord::Point &start, const concord::Point &end, double robot_height,
-                           uint8_t threshold) const {
-        return has_occlusion_layer() ? layer_data_->isPathClear(start, end, robot_height, threshold) : true;
+        poly_data_.add_polygon_element(feature_id, name, type, subtype, geometry, properties);
     }
 
     std::string Zone::feature_info() const {
-        const auto &polygon_elements = poly_data_.getPolygonElements();
-        const auto &line_elements = poly_data_.getLineElements();
-        const auto &point_elements = poly_data_.getPointElements();
+        const auto &polygon_elements = poly_data_.get_polygon_elements();
+        const auto &line_elements = poly_data_.get_line_elements();
+        const auto &point_elements = poly_data_.get_point_elements();
 
         size_t total_features = polygon_elements.size() + line_elements.size() + point_elements.size();
 
@@ -302,18 +235,11 @@ namespace zoneout {
 
     // ========== Validation ==========
 
-    bool Zone::is_valid() const {
-        bool valid = poly_data_.isValid() && grid_data_.isValid();
-        if (has_occlusion_layer()) {
-            valid = valid && layer_data_->isValid();
-        }
-        return valid;
-    }
+    bool Zone::is_valid() const { return poly_data_.is_valid() && grid_data_.is_valid(); }
 
     // ========== File I/O ==========
 
-    Zone Zone::from_files(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path,
-                         const std::optional<std::filesystem::path> &layer_path) {
+    Zone Zone::from_files(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path) {
         auto [poly, grid] = loadPolyGrid(vector_path, raster_path);
 
         auto datum = poly.getDatum();
@@ -331,22 +257,22 @@ namespace zoneout {
         zone.poly_data_ = poly;
         zone.grid_data_ = grid;
 
-        if (poly.getName().empty() && !grid.getName().empty()) {
-            zone.name_ = grid.getName();
+        if (poly.get_name().empty() && !grid.get_name().empty()) {
+            zone.name_ = grid.get_name();
         } else {
-            zone.name_ = poly.getName();
+            zone.name_ = poly.get_name();
         }
 
-        if (poly.getType().empty() && !grid.getType().empty()) {
-            zone.type_ = grid.getType();
+        if (poly.get_type().empty() && !grid.get_type().empty()) {
+            zone.type_ = grid.get_type();
         } else {
-            zone.type_ = poly.getType();
+            zone.type_ = poly.get_type();
         }
 
-        if (!poly.getId().isNull()) {
-            zone.id_ = poly.getId();
-        } else if (!grid.getId().isNull()) {
-            zone.id_ = grid.getId();
+        if (!poly.get_id().isNull()) {
+            zone.id_ = poly.get_id();
+        } else if (!grid.get_id().isNull()) {
+            zone.id_ = grid.get_id();
         }
 
         if (std::filesystem::exists(vector_path)) {
@@ -358,27 +284,19 @@ namespace zoneout {
             }
         }
 
-        if (layer_path.has_value() && std::filesystem::exists(layer_path.value())) {
-            try {
-                zone.layer_data_ = Layer::fromFile(layer_path.value());
-            } catch (const std::exception &e) {
-                std::cerr << "Warning: Failed to load layer data: " << e.what() << std::endl;
-            }
-        }
 
         zone.sync_to_poly_grid();
         return zone;
     }
 
-    void Zone::to_files(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path,
-                       const std::optional<std::filesystem::path> &layer_path) const {
+    void Zone::to_files(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path) const {
         const_cast<Zone *>(this)->sync_to_poly_grid();
 
         auto poly_copy = poly_data_;
         auto grid_copy = grid_data_;
 
-        poly_copy.setId(id_);
-        grid_copy.setId(id_);
+        poly_copy.set_id(id_);
+        grid_copy.set_id(id_);
 
         for (const auto &[key, value] : properties_) {
             poly_copy.setFieldProperty("prop_" + key, value);
@@ -386,29 +304,19 @@ namespace zoneout {
 
         savePolyGrid(poly_copy, grid_copy, vector_path, raster_path);
 
-        if (has_occlusion_layer() && layer_path.has_value()) {
-            try {
-                layer_data_->toFile(layer_path.value());
-            } catch (const std::exception &e) {
-                std::cerr << "Warning: Failed to save layer data: " << e.what() << std::endl;
-            }
-        }
     }
 
     void Zone::save(const std::filesystem::path &directory) const {
         std::filesystem::create_directories(directory);
         auto vector_path = directory / "vector.geojson";
         auto raster_path = directory / "raster.tiff";
-        auto layer_path = directory / "map.tiff";
-        to_files(vector_path, raster_path, has_occlusion_layer() ? std::optional(layer_path) : std::nullopt);
+        to_files(vector_path, raster_path);
     }
 
     Zone Zone::load(const std::filesystem::path &directory) {
         auto vector_path = directory / "vector.geojson";
         auto raster_path = directory / "raster.tiff";
-        auto layer_path = directory / "map.tiff";
-        return from_files(vector_path, raster_path,
-                         std::filesystem::exists(layer_path) ? std::optional(layer_path) : std::nullopt);
+        return from_files(vector_path, raster_path);
     }
 
     const geoson::Vector &Zone::vector_data() const { return poly_data_; }
@@ -444,13 +352,13 @@ namespace zoneout {
     }
 
     void Zone::sync_to_poly_grid() {
-        poly_data_.setName(name_);
-        poly_data_.setType(type_);
-        poly_data_.setId(id_);
+        poly_data_.set_name(name_);
+        poly_data_.set_type(type_);
+        poly_data_.set_id(id_);
 
-        grid_data_.setName(name_);
-        grid_data_.setType(type_);
-        grid_data_.setId(id_);
+        grid_data_.set_name(name_);
+        grid_data_.set_type(type_);
+        grid_data_.set_id(id_);
     }
 
     // ========== Accessors for Internal Data Structures ==========
@@ -461,7 +369,5 @@ namespace zoneout {
     Grid &Zone::grid() { return grid_data_; }
     const Grid &Zone::grid() const { return grid_data_; }
 
-    std::optional<Layer> &Zone::occlusion_layer() { return layer_data_; }
-    const std::optional<Layer> &Zone::occlusion_layer() const { return layer_data_; }
 
 } // namespace zoneout

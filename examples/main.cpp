@@ -12,8 +12,8 @@
 zoneout::Plot create_field(const std::string &zone_name, const std::string &crop_type,
                            const concord::Datum &datum = concord::Datum{51.98776171041831, 5.662378206146002, 0.0}) {
     zoneout::Plot plot("Wageningen Farm", "agricultural", datum);
-    plot.setProperty("farm_type", "research");
-    plot.setProperty("owner", "Wageningen Research Labs");
+    plot.set_property("farm_type", "research");
+    plot.set_property("owner", "Wageningen Research Labs");
 
     typedef std::unordered_map<std::string, std::string> Props;
 
@@ -53,56 +53,17 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
             zone.add_raster_layer(temp_grid, "temperature", "environmental", {{"units", "celsius"}}, true);
             zone.add_raster_layer(moisture_grid, "moisture", "environmental", {{"units", "percentage"}}, true);
 
-            // Initialize 3D occlusion layer matching the raster dimensions
-            zone.initialize_occlusion_layer(20, 1.0, "field_obstacles", "occlusion", "robot_navigation");
-
-            // Add realistic farm obstacles to the 3D map
-            if (zone.has_occlusion_layer()) {
-                auto &occlusion_map = zone.get_occlusion_layer();
-
-                // Add some random obstacles using noise (similar to temp/moisture)
-                entropy::NoiseGen obstacle_noise;
-                obstacle_noise.SetNoiseType(entropy::NoiseGen::NoiseType_Cellular);
-                obstacle_noise.SetFrequency(0.02f);
-                obstacle_noise.SetSeed(std::random_device{}() + 200);
-
-                // Generate obstacles based on grid dimensions
-                for (size_t r = 0; r < occlusion_map.rows(); ++r) {
-                    for (size_t c = 0; c < occlusion_map.cols(); ++c) {
-                        float obstacle_noise_val =
-                            obstacle_noise.GetNoise(static_cast<float>(r), static_cast<float>(c));
-
-                        if (obstacle_noise_val > 0.6f) {
-                            // Create obstacles of varying heights
-                            size_t obstacle_height =
-                                static_cast<size_t>((obstacle_noise_val - 0.6f) / 0.4f * 12) + 1; // 1-12m
-                            uint8_t occlusion_value = static_cast<uint8_t>(100 + (obstacle_noise_val * 155));
-
-                            for (size_t l = 0; l < std::min(obstacle_height, occlusion_map.layers()); ++l) {
-                                occlusion_map(r, c, l) = occlusion_value;
-                            }
-                        }
-                    }
-                }
-
-                // Add perimeter fence at 2m height
-                const auto &boundary = polygons[0];
-                occlusion_map.addPolygonOcclusion(boundary, 0.0, 2.0, 150);
-
-                std::cout << "✓ Added 3D occlusion map: " << occlusion_map.getName() << " (" << occlusion_map.rows()
-                          << "×" << occlusion_map.cols() << "×" << occlusion_map.layers() << ")" << std::endl;
-            }
 
             zone.set_property("crop_type", crop_type);
             zone.set_property("planting_date", "2024-04-15");
             zone.set_property("irrigation", "true");
 
-            plot.addZone(zone);
+            plot.add_zone(zone);
             std::cout << "Added zone: " << zone.name() << " (ID: " << zone.id().toString() << ")" << std::endl;
 
             // Add remaining polygons as features to the zone that's now in the plot
-            if (plot.getZoneCount() > 0) {
-                auto &plot_zone = plot.getZones().back(); // Get the zone we just added
+            if (plot.get_zone_count() > 0) {
+                auto &plot_zone = plot.get_zones().back(); // Get the zone we just added
 
                 for (size_t i = 1; i < polygons.size(); ++i) {
                     Props properties = {{"area_m2", std::to_string(static_cast<int>(polygons[i].area()))}};
@@ -133,7 +94,7 @@ int main() {
     // farm.save("/home/bresilla/farm_plot_2");
     auto farm = zoneout::Plot::load("/home/bresilla/farm_plot_2", "Pea Farm", "agricultural");
 
-    auto zones = farm.getZones();
+    auto zones = farm.get_zones();
     std::cout << "Num zones: " << zones.size() << std::endl;
 
     auto zone0 = zones.at(0);

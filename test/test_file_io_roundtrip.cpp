@@ -302,7 +302,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         CHECK(loaded_zone.get_property("soil_type") == "clay_loam");
         
         // === Verify Field Boundary ===
-        CHECK(loaded_zone.poly().hasFieldBoundary());
+        CHECK(loaded_zone.poly().has_field_boundary());
         CHECK(comparePolygons(loaded_zone.poly().getFieldBoundary(), original_zone.poly().getFieldBoundary()));
         
         // === Verify Vector Elements ===
@@ -429,7 +429,7 @@ TEST_CASE("Complete file I/O round-trip test") {
 //        
 //        // === Verify Zone Validation ===
 //        CHECK(loaded_zone.is_valid());
-//        CHECK(loaded_zone.poly().hasFieldBoundary());
+//        CHECK(loaded_zone.poly().has_field_boundary());
 //        
 //        // Clean up test files
 //        std::filesystem::remove(vector_path);

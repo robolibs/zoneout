@@ -68,20 +68,20 @@ namespace zoneout {
     // ========== Poly Constructors ==========
 
     Poly::Poly() : geoson::Vector(concord::Polygon{}), meta_("", "other", "default") {
-        syncToGlobalProperties();
+        sync_to_global_properties();
     }
 
     Poly::Poly(const std::string &name, const std::string &type, const std::string &subtype)
         : geoson::Vector(concord::Polygon{}), meta_(name, type, subtype) {
-        syncToGlobalProperties();
-        loadStructuredElements();
+        sync_to_global_properties();
+        load_structured_elements();
     }
 
     Poly::Poly(const std::string &name, const std::string &type, const std::string &subtype,
                const concord::Polygon &boundary)
         : geoson::Vector(boundary), meta_(name, type, subtype) {
-        syncToGlobalProperties();
-        loadStructuredElements();
+        sync_to_global_properties();
+        load_structured_elements();
     }
 
     Poly::Poly(const std::string &name, const std::string &type, const std::string &subtype,
@@ -89,65 +89,65 @@ namespace zoneout {
                geoson::CRS crs)
         : geoson::Vector(boundary, datum, heading, crs), meta_(name, type,
           subtype) {
-        syncToGlobalProperties();
-        loadStructuredElements();
+        sync_to_global_properties();
+        load_structured_elements();
     }
 
     // ========== Basic Properties ==========
 
-    const UUID &Poly::getId() const { return meta_.id; }
-    const std::string &Poly::getName() const { return meta_.name; }
-    const std::string &Poly::getType() const { return meta_.type; }
-    const std::string &Poly::getSubtype() const { return meta_.subtype; }
+    const UUID &Poly::get_id() const { return meta_.id; }
+    const std::string &Poly::get_name() const { return meta_.name; }
+    const std::string &Poly::get_type() const { return meta_.type; }
+    const std::string &Poly::get_subtype() const { return meta_.subtype; }
 
-    void Poly::setName(const std::string &name) {
+    void Poly::set_name(const std::string &name) {
         meta_.name = name;
-        syncToGlobalProperties();
+        sync_to_global_properties();
     }
 
-    void Poly::setType(const std::string &type) {
+    void Poly::set_type(const std::string &type) {
         meta_.type = type;
-        syncToGlobalProperties();
+        sync_to_global_properties();
     }
 
-    void Poly::setSubtype(const std::string &subtype) {
+    void Poly::set_subtype(const std::string &subtype) {
         meta_.subtype = subtype;
-        syncToGlobalProperties();
+        sync_to_global_properties();
     }
 
-    void Poly::setId(const UUID &id) {
+    void Poly::set_id(const UUID &id) {
         meta_.id = id;
-        syncToGlobalProperties();
+        sync_to_global_properties();
     }
 
     // ========== Structured Element Management ==========
 
-    void Poly::addPolygonElement(const UUID &id, const std::string &name, const std::string &type,
+    void Poly::add_polygon_element(const UUID &id, const std::string &name, const std::string &type,
                                  const std::string &subtype, const concord::Polygon &geometry,
                                  const std::unordered_map<std::string, std::string> &props) {
         polygon_elements_.emplace_back(id, name, type, subtype, geometry, props);
         geoson::Vector::addElement(geometry, type, polygon_elements_.back().toProperties());
     }
 
-    void Poly::addLineElement(const UUID &id, const std::string &name, const std::string &type,
+    void Poly::add_line_element(const UUID &id, const std::string &name, const std::string &type,
                               const std::string &subtype, const concord::Line &geometry,
                               const std::unordered_map<std::string, std::string> &props) {
         line_elements_.emplace_back(id, name, type, subtype, geometry, props);
         geoson::Vector::addElement(geometry, type, line_elements_.back().toProperties());
     }
 
-    void Poly::addPointElement(const UUID &id, const std::string &name, const std::string &type,
+    void Poly::add_point_element(const UUID &id, const std::string &name, const std::string &type,
                                const std::string &subtype, const concord::Point &geometry,
                                const std::unordered_map<std::string, std::string> &props) {
         point_elements_.emplace_back(id, name, type, subtype, geometry, props);
         geoson::Vector::addElement(geometry, type, point_elements_.back().toProperties());
     }
 
-    const std::vector<PolygonElement> &Poly::getPolygonElements() const { return polygon_elements_; }
-    const std::vector<LineElement> &Poly::getLineElements() const { return line_elements_; }
-    const std::vector<PointElement> &Poly::getPointElements() const { return point_elements_; }
+    const std::vector<PolygonElement> &Poly::get_polygon_elements() const { return polygon_elements_; }
+    const std::vector<LineElement> &Poly::get_line_elements() const { return line_elements_; }
+    const std::vector<PointElement> &Poly::get_point_elements() const { return point_elements_; }
 
-    std::vector<PolygonElement> Poly::getPolygonsByType(const std::string &type) const {
+    std::vector<PolygonElement> Poly::get_polygons_by_type(const std::string &type) const {
         std::vector<PolygonElement> result;
         for (const auto &elem : polygon_elements_) {
             if (elem.type == type)
@@ -156,7 +156,7 @@ namespace zoneout {
         return result;
     }
 
-    std::vector<PolygonElement> Poly::getPolygonsBySubtype(const std::string &subtype) const {
+    std::vector<PolygonElement> Poly::get_polygons_by_subtype(const std::string &subtype) const {
         std::vector<PolygonElement> result;
         for (const auto &elem : polygon_elements_) {
             if (elem.subtype == subtype)
@@ -167,17 +167,17 @@ namespace zoneout {
 
     // ========== Higher Level Operations ==========
 
-    double Poly::area() const { return hasFieldBoundary() ? getFieldBoundary().area() : 0.0; }
-    double Poly::perimeter() const { return hasFieldBoundary() ? getFieldBoundary().perimeter() : 0.0; }
+    double Poly::area() const { return has_field_boundary() ? getFieldBoundary().area() : 0.0; }
+    double Poly::perimeter() const { return has_field_boundary() ? getFieldBoundary().perimeter() : 0.0; }
     bool Poly::contains(const concord::Point &point) const {
-        return hasFieldBoundary() && getFieldBoundary().contains(point);
+        return has_field_boundary() && getFieldBoundary().contains(point);
     }
-    bool Poly::hasFieldBoundary() const { return !getFieldBoundary().getPoints().empty(); }
-    bool Poly::isValid() const { return hasFieldBoundary() && !meta_.name.empty(); }
+    bool Poly::has_field_boundary() const { return !getFieldBoundary().getPoints().empty(); }
+    bool Poly::is_valid() const { return has_field_boundary() && !meta_.name.empty(); }
 
     // ========== File I/O ==========
 
-    Poly Poly::fromFile(const std::filesystem::path &file_path) {
+    Poly Poly::from_file(const std::filesystem::path &file_path) {
         if (!std::filesystem::exists(file_path)) {
             throw std::runtime_error("File does not exist: " + file_path.string());
         }
@@ -210,15 +210,15 @@ namespace zoneout {
             poly.meta_.id = UUID(uuid_it->second);
         }
 
-        poly.loadStructuredElements();
+        poly.load_structured_elements();
 
         return poly;
     }
 
-    void Poly::toFile(const std::filesystem::path &file_path, geoson::CRS crs) const {
-        const_cast<Poly *>(this)->syncToGlobalProperties();
+    void Poly::to_file(const std::filesystem::path &file_path, geoson::CRS crs) const {
+        const_cast<Poly *>(this)->sync_to_global_properties();
 
-        if (hasFieldBoundary()) {
+        if (has_field_boundary()) {
             const_cast<Poly *>(this)->setFieldProperty("border", "true");
 
             const_cast<Poly *>(this)->setFieldProperty("uuid", meta_.id.toString());
@@ -231,14 +231,14 @@ namespace zoneout {
 
     // ========== Private Methods ==========
 
-    void Poly::syncToGlobalProperties() {
+    void Poly::sync_to_global_properties() {
         setGlobalProperty("name", meta_.name);
         setGlobalProperty("type", meta_.type);
         setGlobalProperty("subtype", meta_.subtype);
         setGlobalProperty("uuid", meta_.id.toString());
     }
 
-    void Poly::loadStructuredElements() {
+    void Poly::load_structured_elements() {
         polygon_elements_.clear();
         line_elements_.clear();
         point_elements_.clear();

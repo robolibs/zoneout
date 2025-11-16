@@ -71,53 +71,53 @@ namespace zoneout {
              const concord::Polygon &boundary, const concord::Datum &datum, const concord::Euler &heading,
              geoson::CRS crs);
 
-        const UUID &getId() const;
-        const std::string &getName() const;
-        const std::string &getType() const;
-        const std::string &getSubtype() const;
+        const UUID &get_id() const;
+        const std::string &get_name() const;
+        const std::string &get_type() const;
+        const std::string &get_subtype() const;
 
-        void setName(const std::string &name);
+        void set_name(const std::string &name);
 
-        void setType(const std::string &type);
+        void set_type(const std::string &type);
 
-        void setSubtype(const std::string &subtype);
+        void set_subtype(const std::string &subtype);
 
-        void setId(const UUID &id);
+        void set_id(const UUID &id);
 
-        void addPolygonElement(const UUID &id, const std::string &name, const std::string &type,
-                               const std::string &subtype, const concord::Polygon &geometry,
+        void add_polygon_element(const UUID &id, const std::string &name, const std::string &type,
+                                 const std::string &subtype, const concord::Polygon &geometry,
+                                 const std::unordered_map<std::string, std::string> &props = {});
+
+        void add_line_element(const UUID &id, const std::string &name, const std::string &type,
+                              const std::string &subtype, const concord::Line &geometry,
+                              const std::unordered_map<std::string, std::string> &props = {});
+
+        void add_point_element(const UUID &id, const std::string &name, const std::string &type,
+                               const std::string &subtype, const concord::Point &geometry,
                                const std::unordered_map<std::string, std::string> &props = {});
 
-        void addLineElement(const UUID &id, const std::string &name, const std::string &type,
-                            const std::string &subtype, const concord::Line &geometry,
-                            const std::unordered_map<std::string, std::string> &props = {});
+        const std::vector<PolygonElement> &get_polygon_elements() const;
+        const std::vector<LineElement> &get_line_elements() const;
+        const std::vector<PointElement> &get_point_elements() const;
 
-        void addPointElement(const UUID &id, const std::string &name, const std::string &type,
-                             const std::string &subtype, const concord::Point &geometry,
-                             const std::unordered_map<std::string, std::string> &props = {});
+        std::vector<PolygonElement> get_polygons_by_type(const std::string &type) const;
 
-        const std::vector<PolygonElement> &getPolygonElements() const;
-        const std::vector<LineElement> &getLineElements() const;
-        const std::vector<PointElement> &getPointElements() const;
-
-        std::vector<PolygonElement> getPolygonsByType(const std::string &type) const;
-
-        std::vector<PolygonElement> getPolygonsBySubtype(const std::string &subtype) const;
+        std::vector<PolygonElement> get_polygons_by_subtype(const std::string &subtype) const;
 
         double area() const;
         double perimeter() const;
         bool contains(const concord::Point &point) const;
-        bool hasFieldBoundary() const;
-        bool isValid() const;
+        bool has_field_boundary() const;
+        bool is_valid() const;
 
-        static Poly fromFile(const std::filesystem::path &file_path);
+        static Poly from_file(const std::filesystem::path &file_path);
 
-        void toFile(const std::filesystem::path &file_path, geoson::CRS crs = geoson::CRS::WGS) const;
+        void to_file(const std::filesystem::path &file_path, geoson::CRS crs = geoson::CRS::WGS) const;
 
       private:
-        void syncToGlobalProperties();
+        void sync_to_global_properties();
 
-        void loadStructuredElements();
+        void load_structured_elements();
     };
 
 } // namespace zoneout

@@ -15,15 +15,15 @@ namespace zoneout {
         std::string raster_name, raster_uuid;
 
         if (std::filesystem::exists(vector_path)) {
-            poly = Poly::fromFile(vector_path);
-            vector_name = poly.getName();
-            vector_uuid = poly.getId().toString();
+            poly = Poly::from_file(vector_path);
+            vector_name = poly.get_name();
+            vector_uuid = poly.get_id().toString();
         }
 
         if (std::filesystem::exists(raster_path)) {
-            grid = Grid::fromFile(raster_path);
-            raster_name = grid.getName();
-            raster_uuid = grid.getId().toString();
+            grid = Grid::from_file(raster_path);
+            raster_name = grid.get_name();
+            raster_uuid = grid.get_id().toString();
         }
 
         if (!vector_uuid.empty() && !raster_uuid.empty()) {
@@ -45,9 +45,9 @@ namespace zoneout {
 
     void savePolyGrid(const Poly &poly, const Grid &grid, const std::filesystem::path &vector_path,
                       const std::filesystem::path &raster_path, geoson::CRS crs) {
-        poly.toFile(vector_path, crs);
+        poly.to_file(vector_path, crs);
         if (grid.hasGrids()) {
-            grid.toFile(raster_path);
+            grid.to_file(raster_path);
         }
     }
 

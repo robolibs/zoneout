@@ -24,7 +24,7 @@ namespace zoneout {
         inline void visualize_zone(const Zone &zone, std::shared_ptr<rerun::RecordingStream> rec,
                                    const concord::Datum &datum, const std::string &zone_name, size_t color_index = 0) {
             std::cout << "Visualizing zone: " << zone_name << std::endl;
-            if (!zone.poly().hasFieldBoundary()) {
+            if (!zone.poly().has_field_boundary()) {
 
                 std::cerr << "Zone " << zone_name << " has no field boundary" << std::endl;
                 return;
