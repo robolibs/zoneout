@@ -23,7 +23,7 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
 
         if (!polygons.empty()) {
             zoneout::Zone zone(zone_name, "field", polygons.front(), datum, 0.1);
-            const auto &base_grid = zone.grid_data_.getGrid(0).grid;
+            const auto &base_grid = zone.grid().getGrid(0).grid;
 
             auto temp_grid = base_grid;
             auto moisture_grid = base_grid;
@@ -49,15 +49,15 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
                 }
             }
 
-            zone.addRasterLayer(temp_grid, "temperature", "environmental", {{"units", "celsius"}}, true);
-            zone.addRasterLayer(moisture_grid, "moisture", "environmental", {{"units", "percentage"}}, true);
+            zone.add_raster_layer(temp_grid, "temperature", "environmental", {{"units", "celsius"}}, true);
+            zone.add_raster_layer(moisture_grid, "moisture", "environmental", {{"units", "percentage"}}, true);
 
-            zone.setProperty("crop_type", crop_type);
-            zone.setProperty("planting_date", "2024-04-15");
-            zone.setProperty("irrigation", "true");
+            zone.set_property("crop_type", crop_type);
+            zone.set_property("planting_date", "2024-04-15");
+            zone.set_property("irrigation", "true");
 
             plot.addZone(zone);
-            std::cout << "Added zone: " << zone.getName() << " (ID: " << zone.getId().toString() << ")" << std::endl;
+            std::cout << "Added zone: " << zone.name() << " (ID: " << zone.id().toString() << ")" << std::endl;
 
             // Add remaining polygons as features to the zone that's now in the plot
             if (plot.getZoneCount() > 0) {
@@ -67,7 +67,7 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
                     Props properties = {{"area_m2", std::to_string(static_cast<int>(polygons[i].area()))}};
                     std::string feature_name = zone_name + "_feature_" + std::to_string(i);
                     try {
-                        plot_zone.addPolygonFeature(polygons[i], feature_name, "obstacle", "obstacle", properties);
+                        plot_zone.add_polygon_feature(polygons[i], feature_name, "obstacle", "obstacle", properties);
                     } catch (const std::exception &e) {
                         std::cout << "Failed to add feature " << feature_name << ": " << e.what() << std::endl;
                     }
@@ -95,12 +95,12 @@ int main() {
     std::cout << "Num zones: " << zones.size() << std::endl;
 
     auto zone0 = zones.at(0);
-    auto boundary = zone0.poly_data_.getFieldBoundary();
+    auto boundary = zone0.poly().getFieldBoundary();
     std::cout << "Zone 0 boundary: " << boundary.getPoints().size() << " points" << std::endl;
 
-    const auto &polygon_elements = zone0.poly_data_.getPolygonElements();
+    const auto &polygon_elements = zone0.poly().getPolygonElements();
     std::cout << "Number of polygon elements: " << polygon_elements.size() << std::endl;
-    std::cout << "Has field boundary: " << zone0.poly_data_.hasFieldBoundary() << std::endl;
+    std::cout << "Has field boundary: " << zone0.poly().hasFieldBoundary() << std::endl;
 
     std::vector<concord::Polygon> obstacles;
     if (!polygon_elements.empty()) {

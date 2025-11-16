@@ -6,16 +6,14 @@
 #include <unordered_map>
 
 #include "geotiv/raster.hpp"
+#include "utils/meta.hpp"
 #include "utils/uuid.hpp"
 
 namespace zoneout {
 
     class Grid : public geotiv::Raster {
       private:
-        UUID id_;
-        std::string name_;
-        std::string type_;
-        std::string subtype_;
+        Meta meta_;
 
       public:
         Grid();

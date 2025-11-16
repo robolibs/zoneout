@@ -7,45 +7,45 @@
 
 namespace zoneout {
 
-    Grid::Grid() : geotiv::Raster(), id_(generateUUID()), type_("other"), subtype_("default") {}
+    Grid::Grid() : geotiv::Raster(), meta_("", "other", "default") {}
 
     Grid::Grid(const std::string &name, const std::string &type, const std::string &subtype)
-        : geotiv::Raster(), id_(generateUUID()), name_(name), type_(type), subtype_(subtype) {}
+        : geotiv::Raster(), meta_(name, type, subtype) {}
 
     Grid::Grid(const std::string &name, const std::string &type, const std::string &subtype,
                const concord::Datum &datum)
-        : geotiv::Raster(datum), id_(generateUUID()), name_(name), type_(type), subtype_(subtype) {}
+        : geotiv::Raster(datum), meta_(name, type, subtype) {}
 
     Grid::Grid(const std::string &name, const std::string &type, const std::string &subtype,
                const concord::Datum &datum, const concord::Pose &shift, double resolution)
-        : geotiv::Raster(datum, shift, resolution), id_(generateUUID()), name_(name), type_(type), subtype_(subtype) {}
+        : geotiv::Raster(datum, shift, resolution), meta_(name, type, subtype) {}
 
-    const UUID &Grid::getId() const { return id_; }
-    const std::string &Grid::getName() const { return name_; }
-    const std::string &Grid::getType() const { return type_; }
-    const std::string &Grid::getSubtype() const { return subtype_; }
+    const UUID &Grid::getId() const { return meta_.id; }
+    const std::string &Grid::getName() const { return meta_.name; }
+    const std::string &Grid::getType() const { return meta_.type; }
+    const std::string &Grid::getSubtype() const { return meta_.subtype; }
 
     void Grid::setName(const std::string &name) {
-        name_ = name;
+        meta_.name = name;
         syncToGlobalProperties();
     }
 
     void Grid::setType(const std::string &type) {
-        type_ = type;
+        meta_.type = type;
         syncToGlobalProperties();
     }
 
     void Grid::setSubtype(const std::string &subtype) {
-        subtype_ = subtype;
+        meta_.subtype = subtype;
         syncToGlobalProperties();
     }
 
     void Grid::setId(const UUID &id) {
-        id_ = id;
+        meta_.id = id;
         syncToGlobalProperties();
     }
 
-    bool Grid::isValid() const { return hasGrids() && !name_.empty(); }
+    bool Grid::isValid() const { return hasGrids() && !meta_.name.empty(); }
 
     Grid Grid::fromFile(const std::filesystem::path &file_path) {
         if (!std::filesystem::exists(file_path)) {
@@ -62,22 +62,22 @@ namespace zoneout {
 
         auto name_it = global_props.find("name");
         if (name_it != global_props.end()) {
-            grid.name_ = name_it->second;
+            grid.meta_.name = name_it->second;
         }
 
         auto type_it = global_props.find("type");
         if (type_it != global_props.end()) {
-            grid.type_ = type_it->second;
+            grid.meta_.type = type_it->second;
         }
 
         auto subtype_it = global_props.find("subtype");
         if (subtype_it != global_props.end()) {
-            grid.subtype_ = subtype_it->second;
+            grid.meta_.subtype = subtype_it->second;
         }
 
         auto uuid_it = global_props.find("uuid");
         if (uuid_it != global_props.end()) {
-            grid.id_ = UUID(uuid_it->second);
+            grid.meta_.id = UUID(uuid_it->second);
         }
 
         return grid;
@@ -117,10 +117,10 @@ namespace zoneout {
 
     void Grid::syncToGlobalProperties() {
         if (hasGrids()) {
-            setGlobalProperty("name", name_);
-            setGlobalProperty("type", type_);
-            setGlobalProperty("subtype", subtype_);
-            setGlobalProperty("uuid", id_.toString());
+            setGlobalProperty("name", meta_.name);
+            setGlobalProperty("type", meta_.type);
+            setGlobalProperty("subtype", meta_.subtype);
+            setGlobalProperty("uuid", meta_.id.toString());
         }
     }
 

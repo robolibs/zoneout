@@ -30,10 +30,10 @@ TEST_CASE("Zone creation and basic properties") {
         
         concord::Polygon default_boundary;
         Zone zone("", "other", default_boundary, base_grid, WAGENINGEN_DATUM);
-        CHECK(zone.getName().empty());
-        CHECK(zone.getType() == "other");
-        CHECK(!zone.poly_data_.hasFieldBoundary());
-        CHECK(zone.getRasterData().gridCount() == 1); // Zone now includes the base grid
+        CHECK(zone.name().empty());
+        CHECK(zone.type() == "other");
+        CHECK(!zone.poly().hasFieldBoundary());
+        CHECK(zone.raster_data().gridCount() == 1); // Zone now includes the base grid
     }
 
     SUBCASE("Named constructor") {
@@ -43,10 +43,10 @@ TEST_CASE("Zone creation and basic properties") {
         
         concord::Polygon default_boundary;
         Zone zone("Test Zone", "field", default_boundary, base_grid, WAGENINGEN_DATUM);
-        CHECK(zone.getName() == "Test Zone");
-        CHECK(zone.getType() == "field");
-        CHECK(!zone.poly_data_.hasFieldBoundary());
-        CHECK(zone.getRasterData().gridCount() == 1); // Zone now includes the base grid
+        CHECK(zone.name() == "Test Zone");
+        CHECK(zone.type() == "field");
+        CHECK(!zone.poly().hasFieldBoundary());
+        CHECK(zone.raster_data().gridCount() == 1); // Zone now includes the base grid
     }
 
     SUBCASE("Constructor with boundary") {
@@ -56,10 +56,10 @@ TEST_CASE("Zone creation and basic properties") {
         
         auto boundary = createRectangle(0, 0, 100, 50);
         Zone zone("Test Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
-        CHECK(zone.getName() == "Test Zone");
-        CHECK(zone.getType() == "field");
-        CHECK(zone.poly_data_.hasFieldBoundary());
-        CHECK(zone.poly_data_.area() == 5000.0); // 100 * 50
+        CHECK(zone.name() == "Test Zone");
+        CHECK(zone.type() == "field");
+        CHECK(zone.poly().hasFieldBoundary());
+        CHECK(zone.poly().area() == 5000.0); // 100 * 50
     }
 }
 
@@ -69,14 +69,14 @@ TEST_CASE("Zone constructor with auto-generated grid") {
         auto boundary = createRectangle(0, 0, 100, 50);
         Zone zone("Auto Grid Zone", "field", boundary, WAGENINGEN_DATUM);
         
-        CHECK(zone.getName() == "Auto Grid Zone");
-        CHECK(zone.getType() == "field");
-        CHECK(zone.poly_data_.hasFieldBoundary());
-        CHECK(zone.grid_data_.gridCount() == 1); // Should have the auto-generated base grid with noise
+        CHECK(zone.name() == "Auto Grid Zone");
+        CHECK(zone.type() == "field");
+        CHECK(zone.poly().hasFieldBoundary());
+        CHECK(zone.grid().gridCount() == 1); // Should have the auto-generated base grid with noise
         
         // Check that grid dimensions are reasonable for the polygon size
         // For a 100x50 rectangle with resolution 1.0, we expect roughly 100x50 cells
-        auto grid_info = zone.getRasterInfo();
+        auto grid_info = zone.raster_info();
         CHECK(!grid_info.empty());
     }
     
@@ -85,13 +85,13 @@ TEST_CASE("Zone constructor with auto-generated grid") {
         auto boundary = createRectangle(0, 0, 100, 50);
         Zone zone("Custom Resolution Zone", "field", boundary, WAGENINGEN_DATUM, 2.0);
         
-        CHECK(zone.getName() == "Custom Resolution Zone");
-        CHECK(zone.getType() == "field");
-        CHECK(zone.poly_data_.hasFieldBoundary());
-        CHECK(zone.grid_data_.gridCount() == 1);
+        CHECK(zone.name() == "Custom Resolution Zone");
+        CHECK(zone.type() == "field");
+        CHECK(zone.poly().hasFieldBoundary());
+        CHECK(zone.grid().gridCount() == 1);
         
         // With resolution 2.0, grid should have roughly half the cells in each dimension
-        auto grid_info = zone.getRasterInfo();
+        auto grid_info = zone.raster_info();
         CHECK(!grid_info.empty());
     }
     
@@ -100,13 +100,13 @@ TEST_CASE("Zone constructor with auto-generated grid") {
         auto boundary = createRectangle(0, 0, 10, 5);
         Zone zone("Fine Resolution Zone", "field", boundary, WAGENINGEN_DATUM, 0.5);
         
-        CHECK(zone.getName() == "Fine Resolution Zone");
-        CHECK(zone.getType() == "field");
-        CHECK(zone.poly_data_.hasFieldBoundary());
-        CHECK(zone.grid_data_.gridCount() == 1);
+        CHECK(zone.name() == "Fine Resolution Zone");
+        CHECK(zone.type() == "field");
+        CHECK(zone.poly().hasFieldBoundary());
+        CHECK(zone.grid().gridCount() == 1);
         
         // With resolution 0.5, grid should have more cells for the same area
-        auto grid_info = zone.getRasterInfo();
+        auto grid_info = zone.raster_info();
         CHECK(!grid_info.empty());
     }
     
@@ -123,13 +123,13 @@ TEST_CASE("Zone constructor with auto-generated grid") {
         concord::Polygon l_boundary(l_points);
         Zone zone("L-Shape Auto Grid", "field", l_boundary, WAGENINGEN_DATUM);
         
-        CHECK(zone.getName() == "L-Shape Auto Grid");
-        CHECK(zone.getType() == "field");
-        CHECK(zone.poly_data_.hasFieldBoundary());
-        CHECK(zone.grid_data_.gridCount() == 1);
+        CHECK(zone.name() == "L-Shape Auto Grid");
+        CHECK(zone.type() == "field");
+        CHECK(zone.poly().hasFieldBoundary());
+        CHECK(zone.grid().gridCount() == 1);
         
         // Grid should be generated based on the OBB of the L-shape
-        auto grid_info = zone.getRasterInfo();
+        auto grid_info = zone.raster_info();
         CHECK(!grid_info.empty());
     }
 }
@@ -160,12 +160,12 @@ TEST_CASE("Zone poly_cut functionality") {
         }
         
         // Add the grid with poly_cut=true - should zero out cells outside the L-shape
-        zone.addRasterLayer(full_grid, "test_layer", "test", {}, true);
+        zone.add_raster_layer(full_grid, "test_layer", "test", {}, true);
         
-        CHECK(zone.grid_data_.gridCount() == 2); // Base grid + test layer
+        CHECK(zone.grid().gridCount() == 2); // Base grid + test layer
         
         // Verify the layer was added
-        auto layer_names = zone.grid_data_.getGridNames();
+        auto layer_names = zone.grid().getGridNames();
         CHECK(std::find(layer_names.begin(), layer_names.end(), "test_layer") != layer_names.end());
     }
     
@@ -185,9 +185,9 @@ TEST_CASE("Zone poly_cut functionality") {
         }
         
         // Add without poly_cut - should preserve all values
-        zone.addRasterLayer(test_grid, "no_cut_layer", "test");
+        zone.add_raster_layer(test_grid, "no_cut_layer", "test");
         
-        CHECK(zone.grid_data_.gridCount() == 2); // Base grid + no_cut_layer
+        CHECK(zone.grid().gridCount() == 2); // Base grid + no_cut_layer
     }
 }
 
@@ -200,9 +200,9 @@ TEST_CASE("Zone factory methods") {
         concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
         
         auto field = Zone("Wheat Field", "field", boundary, base_grid, WAGENINGEN_DATUM);
-        CHECK(field.getName() == "Wheat Field");
-        CHECK(field.getType() == "field");
-        CHECK(field.poly_data_.hasFieldBoundary());
+        CHECK(field.name() == "Wheat Field");
+        CHECK(field.type() == "field");
+        CHECK(field.poly().hasFieldBoundary());
     }
     
     SUBCASE("createBarn") {
@@ -211,9 +211,9 @@ TEST_CASE("Zone factory methods") {
         concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
         
         auto barn = Zone("Main Barn", "barn", boundary, base_grid, WAGENINGEN_DATUM);
-        CHECK(barn.getName() == "Main Barn");
-        CHECK(barn.getType() == "barn");
-        CHECK(barn.poly_data_.hasFieldBoundary());
+        CHECK(barn.name() == "Main Barn");
+        CHECK(barn.type() == "barn");
+        CHECK(barn.poly().hasFieldBoundary());
     }
     
     SUBCASE("createGreenhouse") {
@@ -222,9 +222,9 @@ TEST_CASE("Zone factory methods") {
         concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
         
         auto greenhouse = Zone("Tomato House", "greenhouse", boundary, base_grid, WAGENINGEN_DATUM);
-        CHECK(greenhouse.getName() == "Tomato House");
-        CHECK(greenhouse.getType() == "greenhouse");
-        CHECK(greenhouse.poly_data_.hasFieldBoundary());
+        CHECK(greenhouse.name() == "Tomato House");
+        CHECK(greenhouse.type() == "greenhouse");
+        CHECK(greenhouse.poly().hasFieldBoundary());
     }
 }
 
@@ -237,12 +237,12 @@ TEST_CASE("Zone properties") {
     Zone zone("Test Zone", "field", default_boundary, base_grid, WAGENINGEN_DATUM);
     
     SUBCASE("Set and get properties") {
-        zone.setProperty("crop_type", "wheat");
-        zone.setProperty("planted_date", "2024-03-15");
+        zone.set_property("crop_type", "wheat");
+        zone.set_property("planted_date", "2024-03-15");
         
-        CHECK(zone.getProperty("crop_type") == "wheat");
-        CHECK(zone.getProperty("planted_date") == "2024-03-15");
-        CHECK(zone.getProperty("non_existent", "default") == "default");
+        CHECK(zone.get_property("crop_type") == "wheat");
+        CHECK(zone.get_property("planted_date") == "2024-03-15");
+        CHECK(zone.get_property("non_existent", "default") == "default");
     }
 }
 
@@ -263,9 +263,9 @@ TEST_CASE("Zone field elements") {
         std::unordered_map<std::string, std::string> props;
         props["row_number"] = "1";
         
-        zone.poly_data_.addElement(crop_row, "crop_row", props);
+        zone.poly().addElement(crop_row, "crop_row", props);
         
-        auto crop_rows = zone.poly_data_.getElementsByType("crop_row");
+        auto crop_rows = zone.poly().getElementsByType("crop_row");
         CHECK(crop_rows.size() == 1);
     }
 }
@@ -288,11 +288,11 @@ TEST_CASE("Zone raster layers") {
             }
         }
         
-        zone.getRasterData().addGrid(20, 10, "elevation", "terrain", {{"units", "meters"}});
+        zone.raster_data().addGrid(20, 10, "elevation", "terrain", {{"units", "meters"}});
         
-        CHECK(zone.getRasterData().gridCount() == 2); // Base grid + elevation layer
+        CHECK(zone.raster_data().gridCount() == 2); // Base grid + elevation layer
         
-        auto layer_names = zone.getRasterData().getGridNames();
+        auto layer_names = zone.raster_data().getGridNames();
         CHECK(layer_names.size() == 2); // Base grid + elevation layer
         CHECK(std::find(layer_names.begin(), layer_names.end(), "elevation") != layer_names.end());
     }
@@ -308,19 +308,19 @@ TEST_CASE("Zone point containment") {
     
     SUBCASE("Point inside") {
         concord::Point inside_point(50, 25, 0);
-        CHECK(zone.poly_data_.contains(inside_point));
+        CHECK(zone.poly().contains(inside_point));
     }
     
     SUBCASE("Point outside") {
         concord::Point outside_point(150, 25, 0);
-        CHECK(!zone.poly_data_.contains(outside_point));
+        CHECK(!zone.poly().contains(outside_point));
     }
     
     SUBCASE("Point on boundary") {
         concord::Point boundary_point(0, 25, 0);
-        // Note: Polygon.poly_data_.contains() behavior on boundary may vary
+        // Note: Polygon.poly().contains() behavior on boundary may vary
         // This test just checks the method works
-        zone.poly_data_.contains(boundary_point);
+        zone.poly().contains(boundary_point);
     }
 }
 
@@ -387,14 +387,14 @@ TEST_CASE("Zone validation") {
 //    
 //    // Check that timestamps are set (non-zero epoch time)
 //    auto epoch = std::chrono::time_point<std::chrono::system_clock>{};
-//    CHECK(zone.getId() // getCreatedTime removed > epoch);
+//    CHECK(zone.id() // getCreatedTime removed > epoch);
 //    // CHECK(zone.getModifiedTime() // getModifiedTime removed > epoch);
 //    
-//    auto initial_modified = zone.getId() // getModifiedTime removed;
+//    auto initial_modified = zone.id() // getModifiedTime removed;
 //    
 //    // Sleep briefly and modify zone
 //    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-//    zone.setProperty("test", "value");
+//    zone.set_property("test", "value");
 //    
 //    // Modified time functionality removed
 //    // // CHECK(zone.getModifiedTime() // getModifiedTime removed > initial_modified);

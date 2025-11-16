@@ -13,30 +13,30 @@
 namespace zoneout {
 
     // ========== Constructors ==========
-    Layer::Layer() : concord::Layer<uint8_t>(), id_(generateUUID()), type_("occlusion"), subtype_("default") {}
+    Layer::Layer() : concord::Layer<uint8_t>(), meta_("", "occlusion", "default") {}
 
     Layer::Layer(const std::string &name, const std::string &type, const std::string &subtype)
-        : concord::Layer<uint8_t>(), id_(generateUUID()), name_(name), type_(type), subtype_(subtype) {}
+        : concord::Layer<uint8_t>(), meta_(name, type, subtype) {}
 
     Layer::Layer(const std::string &name, const std::string &type, const std::string &subtype, size_t rows, size_t cols,
                  size_t layers, double cell_size, double layer_height, const concord::Pose &pose, bool centered,
                  bool reverse_y, bool reverse_z)
         : concord::Layer<uint8_t>(rows, cols, layers, cell_size, layer_height, centered, pose, reverse_y, reverse_z),
-          id_(generateUUID()), name_(name), type_(type), subtype_(subtype) {}
+          meta_(name, type, subtype) {}
 
     // ========== Basic Properties ==========
-    const UUID &Layer::getId() const { return id_; }
-    const std::string &Layer::getName() const { return name_; }
-    const std::string &Layer::getType() const { return type_; }
-    const std::string &Layer::getSubtype() const { return subtype_; }
+    const UUID &Layer::getId() const { return meta_.id; }
+    const std::string &Layer::getName() const { return meta_.name; }
+    const std::string &Layer::getType() const { return meta_.type; }
+    const std::string &Layer::getSubtype() const { return meta_.subtype; }
 
-    void Layer::setName(const std::string &name) { name_ = name; }
-    void Layer::setType(const std::string &type) { type_ = type; }
-    void Layer::setSubtype(const std::string &subtype) { subtype_ = subtype; }
-    void Layer::setId(const UUID &id) { id_ = id; }
+    void Layer::setName(const std::string &name) { meta_.name = name; }
+    void Layer::setType(const std::string &type) { meta_.type = type; }
+    void Layer::setSubtype(const std::string &subtype) { meta_.subtype = subtype; }
+    void Layer::setId(const UUID &id) { meta_.id = id; }
 
     // ========== Higher Level Operations ==========
-    bool Layer::isValid() const { return rows() > 0 && cols() > 0 && layers() > 0 && !name_.empty(); }
+    bool Layer::isValid() const { return rows() > 0 && cols() > 0 && layers() > 0 && !meta_.name.empty(); }
 
     // ========== Robot Navigation Methods ==========
 
@@ -138,10 +138,10 @@ namespace zoneout {
     // ========== File I/O ==========
 
     std::unordered_map<std::string, std::string> Layer::getMetadata() const {
-        return {{"uuid", id_.toString()},
-                {"name", name_},
-                {"type", type_},
-                {"subtype", subtype_},
+        return {{"uuid", meta_.id.toString()},
+                {"name", meta_.name},
+                {"type", meta_.type},
+                {"subtype", meta_.subtype},
                 {"rows", std::to_string(rows())},
                 {"cols", std::to_string(cols())},
                 {"layers", std::to_string(layers())},
@@ -155,22 +155,22 @@ namespace zoneout {
     void Layer::setMetadata(const std::unordered_map<std::string, std::string> &metadata) {
         auto name_it = metadata.find("name");
         if (name_it != metadata.end()) {
-            name_ = name_it->second;
+            meta_.name = name_it->second;
         }
 
         auto type_it = metadata.find("type");
         if (type_it != metadata.end()) {
-            type_ = type_it->second;
+            meta_.type = type_it->second;
         }
 
         auto subtype_it = metadata.find("subtype");
         if (subtype_it != metadata.end()) {
-            subtype_ = subtype_it->second;
+            meta_.subtype = subtype_it->second;
         }
 
         auto uuid_it = metadata.find("uuid");
         if (uuid_it != metadata.end()) {
-            id_ = UUID(uuid_it->second);
+            meta_.id = UUID(uuid_it->second);
         }
     }
 
@@ -209,7 +209,7 @@ namespace zoneout {
                     centered, reverse_y, reverse_z);
 
         if (global_props.count("uuid")) {
-            layer.id_ = UUID(global_props.at("uuid"));
+            layer.meta_.id = UUID(global_props.at("uuid"));
         }
 
         size_t layers_to_copy = std::min(num_layers, static_cast<size_t>(raster_data.gridCount()));
@@ -253,10 +253,10 @@ namespace zoneout {
             }
         }
 
-        raster.setGlobalProperty("name", name_);
-        raster.setGlobalProperty("type", type_);
-        raster.setGlobalProperty("subtype", subtype_);
-        raster.setGlobalProperty("uuid", id_.toString());
+        raster.setGlobalProperty("name", meta_.name);
+        raster.setGlobalProperty("type", meta_.type);
+        raster.setGlobalProperty("subtype", meta_.subtype);
+        raster.setGlobalProperty("uuid", meta_.id.toString());
         raster.setGlobalProperty("rows", std::to_string(rows()));
         raster.setGlobalProperty("cols", std::to_string(cols()));
         raster.setGlobalProperty("layers", std::to_string(layers()));

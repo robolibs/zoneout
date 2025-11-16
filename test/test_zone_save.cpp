@@ -18,8 +18,8 @@ TEST_CASE("Zone directory save/load functionality") {
     SUBCASE("Zone save() and load() methods") {
         // Create zone with auto-generated grid
         Zone zone("Test Zone", "field", boundary, datum);
-        zone.setProperty("crop_type", "wheat");
-        zone.setProperty("test_prop", "test_value");
+        zone.set_property("crop_type", "wheat");
+        zone.set_property("test_prop", "test_value");
         
         std::string test_dir = "/tmp/test_zone_save_dir";
         std::filesystem::remove_all(test_dir);
@@ -33,10 +33,10 @@ TEST_CASE("Zone directory save/load functionality") {
         Zone loaded_zone = Zone::load(test_dir);
         
         // Verify data integrity
-        CHECK(zone.getName() == loaded_zone.getName());
-        CHECK(zone.getId().toString() == loaded_zone.getId().toString());
-        CHECK(zone.getProperty("crop_type") == loaded_zone.getProperty("crop_type"));
-        CHECK(zone.getProperty("test_prop") == loaded_zone.getProperty("test_prop"));
+        CHECK(zone.name() == loaded_zone.name());
+        CHECK(zone.id().toString() == loaded_zone.id().toString());
+        CHECK(zone.get_property("crop_type") == loaded_zone.get_property("crop_type"));
+        CHECK(zone.get_property("test_prop") == loaded_zone.get_property("test_prop"));
         
         // Cleanup
         std::filesystem::remove_all(test_dir);

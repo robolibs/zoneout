@@ -104,14 +104,14 @@ TEST_CASE("Complete file I/O round-trip test") {
         Zone original_zone("Test Agricultural Zone", "field", field_boundary, base_grid, WAGENINGEN_DATUM);
         
         // Set zone properties
-        original_zone.setProperty("crop_type", "wheat");
-        original_zone.setProperty("planting_date", "2024-03-15");
-        original_zone.setProperty("irrigation_schedule", "daily_morning");
-        original_zone.setProperty("soil_type", "clay_loam");
+        original_zone.set_property("crop_type", "wheat");
+        original_zone.set_property("planting_date", "2024-03-15");
+        original_zone.set_property("irrigation_schedule", "daily_morning");
+        original_zone.set_property("soil_type", "clay_loam");
         
         // Add parking spaces (polygons)
         auto parking_area1 = createRectangle(210, 10, 25, 20);
-        original_zone.poly_data_.addElement(parking_area1, "parking_space", {
+        original_zone.poly().addElement(parking_area1, "parking_space", {
             {"name", "main_parking"},
             {"capacity", "8_vehicles"},
             {"surface", "asphalt"},
@@ -120,7 +120,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         });
         
         auto parking_area2 = createRectangle(210, 40, 15, 15);
-        original_zone.poly_data_.addElement(parking_area2, "parking_space", {
+        original_zone.poly().addElement(parking_area2, "parking_space", {
             {"name", "equipment_parking"},
             {"capacity", "3_tractors"},
             {"surface", "gravel"},
@@ -129,7 +129,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         
         // Add storage areas (polygons)
         auto storage_building = createRectangle(250, 10, 40, 30);
-        original_zone.poly_data_.addElement(storage_building, "storage_facility", {
+        original_zone.poly().addElement(storage_building, "storage_facility", {
             {"name", "main_warehouse"},
             {"capacity", "500_tons"},
             {"climate_control", "yes"},
@@ -138,7 +138,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         });
         
         auto outdoor_storage = createRectangle(250, 50, 30, 25);
-        original_zone.poly_data_.addElement(outdoor_storage, "storage_area", {
+        original_zone.poly().addElement(outdoor_storage, "storage_area", {
             {"name", "bulk_storage"},
             {"capacity", "200_tons"},
             {"weather_protection", "partial"},
@@ -149,7 +149,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         std::vector<concord::Point> main_road = {
             {-10, 75, 0}, {50, 75, 0}, {150, 75, 0}, {220, 75, 0}, {300, 75, 0}
         };
-        original_zone.poly_data_.addElement(concord::Path(main_road), "access_route", {
+        original_zone.poly().addElement(concord::Path(main_road), "access_route", {
             {"name", "main_access_road"},
             {"width", "6m"},
             {"surface", "paved"},
@@ -160,7 +160,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         std::vector<concord::Point> service_path = {
             {100, 0, 0}, {100, 50, 0}, {100, 100, 0}, {100, 150, 0}
         };
-        original_zone.poly_data_.addElement(concord::Path(service_path), "service_route", {
+        original_zone.poly().addElement(concord::Path(service_path), "service_route", {
             {"name", "north_south_service"},
             {"width", "3m"},
             {"surface", "gravel"},
@@ -168,7 +168,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         });
         
         // Add equipment stations (points)
-        original_zone.poly_data_.addElement(concord::Point(50, 50, 0), "equipment_station", {
+        original_zone.poly().addElement(concord::Point(50, 50, 0), "equipment_station", {
             {"name", "fuel_station"},
             {"fuel_type", "diesel"},
             {"capacity", "5000L"},
@@ -176,7 +176,7 @@ TEST_CASE("Complete file I/O round-trip test") {
             {"safety_zone", "10m_radius"}
         });
         
-        original_zone.poly_data_.addElement(concord::Point(150, 100, 0), "monitoring_point", {
+        original_zone.poly().addElement(concord::Point(150, 100, 0), "monitoring_point", {
             {"name", "weather_station"},
             {"sensors", "temp_humidity_wind_rain"},
             {"data_interval", "5_minutes"},
@@ -184,7 +184,7 @@ TEST_CASE("Complete file I/O round-trip test") {
             {"communication", "4G_cellular"}
         });
         
-        original_zone.poly_data_.addElement(concord::Point(75, 25, 0), "irrigation_hub", {
+        original_zone.poly().addElement(concord::Point(75, 25, 0), "irrigation_hub", {
             {"name", "central_irrigation"},
             {"water_source", "well"},
             {"flow_rate", "200L_per_min"},
@@ -194,7 +194,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         
         // Add work areas with different purposes
         auto spray_zone = createRectangle(20, 20, 60, 40);
-        original_zone.poly_data_.addElement(spray_zone, "treatment_area", {
+        original_zone.poly().addElement(spray_zone, "treatment_area", {
             {"name", "pesticide_application_zone"},
             {"last_treated", "2024-06-20"},
             {"chemical_used", "organic_insecticide"},
@@ -203,7 +203,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         });
         
         auto harvest_zone = createRectangle(120, 80, 70, 50);
-        original_zone.poly_data_.addElement(harvest_zone, "harvest_area", {
+        original_zone.poly().addElement(harvest_zone, "harvest_area", {
             {"name", "ready_for_harvest"},
             {"crop_maturity", "95_percent"},
             {"estimated_yield", "8_tons_per_hectare"},
@@ -222,7 +222,7 @@ TEST_CASE("Complete file I/O round-trip test") {
                 elevation_grid.set_value(r, c, elevation);
             }
         }
-        original_zone.getRasterData().addGrid(30, 20, "elevation", "terrain", {
+        original_zone.raster_data().addGrid(30, 20, "elevation", "terrain", {
             {"units", "meters"},
             {"datum", "sea_level"},
             {"accuracy", "0.5m"},
@@ -237,7 +237,7 @@ TEST_CASE("Complete file I/O round-trip test") {
                 moisture_grid.set_value(r, c, moisture);
             }
         }
-        original_zone.getRasterData().addGrid(30, 20, "soil_moisture", "environmental", {
+        original_zone.raster_data().addGrid(30, 20, "soil_moisture", "environmental", {
             {"units", "percentage"},
             {"depth", "0-30cm"},
             {"measurement_date", "2024-06-28"},
@@ -252,7 +252,7 @@ TEST_CASE("Complete file I/O round-trip test") {
                 ndvi_grid.set_value(r, c, ndvi);
             }
         }
-        original_zone.getRasterData().addGrid(30, 20, "vegetation_health", "crop_monitoring", {
+        original_zone.raster_data().addGrid(30, 20, "vegetation_health", "crop_monitoring", {
             {"units", "NDVI_scaled"},
             {"scale_factor", "0.004"},
             {"offset", "-0.2"},
@@ -261,7 +261,7 @@ TEST_CASE("Complete file I/O round-trip test") {
         });
         
         // Debug: check original grid names
-        auto original_grid_names = original_zone.grid_data_.getGridNames();
+        auto original_grid_names = original_zone.grid().getGridNames();
         std::cout << "Original grid names before save: ";
         for (const auto& name : original_grid_names) {
             std::cout << "\"" << name << "\" ";
@@ -269,11 +269,11 @@ TEST_CASE("Complete file I/O round-trip test") {
         std::cout << std::endl;
         
         // Verify original zone state
-        CHECK(original_zone.getName() == "Test Agricultural Zone");
-        CHECK(original_zone.getType() == "field");
-        CHECK(original_zone.poly_data_.elementCount() == 11); // 11 different elements
-        CHECK(original_zone.getRasterData().gridCount() == 4); // Base grid + 3 raster layers
-        CHECK(original_zone.getProperty("crop_type") == "wheat");
+        CHECK(original_zone.name() == "Test Agricultural Zone");
+        CHECK(original_zone.type() == "field");
+        CHECK(original_zone.poly().elementCount() == 11); // 11 different elements
+        CHECK(original_zone.raster_data().gridCount() == 4); // Base grid + 3 raster layers
+        CHECK(original_zone.get_property("crop_type") == "wheat");
         
         // Save to files
         std::string vector_path = "/tmp/test_roundtrip.geojson";
@@ -283,57 +283,57 @@ TEST_CASE("Complete file I/O round-trip test") {
         std::filesystem::remove(vector_path);
         std::filesystem::remove(raster_path);
         
-        REQUIRE_NOTHROW(original_zone.toFiles(vector_path, raster_path));
+        REQUIRE_NOTHROW(original_zone.to_files(vector_path, raster_path));
         CHECK(std::filesystem::exists(vector_path));
         CHECK(std::filesystem::exists(raster_path));
         
         // Load the zone back
-        Zone loaded_zone = Zone::fromFiles(vector_path, raster_path);
+        Zone loaded_zone = Zone::from_files(vector_path, raster_path);
         
         // === Verify Basic Zone Properties ===
-        CHECK(loaded_zone.getName() == original_zone.getName());
-        CHECK(loaded_zone.getType() == original_zone.getType());
-        CHECK(loaded_zone.poly_data_.area() == doctest::Approx(original_zone.poly_data_.area()));
+        CHECK(loaded_zone.name() == original_zone.name());
+        CHECK(loaded_zone.type() == original_zone.type());
+        CHECK(loaded_zone.poly().area() == doctest::Approx(original_zone.poly().area()));
         
         // Verify zone properties
-        CHECK(loaded_zone.getProperty("crop_type") == "wheat");
-        CHECK(loaded_zone.getProperty("planting_date") == "2024-03-15");
-        CHECK(loaded_zone.getProperty("irrigation_schedule") == "daily_morning");
-        CHECK(loaded_zone.getProperty("soil_type") == "clay_loam");
+        CHECK(loaded_zone.get_property("crop_type") == "wheat");
+        CHECK(loaded_zone.get_property("planting_date") == "2024-03-15");
+        CHECK(loaded_zone.get_property("irrigation_schedule") == "daily_morning");
+        CHECK(loaded_zone.get_property("soil_type") == "clay_loam");
         
         // === Verify Field Boundary ===
-        CHECK(loaded_zone.poly_data_.hasFieldBoundary());
-        CHECK(comparePolygons(loaded_zone.poly_data_.getFieldBoundary(), original_zone.poly_data_.getFieldBoundary()));
+        CHECK(loaded_zone.poly().hasFieldBoundary());
+        CHECK(comparePolygons(loaded_zone.poly().getFieldBoundary(), original_zone.poly().getFieldBoundary()));
         
         // === Verify Vector Elements ===
-        size_t original_elements = original_zone.poly_data_.elementCount();
-        size_t loaded_elements = loaded_zone.poly_data_.elementCount();
+        size_t original_elements = original_zone.poly().elementCount();
+        size_t loaded_elements = loaded_zone.poly().elementCount();
         
         // Note: The exact element count after save/load may vary depending on implementation
         // The important thing is that elements are preserved
         CHECK(loaded_elements >= original_elements); // At minimum, all original elements should be preserved
         
         // Verify specific element types were preserved
-        auto original_parking = original_zone.poly_data_.getElementsByType("parking_space");
-        auto loaded_parking = loaded_zone.poly_data_.getElementsByType("parking_space");
+        auto original_parking = original_zone.poly().getElementsByType("parking_space");
+        auto loaded_parking = loaded_zone.poly().getElementsByType("parking_space");
         CHECK(loaded_parking.size() == original_parking.size());
         CHECK(loaded_parking.size() == 2);
         
-        auto original_storage = original_zone.poly_data_.getElementsByType("storage_facility");
-        auto loaded_storage = loaded_zone.poly_data_.getElementsByType("storage_facility");
+        auto original_storage = original_zone.poly().getElementsByType("storage_facility");
+        auto loaded_storage = loaded_zone.poly().getElementsByType("storage_facility");
         CHECK(loaded_storage.size() == original_storage.size());
         CHECK(loaded_storage.size() == 1);
         
-        auto original_routes = original_zone.poly_data_.getElementsByType("access_route");
-        auto loaded_routes = loaded_zone.poly_data_.getElementsByType("access_route");
+        auto original_routes = original_zone.poly().getElementsByType("access_route");
+        auto loaded_routes = loaded_zone.poly().getElementsByType("access_route");
         CHECK(loaded_routes.size() == original_routes.size());
         CHECK(loaded_routes.size() == 1);
         
         // Verify raster layers were preserved
-        CHECK(loaded_zone.grid_data_.gridCount() == original_zone.grid_data_.gridCount());
-        CHECK(loaded_zone.grid_data_.gridCount() == 4); // Base grid + 3 data layers
+        CHECK(loaded_zone.grid().gridCount() == original_zone.grid().gridCount());
+        CHECK(loaded_zone.grid().gridCount() == 4); // Base grid + 3 data layers
         
-        auto grid_names = loaded_zone.grid_data_.getGridNames();
+        auto grid_names = loaded_zone.grid().getGridNames();
         std::cout << "Available grid names after load: ";
         for (const auto& name : grid_names) {
             std::cout << "\"" << name << "\" ";
@@ -389,39 +389,39 @@ TEST_CASE("Complete file I/O round-trip test") {
 //        
 //        // === Verify Element Type Distribution ===
 //        // Count different element types
-//        auto original_parking = original_zone.poly_data_.getElementsByType("parking_space");
-//        auto loaded_parking = loaded_zone.poly_data_.getElementsByType("parking_space");
+//        auto original_parking = original_zone.poly().getElementsByType("parking_space");
+//        auto loaded_parking = loaded_zone.poly().getElementsByType("parking_space");
 //        CHECK(loaded_parking.size() == original_parking.size());
 //        CHECK(loaded_parking.size() == 2);
 //        
-//        auto original_storage = original_zone.poly_data_.getElementsByType("storage_facility");
-//        auto loaded_storage = loaded_zone.poly_data_.getElementsByType("storage_facility");
+//        auto original_storage = original_zone.poly().getElementsByType("storage_facility");
+//        auto loaded_storage = loaded_zone.poly().getElementsByType("storage_facility");
 //        CHECK(loaded_storage.size() == original_storage.size());
 //        CHECK(loaded_storage.size() == 1);
 //        
-//        auto original_routes = original_zone.poly_data_.getElementsByType("access_route");
-//        auto loaded_routes = loaded_zone.poly_data_.getElementsByType("access_route");
+//        auto original_routes = original_zone.poly().getElementsByType("access_route");
+//        auto loaded_routes = loaded_zone.poly().getElementsByType("access_route");
 //        CHECK(loaded_routes.size() == original_routes.size());
 //        CHECK(loaded_routes.size() == 1);
 //        
 //        // === Verify Raster Layers ===
-//        CHECK(loaded_zone.getRasterData().gridCount() == original_zone.getRasterData().gridCount());
-//        CHECK(loaded_zone.getRasterData().gridCount() == 3);
+//        CHECK(loaded_zone.raster_data().gridCount() == original_zone.raster_data().gridCount());
+//        CHECK(loaded_zone.raster_data().gridCount() == 3);
 //        
-//        auto grid_names = loaded_zone.getRasterData().getGridNames();
+//        auto grid_names = loaded_zone.raster_data().getGridNames();
 //        CHECK(std::find(grid_names.begin(), grid_names.end(), "elevation") != grid_names.end());
 //        CHECK(std::find(grid_names.begin(), grid_names.end(), "soil_moisture") != grid_names.end());
 //        CHECK(std::find(grid_names.begin(), grid_names.end(), "vegetation_health") != grid_names.end());
 //        
-//        auto original_layer_names = original_zone.getRasterData().getGridNames();
-//        auto loaded_layer_names = loaded_zone.getRasterData().getGridNames();
+//        auto original_layer_names = original_zone.raster_data().getGridNames();
+//        auto loaded_layer_names = loaded_zone.raster_data().getGridNames();
 //        CHECK(loaded_layer_names.size() == original_layer_names.size());
 //        
 //        // Note: Raster data verification would require more complex grid comparison
 //        // For now, we verify that layers exist and can be queried
-//        const auto& elevation_layer = loaded_zone.getRasterData().getGrid("elevation");
-//        const auto& moisture_layer = loaded_zone.getRasterData().getGrid("soil_moisture");
-//        const auto& ndvi_layer = loaded_zone.getRasterData().getGrid("vegetation_health");
+//        const auto& elevation_layer = loaded_zone.raster_data().getGrid("elevation");
+//        const auto& moisture_layer = loaded_zone.raster_data().getGrid("soil_moisture");
+//        const auto& ndvi_layer = loaded_zone.raster_data().getGrid("vegetation_health");
 //        
 //        CHECK(elevation_layer.grid.rows() > 0);
 //        CHECK(moisture_layer.grid.rows() > 0);
@@ -429,7 +429,7 @@ TEST_CASE("Complete file I/O round-trip test") {
 //        
 //        // === Verify Zone Validation ===
 //        CHECK(loaded_zone.is_valid());
-//        CHECK(loaded_zone.poly_data_.hasFieldBoundary());
+//        CHECK(loaded_zone.poly().hasFieldBoundary());
 //        
 //        // Clean up test files
 //        std::filesystem::remove(vector_path);
@@ -439,7 +439,7 @@ TEST_CASE("Complete file I/O round-trip test") {
 //        std::cout << "✓ Zone properties preserved" << std::endl;
 //        std::cout << "✓ Field boundary preserved" << std::endl;
 //        std::cout << "✓ All " << loaded_elements.size() << " vector elements preserved" << std::endl;
-//        std::cout << "✓ All " << loaded_zone.getRasterData().gridCount() << " raster layers preserved" << std::endl;
+//        std::cout << "✓ All " << loaded_zone.raster_data().gridCount() << " raster layers preserved" << std::endl;
 //        std::cout << "✓ Element types: parking_space(" << loaded_parking.size() 
 //                  << "), storage_facility(" << loaded_storage.size() 
 //                  << "), access_route(" << loaded_routes.size() << "), etc." << std::endl;

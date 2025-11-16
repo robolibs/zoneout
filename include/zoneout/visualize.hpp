@@ -24,13 +24,13 @@ namespace zoneout {
         inline void visualize_zone(const Zone &zone, std::shared_ptr<rerun::RecordingStream> rec,
                                    const concord::Datum &datum, const std::string &zone_name, size_t color_index = 0) {
             std::cout << "Visualizing zone: " << zone_name << std::endl;
-            if (!zone.poly_data_.hasFieldBoundary()) {
+            if (!zone.poly().hasFieldBoundary()) {
 
                 std::cerr << "Zone " << zone_name << " has no field boundary" << std::endl;
                 return;
             }
 
-            const auto &boundary = zone.poly_data_.getFieldBoundary();
+            const auto &boundary = zone.poly().getFieldBoundary();
             const auto &points_data = boundary.getPoints();
             if (points_data.empty()) {
                 std::cerr << "Zone " << zone_name << " has no points" << std::endl;

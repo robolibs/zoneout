@@ -22,21 +22,21 @@ int main() {
         concord::Datum field_datum{51.98776, 5.66238, 0.0}; // Wageningen
         zoneout::Zone robot_field("Robot_Field", "agricultural", field_boundary, field_datum, 2.0);
 
-        std::cout << "✓ Created zone: " << robot_field.getName() << " (" << robot_field.getType() << ")\n";
+        std::cout << "✓ Created zone: " << robot_field.name() << " (" << robot_field.type() << ")\n";
         std::cout << "✓ Field boundary: 100m × 80m\n";
-        std::cout << "✓ " << robot_field.getRasterInfo() << "\n\n";
+        std::cout << "✓ " << robot_field.raster_info() << "\n\n";
 
         // 2. Initialize 3D occlusion layer for robot navigation
         std::cout << "2. Initializing 3D occlusion layer...\n";
 
         // Initialize 3D layer matching raster dimensions, 10 height layers (1m each = 0-10m height)
-        robot_field.initializeOcclusionLayer(
+        robot_field.initialize_occlusion_layer(
             10,     // 10 height layers 
             1.0,    // 1 meter between height layers
             "robot_occlusion", "occlusion", "navigation"
         );
 
-        auto& occlusion = robot_field.getOcclusionLayer();
+        auto& occlusion = robot_field.get_occlusion_layer();
         std::cout << "✓ Initialized 3D occlusion layer: " << occlusion.rows() << "×" << occlusion.cols() << "×" << occlusion.layers() 
                   << " (" << occlusion.inradius() << "m cells, " << occlusion.layer_height() << "m layers)\n";
         std::cout << "✓ Coverage: 0-" << occlusion.layers() << "m height, matching raster dimensions\n\n";
@@ -69,12 +69,12 @@ int main() {
         // Test path from SW to NE corner
         concord::Point start_pos{10.0, 10.0, 0.0};
         concord::Point goal_pos{90.0, 70.0, 0.0};
-        bool path_clear = robot_field.isPathClear(start_pos, goal_pos, 2.5); // 2.5m robot height
+        bool path_clear = robot_field.is_path_clear(start_pos, goal_pos, 2.5); // 2.5m robot height
         std::cout << "✓ Path (10,10) → (90,70) for 2.5m robot: " << (path_clear ? "CLEAR" : "BLOCKED") << "\n";
 
         // Test path that goes through the tree
         concord::Point tree_path_goal{26.0, 31.0, 0.0}; // Through the tree
-        bool tree_path_clear = robot_field.isPathClear(start_pos, tree_path_goal, 2.5);
+        bool tree_path_clear = robot_field.is_path_clear(start_pos, tree_path_goal, 2.5);
         std::cout << "✓ Path (10,10) → (26,31) through tree: " << (tree_path_clear ? "CLEAR" : "BLOCKED") << "\n";
 
         // Find safe height near tree
@@ -82,8 +82,8 @@ int main() {
         std::cout << "✓ Safe height at (26,31): " << safe_height << "m\n";
 
         // Check specific occlusion values
-        uint8_t ground_occlusion = robot_field.getOcclusion({26.0, 31.0, 1.0}); // 1m high in tree
-        uint8_t high_occlusion = robot_field.getOcclusion({26.0, 31.0, 6.0});   // 6m high (above tree)
+        uint8_t ground_occlusion = robot_field.get_occlusion({26.0, 31.0, 1.0}); // 1m high in tree
+        uint8_t high_occlusion = robot_field.get_occlusion({26.0, 31.0, 6.0});   // 6m high (above tree)
         std::cout << "✓ Occlusion at tree (26,31): 1m=" << static_cast<int>(ground_occlusion)
                   << ", 6m=" << static_cast<int>(high_occlusion) << "\n\n";
 
@@ -95,8 +95,8 @@ int main() {
         std::cout << "✓ Extracted ground-level grid: " << ground_grid.rows() << "×" << ground_grid.cols() << "\n";
 
         // Project an existing grid layer to 3D
-        if (robot_field.grid_data_.gridCount() > 0) {
-            const auto &base_grid = robot_field.grid_data_.getGrid(0).grid;
+        if (robot_field.grid().gridCount() > 0) {
+            const auto &base_grid = robot_field.grid().getGrid(0).grid;
             // Note: This would need grid size compatibility for real use
             std::cout << "✓ Base grid available for projection: " << base_grid.rows() << "×" << base_grid.cols()
                       << "\n";
@@ -113,17 +113,17 @@ int main() {
         crop_area.addPoint(concord::Point{15.0, 35.0, 0.0});
 
         // Add to poly data
-        robot_field.addPolygonFeature(crop_area, "corn_field", "crop", "corn");
+        robot_field.add_polygon_feature(crop_area, "corn_field", "crop", "corn");
 
         // Mark crop area as low occlusion (0-3m height for crops)
         occlusion.addPolygonOcclusion(crop_area, 0.0, 3.0, 50); // Partial occlusion for crops
         std::cout << "✓ Added corn field polygon with crop-level occlusion\n";
-        std::cout << "✓ " << robot_field.getFeatureInfo() << "\n\n";
+        std::cout << "✓ " << robot_field.feature_info() << "\n\n";
 
         // 7. Summary and validation
         std::cout << "7. Summary...\n";
         std::cout << "✓ Zone is valid: " << (robot_field.is_valid() ? "YES" : "NO") << "\n";
-        std::cout << "✓ Has occlusion layer: " << (robot_field.hasOcclusionLayer() ? "YES" : "NO") << "\n";
+        std::cout << "✓ Has occlusion layer: " << (robot_field.has_occlusion_layer() ? "YES" : "NO") << "\n";
         std::cout << "✓ Layer metadata:\n";
 
         auto layer_metadata = occlusion.getMetadata();
