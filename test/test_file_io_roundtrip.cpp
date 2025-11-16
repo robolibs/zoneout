@@ -104,10 +104,10 @@ TEST_CASE("Complete file I/O round-trip test") {
         Zone original_zone("Test Agricultural Zone", "field", field_boundary, base_grid, WAGENINGEN_DATUM);
         
         // Set zone properties
-        original_zone.setProperty("crop_type", "wheat");
-        original_zone.setProperty("planting_date", "2024-03-15");
-        original_zone.setProperty("irrigation_schedule", "daily_morning");
-        original_zone.setProperty("soil_type", "clay_loam");
+        original_zone.set_property("crop_type", "wheat");
+        original_zone.set_property("planting_date", "2024-03-15");
+        original_zone.set_property("irrigation_schedule", "daily_morning");
+        original_zone.set_property("soil_type", "clay_loam");
         
         // Add parking spaces (polygons)
         auto parking_area1 = createRectangle(210, 10, 25, 20);
@@ -222,7 +222,7 @@ TEST_CASE("Complete file I/O round-trip test") {
                 elevation_grid.set_value(r, c, elevation);
             }
         }
-        original_zone.getRasterData().addGrid(30, 20, "elevation", "terrain", {
+        original_zone.raster_data().addGrid(30, 20, "elevation", "terrain", {
             {"units", "meters"},
             {"datum", "sea_level"},
             {"accuracy", "0.5m"},
@@ -237,7 +237,7 @@ TEST_CASE("Complete file I/O round-trip test") {
                 moisture_grid.set_value(r, c, moisture);
             }
         }
-        original_zone.getRasterData().addGrid(30, 20, "soil_moisture", "environmental", {
+        original_zone.raster_data().addGrid(30, 20, "soil_moisture", "environmental", {
             {"units", "percentage"},
             {"depth", "0-30cm"},
             {"measurement_date", "2024-06-28"},
@@ -252,7 +252,7 @@ TEST_CASE("Complete file I/O round-trip test") {
                 ndvi_grid.set_value(r, c, ndvi);
             }
         }
-        original_zone.getRasterData().addGrid(30, 20, "vegetation_health", "crop_monitoring", {
+        original_zone.raster_data().addGrid(30, 20, "vegetation_health", "crop_monitoring", {
             {"units", "NDVI_scaled"},
             {"scale_factor", "0.004"},
             {"offset", "-0.2"},
@@ -269,11 +269,11 @@ TEST_CASE("Complete file I/O round-trip test") {
         std::cout << std::endl;
         
         // Verify original zone state
-        CHECK(original_zone.getName() == "Test Agricultural Zone");
-        CHECK(original_zone.getType() == "field");
+        CHECK(original_zone.name() == "Test Agricultural Zone");
+        CHECK(original_zone.type() == "field");
         CHECK(original_zone.poly().elementCount() == 11); // 11 different elements
-        CHECK(original_zone.getRasterData().gridCount() == 4); // Base grid + 3 raster layers
-        CHECK(original_zone.getProperty("crop_type") == "wheat");
+        CHECK(original_zone.raster_data().gridCount() == 4); // Base grid + 3 raster layers
+        CHECK(original_zone.get_property("crop_type") == "wheat");
         
         // Save to files
         std::string vector_path = "/tmp/test_roundtrip.geojson";
@@ -283,23 +283,23 @@ TEST_CASE("Complete file I/O round-trip test") {
         std::filesystem::remove(vector_path);
         std::filesystem::remove(raster_path);
         
-        REQUIRE_NOTHROW(original_zone.toFiles(vector_path, raster_path));
+        REQUIRE_NOTHROW(original_zone.to_files(vector_path, raster_path));
         CHECK(std::filesystem::exists(vector_path));
         CHECK(std::filesystem::exists(raster_path));
         
         // Load the zone back
-        Zone loaded_zone = Zone::fromFiles(vector_path, raster_path);
+        Zone loaded_zone = Zone::from_files(vector_path, raster_path);
         
         // === Verify Basic Zone Properties ===
-        CHECK(loaded_zone.getName() == original_zone.getName());
-        CHECK(loaded_zone.getType() == original_zone.getType());
+        CHECK(loaded_zone.name() == original_zone.name());
+        CHECK(loaded_zone.type() == original_zone.type());
         CHECK(loaded_zone.poly().area() == doctest::Approx(original_zone.poly().area()));
         
         // Verify zone properties
-        CHECK(loaded_zone.getProperty("crop_type") == "wheat");
-        CHECK(loaded_zone.getProperty("planting_date") == "2024-03-15");
-        CHECK(loaded_zone.getProperty("irrigation_schedule") == "daily_morning");
-        CHECK(loaded_zone.getProperty("soil_type") == "clay_loam");
+        CHECK(loaded_zone.get_property("crop_type") == "wheat");
+        CHECK(loaded_zone.get_property("planting_date") == "2024-03-15");
+        CHECK(loaded_zone.get_property("irrigation_schedule") == "daily_morning");
+        CHECK(loaded_zone.get_property("soil_type") == "clay_loam");
         
         // === Verify Field Boundary ===
         CHECK(loaded_zone.poly().hasFieldBoundary());
@@ -405,23 +405,23 @@ TEST_CASE("Complete file I/O round-trip test") {
 //        CHECK(loaded_routes.size() == 1);
 //        
 //        // === Verify Raster Layers ===
-//        CHECK(loaded_zone.getRasterData().gridCount() == original_zone.getRasterData().gridCount());
-//        CHECK(loaded_zone.getRasterData().gridCount() == 3);
+//        CHECK(loaded_zone.raster_data().gridCount() == original_zone.raster_data().gridCount());
+//        CHECK(loaded_zone.raster_data().gridCount() == 3);
 //        
-//        auto grid_names = loaded_zone.getRasterData().getGridNames();
+//        auto grid_names = loaded_zone.raster_data().getGridNames();
 //        CHECK(std::find(grid_names.begin(), grid_names.end(), "elevation") != grid_names.end());
 //        CHECK(std::find(grid_names.begin(), grid_names.end(), "soil_moisture") != grid_names.end());
 //        CHECK(std::find(grid_names.begin(), grid_names.end(), "vegetation_health") != grid_names.end());
 //        
-//        auto original_layer_names = original_zone.getRasterData().getGridNames();
-//        auto loaded_layer_names = loaded_zone.getRasterData().getGridNames();
+//        auto original_layer_names = original_zone.raster_data().getGridNames();
+//        auto loaded_layer_names = loaded_zone.raster_data().getGridNames();
 //        CHECK(loaded_layer_names.size() == original_layer_names.size());
 //        
 //        // Note: Raster data verification would require more complex grid comparison
 //        // For now, we verify that layers exist and can be queried
-//        const auto& elevation_layer = loaded_zone.getRasterData().getGrid("elevation");
-//        const auto& moisture_layer = loaded_zone.getRasterData().getGrid("soil_moisture");
-//        const auto& ndvi_layer = loaded_zone.getRasterData().getGrid("vegetation_health");
+//        const auto& elevation_layer = loaded_zone.raster_data().getGrid("elevation");
+//        const auto& moisture_layer = loaded_zone.raster_data().getGrid("soil_moisture");
+//        const auto& ndvi_layer = loaded_zone.raster_data().getGrid("vegetation_health");
 //        
 //        CHECK(elevation_layer.grid.rows() > 0);
 //        CHECK(moisture_layer.grid.rows() > 0);
@@ -439,7 +439,7 @@ TEST_CASE("Complete file I/O round-trip test") {
 //        std::cout << "✓ Zone properties preserved" << std::endl;
 //        std::cout << "✓ Field boundary preserved" << std::endl;
 //        std::cout << "✓ All " << loaded_elements.size() << " vector elements preserved" << std::endl;
-//        std::cout << "✓ All " << loaded_zone.getRasterData().gridCount() << " raster layers preserved" << std::endl;
+//        std::cout << "✓ All " << loaded_zone.raster_data().gridCount() << " raster layers preserved" << std::endl;
 //        std::cout << "✓ Element types: parking_space(" << loaded_parking.size() 
 //                  << "), storage_facility(" << loaded_storage.size() 
 //                  << "), access_route(" << loaded_routes.size() << "), etc." << std::endl;

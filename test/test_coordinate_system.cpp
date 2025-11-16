@@ -25,7 +25,7 @@ TEST_CASE("Test coordinate system ordering") {
         Zone zone("Test", "test", test_polygon, test_datum, 1.0);
         
         // Get the generated grid
-        const auto& grid_data = zone.getRasterData();
+        const auto& grid_data = zone.raster_data();
         REQUIRE(grid_data.hasGrids());
         const auto& first_layer = grid_data.getGrid(0);
         const auto& grid = first_layer.grid;

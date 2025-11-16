@@ -29,18 +29,18 @@ TEST_CASE("Test real irregular field from misc/field4.geojson") {
         zone.save(output_dir);
 
         // Get the grid info for analysis
-        const auto &grid_data = zone.getRasterData();
+        const auto &grid_data = zone.raster_data();
         if (grid_data.hasGrids()) {
             const auto &first_layer = grid_data.getGrid(0);
             const auto &grid = first_layer.grid;
 
             std::cout << "\n=== Real Field Analysis ===\n";
-            std::cout << "Zone name: " << zone.getName() << std::endl;
+            std::cout << "Zone name: " << zone.name() << std::endl;
             std::cout << "Grid dimensions: " << grid.cols() << " x " << grid.rows() << std::endl;
             std::cout << "Grid resolution: " << grid.inradius() << "m" << std::endl;
 
             // Get polygon boundary for analysis
-            auto boundary = zone.getVectorData().getFieldBoundary();
+            auto boundary = zone.vector_data().getFieldBoundary();
             auto aabb = boundary.getAABB();
 
             std::cout << "Polygon AABB (ENU coordinates):\n";

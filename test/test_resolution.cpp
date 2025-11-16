@@ -24,7 +24,7 @@ TEST_CASE("Test different resolutions with same polygon") {
         SUBCASE(("Resolution " + std::to_string(res) + "m").c_str()) {
             // Create zone with specific resolution
             Zone zone("Test Field", "agricultural", square, test_datum, res);
-            zone.setProperty("resolution", std::to_string(res));
+            zone.set_property("resolution", std::to_string(res));
             
             // Save to files
             std::string output_dir = "/tmp/test_resolution_" + std::to_string(res);
@@ -32,7 +32,7 @@ TEST_CASE("Test different resolutions with same polygon") {
             zone.save(output_dir);
             
             // Get the grid info
-            const auto& grid_data = zone.getRasterData();
+            const auto& grid_data = zone.raster_data();
             if (grid_data.hasGrids()) {
                 const auto& first_layer = grid_data.getGrid(0);
                 const auto& grid = first_layer.grid;
@@ -82,8 +82,8 @@ TEST_CASE("Test different resolutions with same polygon") {
             
             // Load back and check
             Zone loaded = Zone::load(output_dir);
-            CHECK(loaded.getName() == "Test Field");
-            CHECK(loaded.getProperty("resolution") == std::to_string(res));
+            CHECK(loaded.name() == "Test Field");
+            CHECK(loaded.get_property("resolution") == std::to_string(res));
             
             INFO("Files saved to: " << output_dir);
         }

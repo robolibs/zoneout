@@ -50,15 +50,15 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
                 }
             }
 
-            zone.addRasterLayer(temp_grid, "temperature", "environmental", {{"units", "celsius"}}, true);
-            zone.addRasterLayer(moisture_grid, "moisture", "environmental", {{"units", "percentage"}}, true);
+            zone.add_raster_layer(temp_grid, "temperature", "environmental", {{"units", "celsius"}}, true);
+            zone.add_raster_layer(moisture_grid, "moisture", "environmental", {{"units", "percentage"}}, true);
 
             // Initialize 3D occlusion layer matching the raster dimensions
-            zone.initializeOcclusionLayer(20, 1.0, "field_obstacles", "occlusion", "robot_navigation");
+            zone.initialize_occlusion_layer(20, 1.0, "field_obstacles", "occlusion", "robot_navigation");
 
             // Add realistic farm obstacles to the 3D map
-            if (zone.hasOcclusionLayer()) {
-                auto &occlusion_map = zone.getOcclusionLayer();
+            if (zone.has_occlusion_layer()) {
+                auto &occlusion_map = zone.get_occlusion_layer();
 
                 // Add some random obstacles using noise (similar to temp/moisture)
                 entropy::NoiseGen obstacle_noise;
@@ -93,12 +93,12 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
                           << "×" << occlusion_map.cols() << "×" << occlusion_map.layers() << ")" << std::endl;
             }
 
-            zone.setProperty("crop_type", crop_type);
-            zone.setProperty("planting_date", "2024-04-15");
-            zone.setProperty("irrigation", "true");
+            zone.set_property("crop_type", crop_type);
+            zone.set_property("planting_date", "2024-04-15");
+            zone.set_property("irrigation", "true");
 
             plot.addZone(zone);
-            std::cout << "Added zone: " << zone.getName() << " (ID: " << zone.getId().toString() << ")" << std::endl;
+            std::cout << "Added zone: " << zone.name() << " (ID: " << zone.id().toString() << ")" << std::endl;
 
             // Add remaining polygons as features to the zone that's now in the plot
             if (plot.getZoneCount() > 0) {
@@ -108,7 +108,7 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
                     Props properties = {{"area_m2", std::to_string(static_cast<int>(polygons[i].area()))}};
                     std::string feature_name = zone_name + "_feature_" + std::to_string(i);
                     try {
-                        plot_zone.addPolygonFeature(polygons[i], feature_name, "obstacle", "obstacle", properties);
+                        plot_zone.add_polygon_feature(polygons[i], feature_name, "obstacle", "obstacle", properties);
                     } catch (const std::exception &e) {
                         std::cout << "Failed to add feature " << feature_name << ": " << e.what() << std::endl;
                     }
@@ -141,7 +141,7 @@ int main() {
     std::cout << "Zone 0 boundary: " << boundary.getPoints().size() << " points" << std::endl;
 
     for (size_t i = 0; i < zones.size(); ++i) {
-        zoneout::visualize::visualize_zone(zones.at(i), rec, zones.at(i).getDatum(), zones.at(i).getName(), i);
+        zoneout::visualize::visualize_zone(zones.at(i), rec, zones.at(i).datum(), zones.at(i).name(), i);
     }
 
     return 0;

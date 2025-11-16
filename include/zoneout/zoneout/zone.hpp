@@ -40,82 +40,59 @@ namespace zoneout {
         Zone(const std::string &name, const std::string &type, const concord::Polygon &boundary,
              const concord::Datum &datum, double resolution = 1.0);
 
-        const UUID &getId() const;
-        const std::string &getName() const;
-        const std::string &getType() const;
+        const UUID &id() const;
+        const std::string &name() const;
+        const std::string &type() const;
+        void set_name(const std::string &name);
+        void set_type(const std::string &type);
+        void set_property(const std::string &key, const std::string &value);
+        std::string get_property(const std::string &key, const std::string &default_value = "") const;
+        const std::unordered_map<std::string, std::string> &properties() const;
+        const concord::Datum &datum() const;
+        void set_datum(const concord::Datum &datum);
 
-        void setName(const std::string &name);
-
-        void setType(const std::string &type);
-
-        void setProperty(const std::string &key, const std::string &value);
-
-        std::string getProperty(const std::string &key, const std::string &default_value = "") const;
-
-        const std::unordered_map<std::string, std::string> &getProperties() const;
-
-        const concord::Datum &getDatum() const;
-
-        void setDatum(const concord::Datum &datum);
-
-        void addRasterLayer(const concord::Grid<uint8_t> &grid, const std::string &name, const std::string &type = "",
-                            const std::unordered_map<std::string, std::string> &properties = {}, bool poly_cut = false,
-                            int layer_index = -1);
-
-        std::string getRasterInfo() const;
-
-        void addPolygonFeature(const concord::Polygon &geometry, const std::string &name, const std::string &type = "",
-                               const std::string &subtype = "default",
-                               const std::unordered_map<std::string, std::string> &properties = {});
-
-        void initializeOcclusionLayer(size_t height_layers, double layer_height,
-                                      const std::string &name = "occlusion_map", const std::string &type = "occlusion",
-                                      const std::string &subtype = "robot_navigation");
-
-        void initializeOcclusionLayerExplicit(size_t rows, size_t cols, size_t height_layers, double cell_size,
-                                              double layer_height, const std::string &name = "occlusion_map",
-                                              const std::string &type = "occlusion",
-                                              const std::string &subtype = "robot_navigation",
-                                              const concord::Pose &pose = concord::Pose{});
-
-        bool hasOcclusionLayer() const;
-
-        Layer &getOcclusionLayer();
-
-        const Layer &getOcclusionLayer() const;
-
-        void setOcclusion(const concord::Point &world_point, uint8_t value);
-
-        uint8_t getOcclusion(const concord::Point &world_point) const;
-
-        bool isPathClear(const concord::Point &start, const concord::Point &end, double robot_height = 2.0,
-                         uint8_t threshold = 50) const;
-
-        std::string getFeatureInfo() const;
+        void add_raster_layer(const concord::Grid<uint8_t> &grid, const std::string &name, const std::string &type = "",
+                              const std::unordered_map<std::string, std::string> &properties = {},
+                              bool poly_cut = false, int layer_index = -1);
+        std::string raster_info() const;
+        void add_polygon_feature(const concord::Polygon &geometry, const std::string &name,
+                                 const std::string &type = "", const std::string &subtype = "default",
+                                 const std::unordered_map<std::string, std::string> &properties = {});
+        void initialize_occlusion_layer(size_t height_layers, double layer_height,
+                                        const std::string &name = "occlusion_map",
+                                        const std::string &type = "occlusion",
+                                        const std::string &subtype = "robot_navigation");
+        void initialize_occlusion_layer_explicit(size_t rows, size_t cols, size_t height_layers, double cell_size,
+                                                 double layer_height, const std::string &name = "occlusion_map",
+                                                 const std::string &type = "occlusion",
+                                                 const std::string &subtype = "robot_navigation",
+                                                 const concord::Pose &pose = concord::Pose{});
+        bool has_occlusion_layer() const;
+        Layer &get_occlusion_layer();
+        const Layer &get_occlusion_layer() const;
+        void set_occlusion(const concord::Point &world_point, uint8_t value);
+        uint8_t get_occlusion(const concord::Point &world_point) const;
+        bool is_path_clear(const concord::Point &start, const concord::Point &end, double robot_height = 2.0,
+                           uint8_t threshold = 50) const;
+        std::string feature_info() const;
 
         bool is_valid() const;
 
-        static Zone fromFiles(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path,
-                              const std::optional<std::filesystem::path> &layer_path = std::nullopt);
-
-        void toFiles(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path,
-                     const std::optional<std::filesystem::path> &layer_path = std::nullopt) const;
-
+        static Zone from_files(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path,
+                               const std::optional<std::filesystem::path> &layer_path = std::nullopt);
+        void to_files(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path,
+                      const std::optional<std::filesystem::path> &layer_path = std::nullopt) const;
         void save(const std::filesystem::path &directory) const;
-
         static Zone load(const std::filesystem::path &directory);
 
-        const geoson::Vector &getVectorData() const;
-        const geotiv::Raster &getRasterData() const;
+        const geoson::Vector &vector_data() const;
+        const geotiv::Raster &raster_data() const;
+        geoson::Vector &vector_data();
+        geotiv::Raster &raster_data();
 
-        geoson::Vector &getVectorData();
-        geotiv::Raster &getRasterData();
-
-        std::string getGlobalProperty(const char *global_name) const;
-
-        void setGlobalProperty(const char *global_name, const std::string &value);
-
-        void syncToPolyGrid();
+        std::string global_property(const char *global_name) const;
+        void set_global_property(const char *global_name, const std::string &value);
+        void sync_to_poly_grid();
 
         // Accessors for internal data structures
         Poly &poly();

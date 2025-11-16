@@ -23,7 +23,7 @@ namespace zoneout {
 
     bool Plot::removeZone(const UUID &zone_id) {
         auto it = std::find_if(zones_.begin(), zones_.end(),
-                               [&zone_id](const Zone &zone) { return zone.getId() == zone_id; });
+                               [&zone_id](const Zone &zone) { return zone.id() == zone_id; });
         if (it != zones_.end()) {
             zones_.erase(it);
             return true;
@@ -33,13 +33,13 @@ namespace zoneout {
 
     Zone *Plot::getZone(const UUID &zone_id) {
         auto it = std::find_if(zones_.begin(), zones_.end(),
-                               [&zone_id](const Zone &zone) { return zone.getId() == zone_id; });
+                               [&zone_id](const Zone &zone) { return zone.id() == zone_id; });
         return (it != zones_.end()) ? &(*it) : nullptr;
     }
 
     const Zone *Plot::getZone(const UUID &zone_id) const {
         auto it = std::find_if(zones_.begin(), zones_.end(),
-                               [&zone_id](const Zone &zone) { return zone.getId() == zone_id; });
+                               [&zone_id](const Zone &zone) { return zone.id() == zone_id; });
         return (it != zones_.end()) ? &(*it) : nullptr;
     }
 
@@ -71,7 +71,7 @@ namespace zoneout {
             std::filesystem::create_directories(zone_dir);
             auto vector_path = zone_dir / "vector.geojson";
             auto raster_path = zone_dir / "raster.tiff";
-            zones_[i].toFiles(vector_path, raster_path);
+            zones_[i].to_files(vector_path, raster_path);
         }
     }
 
@@ -191,8 +191,8 @@ namespace zoneout {
                     try {
                         auto vector_path = entry.path() / "vector.geojson";
                         auto raster_path = entry.path() / "raster.tiff";
-                        auto zone = Zone::fromFiles(vector_path, raster_path);
-                        plot_datum = zone.getDatum();
+                        auto zone = Zone::from_files(vector_path, raster_path);
+                        plot_datum = zone.datum();
                         plot.addZone(zone);
                     } catch (const std::exception &) {
                     }

@@ -21,7 +21,7 @@ TEST_CASE("Test irregular polygon alignment") {
         
         // Create zone with 1m resolution
         Zone zone("Irregular Field", "agricultural", trapezoid, test_datum, 1.0);
-        zone.setProperty("shape", "trapezoid");
+        zone.set_property("shape", "trapezoid");
         
         // Save to files
         std::string output_dir = "/tmp/test_irregular";
@@ -29,7 +29,7 @@ TEST_CASE("Test irregular polygon alignment") {
         zone.save(output_dir);
         
         // Get the grid info
-        const auto& grid_data = zone.getRasterData();
+        const auto& grid_data = zone.raster_data();
         if (grid_data.hasGrids()) {
             const auto& first_layer = grid_data.getGrid(0);
             const auto& grid = first_layer.grid;
@@ -101,7 +101,7 @@ TEST_CASE("Test irregular polygon alignment") {
         diamond.addPoint({0, 50, 0});   // Left
         
         Zone zone("Diamond Field", "agricultural", diamond, test_datum, 1.0);
-        zone.setProperty("shape", "diamond");
+        zone.set_property("shape", "diamond");
         
         std::string output_dir = "/tmp/test_diamond";
         std::filesystem::remove_all(output_dir);

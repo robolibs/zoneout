@@ -39,23 +39,23 @@ int main() {
     boundary.addPoint(concord::Point(0.0, 200.0, 0.0));   // NW corner
 
     wheat_field.poly().setFieldBoundary(boundary);
-    wheat_field.setProperty("crop_type", "wheat");
-    wheat_field.setProperty("planting_date", "2024-10-15");
-    wheat_field.setProperty("area_hectares", "6.0");
+    wheat_field.set_property("crop_type", "wheat");
+    wheat_field.set_property("planting_date", "2024-10-15");
+    wheat_field.set_property("area_hectares", "6.0");
 
-    std::cout << "Created zone: " << wheat_field.getName() << " (" << wheat_field.getType()
+    std::cout << "Created zone: " << wheat_field.name() << " (" << wheat_field.type()
               << "): " << wheat_field.poly().area() << " m²" << std::endl;
 
     // Visualize the zone
     std::cout << "\nSending visualization data to Rerun..." << std::endl;
-    zoneout::visualize::visualize_zone(wheat_field, rec, datum, wheat_field.getName(), 0);
+    zoneout::visualize::visualize_zone(wheat_field, rec, datum, wheat_field.name(), 0);
 
     std::cout << "\n=== Visualization Ready ===" << std::endl;
     std::cout << "Open your browser to: http://localhost:9876" << std::endl;
     std::cout << "Or run: rerun &" << std::endl;
     std::cout << "\nVisualization features:" << std::endl;
-    std::cout << "• Local ENU coordinates: /" << wheat_field.getName() << "/enu (meters from datum)" << std::endl;
-    std::cout << "• GPS map coordinates: /" << wheat_field.getName() << "/wgs (lat/lon on world map)" << std::endl;
+    std::cout << "• Local ENU coordinates: /" << wheat_field.name() << "/enu (meters from datum)" << std::endl;
+    std::cout << "• GPS map coordinates: /" << wheat_field.name() << "/wgs (lat/lon on world map)" << std::endl;
     std::cout << "\nMap view shows real GPS coordinates around Wageningen, Netherlands" << std::endl;
     std::cout << "\nZone area: " << wheat_field.poly().area() / 10000.0 << " hectares" << std::endl;
     std::cout << "Datum reference: " << datum.lat << "°N, " << datum.lon << "°E" << std::endl;

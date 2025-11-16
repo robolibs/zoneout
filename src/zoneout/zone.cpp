@@ -27,19 +27,19 @@ namespace zoneout {
                const concord::Grid<uint8_t> &initial_grid, const concord::Datum &datum)
         : id_(generateUUID()), name_(name), type_(type), poly_data_(name, type, "default", boundary),
           grid_data_(name, type, "default") {
-        setDatum(datum);
+        set_datum(datum);
         auto aabb = boundary.getAABB();
         concord::Pose grid_pose(aabb.center(), concord::Euler{0, 0, 0});
         grid_data_.setShift(grid_pose);
         grid_data_.addGrid(initial_grid, "base_layer", "terrain");
-        syncToPolyGrid();
+        sync_to_poly_grid();
     }
 
     Zone::Zone(const std::string &name, const std::string &type, const concord::Polygon &boundary,
                const concord::Datum &datum, double resolution)
         : id_(generateUUID()), name_(name), type_(type), poly_data_(name, type, "default", boundary),
           grid_data_(name, type, "default") {
-        setDatum(datum);
+        set_datum(datum);
 
         auto aabb = boundary.getAABB();
 
@@ -77,22 +77,22 @@ namespace zoneout {
         }
 
         grid_data_.addGrid(generated_grid, "base_layer", "terrain");
-        syncToPolyGrid();
+        sync_to_poly_grid();
     }
 
     // ========== Basic Properties ==========
 
-    const UUID &Zone::getId() const { return id_; }
-    const std::string &Zone::getName() const { return name_; }
-    const std::string &Zone::getType() const { return type_; }
+    const UUID &Zone::id() const { return id_; }
+    const std::string &Zone::name() const { return name_; }
+    const std::string &Zone::type() const { return type_; }
 
-    void Zone::setName(const std::string &name) {
+    void Zone::set_name(const std::string &name) {
         name_ = name;
         poly_data_.setName(name);
         grid_data_.setName(name);
     }
 
-    void Zone::setType(const std::string &type) {
+    void Zone::set_type(const std::string &type) {
         type_ = type;
         poly_data_.setType(type);
         grid_data_.setType(type);
@@ -100,27 +100,27 @@ namespace zoneout {
 
     // ========== Zone Properties ==========
 
-    void Zone::setProperty(const std::string &key, const std::string &value) { properties_[key] = value; }
+    void Zone::set_property(const std::string &key, const std::string &value) { properties_[key] = value; }
 
-    std::string Zone::getProperty(const std::string &key, const std::string &default_value) const {
+    std::string Zone::get_property(const std::string &key, const std::string &default_value) const {
         auto it = properties_.find(key);
         return (it != properties_.end()) ? it->second : default_value;
     }
 
-    const std::unordered_map<std::string, std::string> &Zone::getProperties() const { return properties_; }
+    const std::unordered_map<std::string, std::string> &Zone::properties() const { return properties_; }
 
     // ========== Datum Management ==========
 
-    const concord::Datum &Zone::getDatum() const { return poly_data_.getDatum(); }
+    const concord::Datum &Zone::datum() const { return poly_data_.getDatum(); }
 
-    void Zone::setDatum(const concord::Datum &datum) {
+    void Zone::set_datum(const concord::Datum &datum) {
         poly_data_.setDatum(datum);
         grid_data_.setDatum(datum);
     }
 
     // ========== Raster Layer Management ==========
 
-    void Zone::addRasterLayer(const concord::Grid<uint8_t> &grid, const std::string &name, const std::string &type,
+    void Zone::add_raster_layer(const concord::Grid<uint8_t> &grid, const std::string &name, const std::string &type,
                               const std::unordered_map<std::string, std::string> &properties, bool poly_cut,
                               int layer_index) {
         if (poly_cut && poly_data_.hasFieldBoundary()) {
@@ -149,7 +149,7 @@ namespace zoneout {
         }
     }
 
-    std::string Zone::getRasterInfo() const {
+    std::string Zone::raster_info() const {
         if (grid_data_.gridCount() > 0) {
             const auto &first_layer = grid_data_.getGrid(0);
             return "Raster size: " + std::to_string(first_layer.grid.cols()) + "x" +
@@ -160,7 +160,7 @@ namespace zoneout {
 
     // ========== Polygon Feature Management ==========
 
-    void Zone::addPolygonFeature(const concord::Polygon &geometry, const std::string &name, const std::string &type,
+    void Zone::add_polygon_feature(const concord::Polygon &geometry, const std::string &name, const std::string &type,
                                  const std::string &subtype,
                                  const std::unordered_map<std::string, std::string> &properties) {
         if (poly_data_.hasFieldBoundary()) {
@@ -198,7 +198,7 @@ namespace zoneout {
 
     // ========== 3D Layer Management ==========
 
-    void Zone::initializeOcclusionLayer(size_t height_layers, double layer_height, const std::string &name,
+    void Zone::initialize_occlusion_layer(size_t height_layers, double layer_height, const std::string &name,
                                         const std::string &type, const std::string &subtype) {
         if (!grid_data_.hasGrids()) {
             throw std::runtime_error(
@@ -217,44 +217,44 @@ namespace zoneout {
                   << " (cell: " << cell_size << "m, height: " << layer_height << "m)\n";
     }
 
-    void Zone::initializeOcclusionLayerExplicit(size_t rows, size_t cols, size_t height_layers, double cell_size,
+    void Zone::initialize_occlusion_layer_explicit(size_t rows, size_t cols, size_t height_layers, double cell_size,
                                                 double layer_height, const std::string &name, const std::string &type,
                                                 const std::string &subtype, const concord::Pose &pose) {
         layer_data_ = Layer(name, type, subtype, rows, cols, height_layers, cell_size, layer_height, pose);
     }
 
-    bool Zone::hasOcclusionLayer() const { return layer_data_.has_value(); }
+    bool Zone::has_occlusion_layer() const { return layer_data_.has_value(); }
 
-    Layer &Zone::getOcclusionLayer() {
+    Layer &Zone::get_occlusion_layer() {
         if (!layer_data_.has_value()) {
             throw std::runtime_error("Occlusion layer not initialized. Call initializeOcclusionLayer() first.");
         }
         return *layer_data_;
     }
 
-    const Layer &Zone::getOcclusionLayer() const {
+    const Layer &Zone::get_occlusion_layer() const {
         if (!layer_data_.has_value()) {
             throw std::runtime_error("Occlusion layer not initialized. Call initializeOcclusionLayer() first.");
         }
         return *layer_data_;
     }
 
-    void Zone::setOcclusion(const concord::Point &world_point, uint8_t value) {
-        if (hasOcclusionLayer()) {
+    void Zone::set_occlusion(const concord::Point &world_point, uint8_t value) {
+        if (has_occlusion_layer()) {
             layer_data_->setOcclusion(world_point, value);
         }
     }
 
-    uint8_t Zone::getOcclusion(const concord::Point &world_point) const {
-        return hasOcclusionLayer() ? layer_data_->getOcclusion(world_point) : 0;
+    uint8_t Zone::get_occlusion(const concord::Point &world_point) const {
+        return has_occlusion_layer() ? layer_data_->getOcclusion(world_point) : 0;
     }
 
-    bool Zone::isPathClear(const concord::Point &start, const concord::Point &end, double robot_height,
+    bool Zone::is_path_clear(const concord::Point &start, const concord::Point &end, double robot_height,
                            uint8_t threshold) const {
-        return hasOcclusionLayer() ? layer_data_->isPathClear(start, end, robot_height, threshold) : true;
+        return has_occlusion_layer() ? layer_data_->isPathClear(start, end, robot_height, threshold) : true;
     }
 
-    std::string Zone::getFeatureInfo() const {
+    std::string Zone::feature_info() const {
         const auto &polygon_elements = poly_data_.getPolygonElements();
         const auto &line_elements = poly_data_.getLineElements();
         const auto &point_elements = poly_data_.getPointElements();
@@ -273,7 +273,7 @@ namespace zoneout {
 
     bool Zone::is_valid() const {
         bool valid = poly_data_.isValid() && grid_data_.isValid();
-        if (hasOcclusionLayer()) {
+        if (has_occlusion_layer()) {
             valid = valid && layer_data_->isValid();
         }
         return valid;
@@ -281,7 +281,7 @@ namespace zoneout {
 
     // ========== File I/O ==========
 
-    Zone Zone::fromFiles(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path,
+    Zone Zone::from_files(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path,
                          const std::optional<std::filesystem::path> &layer_path) {
         auto [poly, grid] = loadPolyGrid(vector_path, raster_path);
 
@@ -322,7 +322,7 @@ namespace zoneout {
             auto field_props = poly.getFieldProperties();
             for (const auto &[key, value] : field_props) {
                 if (key.substr(0, 5) == "prop_") {
-                    zone.setProperty(key.substr(5), value);
+                    zone.set_property(key.substr(5), value);
                 }
             }
         }
@@ -335,13 +335,13 @@ namespace zoneout {
             }
         }
 
-        zone.syncToPolyGrid();
+        zone.sync_to_poly_grid();
         return zone;
     }
 
-    void Zone::toFiles(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path,
+    void Zone::to_files(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path,
                        const std::optional<std::filesystem::path> &layer_path) const {
-        const_cast<Zone *>(this)->syncToPolyGrid();
+        const_cast<Zone *>(this)->sync_to_poly_grid();
 
         auto poly_copy = poly_data_;
         auto grid_copy = grid_data_;
@@ -355,7 +355,7 @@ namespace zoneout {
 
         savePolyGrid(poly_copy, grid_copy, vector_path, raster_path);
 
-        if (hasOcclusionLayer() && layer_path.has_value()) {
+        if (has_occlusion_layer() && layer_path.has_value()) {
             try {
                 layer_data_->toFile(layer_path.value());
             } catch (const std::exception &e) {
@@ -369,26 +369,26 @@ namespace zoneout {
         auto vector_path = directory / "vector.geojson";
         auto raster_path = directory / "raster.tiff";
         auto layer_path = directory / "map.tiff";
-        toFiles(vector_path, raster_path, hasOcclusionLayer() ? std::optional(layer_path) : std::nullopt);
+        to_files(vector_path, raster_path, has_occlusion_layer() ? std::optional(layer_path) : std::nullopt);
     }
 
     Zone Zone::load(const std::filesystem::path &directory) {
         auto vector_path = directory / "vector.geojson";
         auto raster_path = directory / "raster.tiff";
         auto layer_path = directory / "map.tiff";
-        return fromFiles(vector_path, raster_path,
+        return from_files(vector_path, raster_path,
                          std::filesystem::exists(layer_path) ? std::optional(layer_path) : std::nullopt);
     }
 
-    const geoson::Vector &Zone::getVectorData() const { return poly_data_; }
-    const geotiv::Raster &Zone::getRasterData() const { return grid_data_; }
+    const geoson::Vector &Zone::vector_data() const { return poly_data_; }
+    const geotiv::Raster &Zone::raster_data() const { return grid_data_; }
 
-    geoson::Vector &Zone::getVectorData() { return poly_data_; }
-    geotiv::Raster &Zone::getRasterData() { return grid_data_; }
+    geoson::Vector &Zone::vector_data() { return poly_data_; }
+    geotiv::Raster &Zone::raster_data() { return grid_data_; }
 
     // ========== Unified Global Property Access ==========
 
-    std::string Zone::getGlobalProperty(const char *global_name) const {
+    std::string Zone::global_property(const char *global_name) const {
         auto field_props = poly_data_.getFieldProperties();
         auto it = field_props.find(global_name);
         if (it != field_props.end()) {
@@ -405,14 +405,14 @@ namespace zoneout {
         return "";
     }
 
-    void Zone::setGlobalProperty(const char *global_name, const std::string &value) {
+    void Zone::set_global_property(const char *global_name, const std::string &value) {
         poly_data_.setFieldProperty(global_name, value);
         if (grid_data_.hasGrids()) {
             grid_data_.setGlobalProperty(global_name, value);
         }
     }
 
-    void Zone::syncToPolyGrid() {
+    void Zone::sync_to_poly_grid() {
         poly_data_.setName(name_);
         poly_data_.setType(type_);
         poly_data_.setId(id_);
