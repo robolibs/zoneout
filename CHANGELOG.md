@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.2.0] - 2025-11-16
+
+### <!-- 0 -->⛰️  Features
+
+- Add grid center example
+- Introduce I/O module and zone creation helpers
+- Add C++ quickstart for zoneout library
+
+### <!-- 2 -->🚜 Refactor
+
+- Remove 3D occlusion layer and standardize naming
+- Standardize API to snake_case and remove Layer class
+- Refactor: Remove occlusion layer support from Zone
+- Introduce metadata struct to core geometric types
+- Encapsulate `Zone`'s internal data with accessors
+- Organize source files and add future tasks
+
+### <!-- 3 -->📚 Documentation
+
+- Refactor: Remove outdated refactoring summary documentation
+- Streamline project documentation and quickstart experience
+- Remove TODO file and ignore it from now on
+
+### <!-- 5 -->🎨 Styling
+
+- Rename C++ methods to snake_case for consistency
+
 ## [1.1.0] - 2025-11-02
 
 ### <!-- 7 -->⚙️ Miscellaneous Tasks
