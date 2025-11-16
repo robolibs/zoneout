@@ -8,16 +8,14 @@
 
 #include "concord/geometry/layer/layer.hpp"
 #include "geotiv/raster.hpp"
+#include "utils/meta.hpp"
 #include "utils/uuid.hpp"
 
 namespace zoneout {
 
     class Layer : public concord::Layer<uint8_t> {
       private:
-        UUID id_;
-        std::string name_;
-        std::string type_;
-        std::string subtype_;
+        Meta meta_;
 
       public:
         Layer();

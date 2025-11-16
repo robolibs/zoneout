@@ -16,6 +16,7 @@
 #include "entropy/generator.hpp"
 #include "layer.hpp"
 #include "polygrid.hpp"
+#include "utils/meta.hpp"
 #include "utils/time.hpp"
 #include "utils/uuid.hpp"
 
