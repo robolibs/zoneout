@@ -82,7 +82,7 @@ zone.is_path_clear(start, end, robot_height, threshold);
 // Features
 zone.add_polygon_feature(geometry, name, type, subtype, properties);
 
-// File I/O
+// I/O
 zone.save(directory);
 Zone::load(directory);
 zone.to_files(vector_path, raster_path);

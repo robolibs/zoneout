@@ -34,7 +34,6 @@ namespace zoneout {
       private:
         Poly poly_data_;
         Grid grid_data_;
-        std::optional<Layer> layer_data_;
 
         UUID id_;
         std::string name_;
@@ -67,34 +66,12 @@ namespace zoneout {
         void add_polygon_feature(const concord::Polygon &geometry, const std::string &name,
                                  const std::string &type = "", const std::string &subtype = "default",
                                  const std::unordered_map<std::string, std::string> &properties = {});
-        void initialize_occlusion_layer(size_t height_layers, double layer_height,
-                                        const std::string &name = "occlusion_map",
-                                        const std::string &type = "occlusion",
-                                        const std::string &subtype = "robot_navigation");
-        void initialize_occlusion_layer_explicit(size_t rows, size_t cols, size_t height_layers, double cell_size,
-                                                 double layer_height, const std::string &name = "occlusion_map",
-                                                 const std::string &type = "occlusion",
-                                                 const std::string &subtype = "robot_navigation",
-                                                 const concord::Pose &pose = concord::Pose{});
-        void ensure_occlusion_layer(size_t height_layers = DEFAULT_HEIGHT_LAYERS,
-                                    double layer_height = DEFAULT_LAYER_HEIGHT,
-                                    const std::string &name = "occlusion_map", const std::string &type = "occlusion",
-                                    const std::string &subtype = "robot_navigation");
-        bool has_occlusion_layer() const;
-        Layer &get_occlusion_layer();
-        const Layer &get_occlusion_layer() const;
-        void set_occlusion(const concord::Point &world_point, uint8_t value);
-        uint8_t get_occlusion(const concord::Point &world_point) const;
-        bool is_path_clear(const concord::Point &start, const concord::Point &end, double robot_height = 2.0,
-                           uint8_t threshold = 50) const;
         std::string feature_info() const;
 
         bool is_valid() const;
 
-        static Zone from_files(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path,
-                               const std::optional<std::filesystem::path> &layer_path = std::nullopt);
-        void to_files(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path,
-                      const std::optional<std::filesystem::path> &layer_path = std::nullopt) const;
+        static Zone from_files(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path);
+        void to_files(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path) const;
         void save(const std::filesystem::path &directory) const;
         static Zone load(const std::filesystem::path &directory);
 
@@ -113,9 +90,6 @@ namespace zoneout {
 
         Grid &grid();
         const Grid &grid() const;
-
-        std::optional<Layer> &occlusion_layer();
-        const std::optional<Layer> &occlusion_layer() const;
 
       private:
     };

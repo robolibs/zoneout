@@ -10,11 +10,9 @@ namespace zoneout {
 
         // Zone I/O functions
         void save_zone(const Zone &zone, const std::filesystem::path &vector_path,
-                       const std::filesystem::path &raster_path,
-                       const std::optional<std::filesystem::path> &layer_path = std::nullopt);
+                       const std::filesystem::path &raster_path);
 
-        Zone load_zone(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path,
-                       const std::optional<std::filesystem::path> &layer_path = std::nullopt);
+        Zone load_zone(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path);
 
         void save_zone(const Zone &zone, const std::filesystem::path &directory);
 
