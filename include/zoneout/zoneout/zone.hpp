@@ -15,7 +15,6 @@
 #include "concord/concord.hpp"
 #include "constants.hpp"
 #include "entropy/generator.hpp"
-#include "layer.hpp"
 #include "polygrid.hpp"
 #include "utils/meta.hpp"
 #include "utils/time.hpp"

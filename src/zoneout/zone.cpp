@@ -53,7 +53,7 @@ namespace zoneout {
         auto aabb = boundary.getAABB();
         concord::Pose grid_pose(aabb.center(), concord::Euler{0, 0, 0});
         grid_data_.setShift(grid_pose);
-        grid_data_.addGrid(initial_grid, "base_layer", "terrain");
+        grid_data_.add_grid(initial_grid, "base_layer", "terrain");
         sync_to_poly_grid();
     }
 
@@ -98,7 +98,7 @@ namespace zoneout {
             }
         }
 
-        grid_data_.addGrid(generated_grid, "base_layer", "terrain");
+        grid_data_.add_grid(generated_grid, "base_layer", "terrain");
         sync_to_poly_grid();
     }
 
@@ -110,14 +110,14 @@ namespace zoneout {
 
     void Zone::set_name(const std::string &name) {
         name_ = name;
-        poly_data_.setName(name);
-        grid_data_.setName(name);
+        poly_data_.set_name(name);
+        grid_data_.set_name(name);
     }
 
     void Zone::set_type(const std::string &type) {
         type_ = type;
-        poly_data_.setType(type);
-        grid_data_.setType(type);
+        poly_data_.set_type(type);
+        grid_data_.set_type(type);
     }
 
     // ========== Zone Properties ==========
@@ -145,7 +145,7 @@ namespace zoneout {
     void Zone::add_raster_layer(const concord::Grid<uint8_t> &grid, const std::string &name, const std::string &type,
                               const std::unordered_map<std::string, std::string> &properties, bool poly_cut,
                               int layer_index) {
-        if (poly_cut && poly_data_.hasFieldBoundary()) {
+        if (poly_cut && poly_data_.has_field_boundary()) {
             auto modified_grid = grid;
 
             auto boundary = poly_data_.getFieldBoundary();
@@ -165,9 +165,9 @@ namespace zoneout {
                 }
             }
 
-            grid_data_.addGrid(modified_grid, name, type, properties);
+            grid_data_.add_grid(modified_grid, name, type, properties);
         } else {
-            grid_data_.addGrid(grid, name, type, properties);
+            grid_data_.add_grid(grid, name, type, properties);
         }
     }
 
@@ -185,7 +185,7 @@ namespace zoneout {
     void Zone::add_polygon_feature(const concord::Polygon &geometry, const std::string &name, const std::string &type,
                                  const std::string &subtype,
                                  const std::unordered_map<std::string, std::string> &properties) {
-        if (poly_data_.hasFieldBoundary()) {
+        if (poly_data_.has_field_boundary()) {
             auto boundary = poly_data_.getFieldBoundary();
 
             for (const auto &point : geometry.getPoints()) {
@@ -215,13 +215,13 @@ namespace zoneout {
 
         UUID feature_id = generateUUID();
 
-        poly_data_.addPolygonElement(feature_id, name, type, subtype, geometry, properties);
+        poly_data_.add_polygon_element(feature_id, name, type, subtype, geometry, properties);
     }
 
     std::string Zone::feature_info() const {
-        const auto &polygon_elements = poly_data_.getPolygonElements();
-        const auto &line_elements = poly_data_.getLineElements();
-        const auto &point_elements = poly_data_.getPointElements();
+        const auto &polygon_elements = poly_data_.get_polygon_elements();
+        const auto &line_elements = poly_data_.get_line_elements();
+        const auto &point_elements = poly_data_.get_point_elements();
 
         size_t total_features = polygon_elements.size() + line_elements.size() + point_elements.size();
 
@@ -235,7 +235,7 @@ namespace zoneout {
 
     // ========== Validation ==========
 
-    bool Zone::is_valid() const { return poly_data_.isValid() && grid_data_.isValid(); }
+    bool Zone::is_valid() const { return poly_data_.is_valid() && grid_data_.is_valid(); }
 
     // ========== File I/O ==========
 
@@ -257,22 +257,22 @@ namespace zoneout {
         zone.poly_data_ = poly;
         zone.grid_data_ = grid;
 
-        if (poly.getName().empty() && !grid.getName().empty()) {
-            zone.name_ = grid.getName();
+        if (poly.get_name().empty() && !grid.get_name().empty()) {
+            zone.name_ = grid.get_name();
         } else {
-            zone.name_ = poly.getName();
+            zone.name_ = poly.get_name();
         }
 
-        if (poly.getType().empty() && !grid.getType().empty()) {
-            zone.type_ = grid.getType();
+        if (poly.get_type().empty() && !grid.get_type().empty()) {
+            zone.type_ = grid.get_type();
         } else {
-            zone.type_ = poly.getType();
+            zone.type_ = poly.get_type();
         }
 
-        if (!poly.getId().isNull()) {
-            zone.id_ = poly.getId();
-        } else if (!grid.getId().isNull()) {
-            zone.id_ = grid.getId();
+        if (!poly.get_id().isNull()) {
+            zone.id_ = poly.get_id();
+        } else if (!grid.get_id().isNull()) {
+            zone.id_ = grid.get_id();
         }
 
         if (std::filesystem::exists(vector_path)) {
@@ -295,8 +295,8 @@ namespace zoneout {
         auto poly_copy = poly_data_;
         auto grid_copy = grid_data_;
 
-        poly_copy.setId(id_);
-        grid_copy.setId(id_);
+        poly_copy.set_id(id_);
+        grid_copy.set_id(id_);
 
         for (const auto &[key, value] : properties_) {
             poly_copy.setFieldProperty("prop_" + key, value);
@@ -352,13 +352,13 @@ namespace zoneout {
     }
 
     void Zone::sync_to_poly_grid() {
-        poly_data_.setName(name_);
-        poly_data_.setType(type_);
-        poly_data_.setId(id_);
+        poly_data_.set_name(name_);
+        poly_data_.set_type(type_);
+        poly_data_.set_id(id_);
 
-        grid_data_.setName(name_);
-        grid_data_.setType(type_);
-        grid_data_.setId(id_);
+        grid_data_.set_name(name_);
+        grid_data_.set_type(type_);
+        grid_data_.set_id(id_);
     }
 
     // ========== Accessors for Internal Data Structures ==========

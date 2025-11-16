@@ -8,7 +8,6 @@
 #endif
 
 #include "zoneout/zoneout/io.hpp"
-#include "zoneout/zoneout/layer.hpp"
 #include "zoneout/zoneout/plot.hpp"
 #include "zoneout/zoneout/polygrid.hpp"
 #include "zoneout/zoneout/utils/time.hpp"

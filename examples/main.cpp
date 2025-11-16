@@ -12,8 +12,8 @@
 zoneout::Plot create_field(const std::string &zone_name, const std::string &crop_type,
                            const concord::Datum &datum = concord::Datum{51.98776171041831, 5.662378206146002, 0.0}) {
     zoneout::Plot plot("Wageningen Farm", "agricultural", datum);
-    plot.setProperty("farm_type", "research");
-    plot.setProperty("owner", "Wageningen Research Labs");
+    plot.set_property("farm_type", "research");
+    plot.set_property("owner", "Wageningen Research Labs");
 
     typedef std::unordered_map<std::string, std::string> Props;
 
@@ -58,12 +58,12 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
             zone.set_property("planting_date", "2024-04-15");
             zone.set_property("irrigation", "true");
 
-            plot.addZone(zone);
+            plot.add_zone(zone);
             std::cout << "Added zone: " << zone.name() << " (ID: " << zone.id().toString() << ")" << std::endl;
 
             // Add remaining polygons as features to the zone that's now in the plot
-            if (plot.getZoneCount() > 0) {
-                auto &plot_zone = plot.getZones().back(); // Get the zone we just added
+            if (plot.get_zone_count() > 0) {
+                auto &plot_zone = plot.get_zones().back(); // Get the zone we just added
 
                 for (size_t i = 1; i < polygons.size(); ++i) {
                     Props properties = {{"area_m2", std::to_string(static_cast<int>(polygons[i].area()))}};
@@ -94,7 +94,7 @@ int main() {
     // farm.save("/home/bresilla/farm_plot_2");
     auto farm = zoneout::Plot::load("/home/bresilla/farm_plot_2", "Pea Farm", "agricultural");
 
-    auto zones = farm.getZones();
+    auto zones = farm.get_zones();
     std::cout << "Num zones: " << zones.size() << std::endl;
 
     auto zone0 = zones.at(0);

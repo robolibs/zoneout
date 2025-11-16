@@ -8,20 +8,20 @@ namespace zoneout {
     Plot::Plot(const UUID &id, const std::string &name, const std::string &type, const concord::Datum &datum)
         : id_(id), name_(name), type_(type), datum_(datum) {}
 
-    const UUID &Plot::getId() const { return id_; }
+    const UUID &Plot::get_id() const { return id_; }
 
-    const std::string &Plot::getName() const { return name_; }
-    void Plot::setName(const std::string &name) { name_ = name; }
+    const std::string &Plot::get_name() const { return name_; }
+    void Plot::set_name(const std::string &name) { name_ = name; }
 
-    const std::string &Plot::getType() const { return type_; }
-    void Plot::setType(const std::string &type) { type_ = type; }
+    const std::string &Plot::get_type() const { return type_; }
+    void Plot::set_type(const std::string &type) { type_ = type; }
 
-    const concord::Datum &Plot::getDatum() const { return datum_; }
-    void Plot::setDatum(const concord::Datum &datum) { datum_ = datum; }
+    const concord::Datum &Plot::get_datum() const { return datum_; }
+    void Plot::set_datum(const concord::Datum &datum) { datum_ = datum; }
 
-    void Plot::addZone(const Zone &zone) { zones_.push_back(zone); }
+    void Plot::add_zone(const Zone &zone) { zones_.push_back(zone); }
 
-    bool Plot::removeZone(const UUID &zone_id) {
+    bool Plot::remove_zone(const UUID &zone_id) {
         auto it = std::find_if(zones_.begin(), zones_.end(),
                                [&zone_id](const Zone &zone) { return zone.id() == zone_id; });
         if (it != zones_.end()) {
@@ -31,35 +31,35 @@ namespace zoneout {
         return false;
     }
 
-    Zone *Plot::getZone(const UUID &zone_id) {
+    Zone *Plot::get_zone(const UUID &zone_id) {
         auto it = std::find_if(zones_.begin(), zones_.end(),
                                [&zone_id](const Zone &zone) { return zone.id() == zone_id; });
         return (it != zones_.end()) ? &(*it) : nullptr;
     }
 
-    const Zone *Plot::getZone(const UUID &zone_id) const {
+    const Zone *Plot::get_zone(const UUID &zone_id) const {
         auto it = std::find_if(zones_.begin(), zones_.end(),
                                [&zone_id](const Zone &zone) { return zone.id() == zone_id; });
         return (it != zones_.end()) ? &(*it) : nullptr;
     }
 
-    const std::vector<Zone> &Plot::getZones() const { return zones_; }
-    std::vector<Zone> &Plot::getZones() { return zones_; }
+    const std::vector<Zone> &Plot::get_zones() const { return zones_; }
+    std::vector<Zone> &Plot::get_zones() { return zones_; }
 
-    size_t Plot::getZoneCount() const { return zones_.size(); }
+    size_t Plot::get_zone_count() const { return zones_.size(); }
 
     bool Plot::empty() const { return zones_.empty(); }
 
     void Plot::clear() { zones_.clear(); }
 
-    void Plot::setProperty(const std::string &key, const std::string &value) { properties_[key] = value; }
+    void Plot::set_property(const std::string &key, const std::string &value) { properties_[key] = value; }
 
-    std::string Plot::getProperty(const std::string &key) const {
+    std::string Plot::get_property(const std::string &key) const {
         auto it = properties_.find(key);
         return (it != properties_.end()) ? it->second : "";
     }
 
-    const std::unordered_map<std::string, std::string> &Plot::getProperties() const { return properties_; }
+    const std::unordered_map<std::string, std::string> &Plot::get_properties() const { return properties_; }
 
     bool Plot::is_valid() const { return !name_.empty() && !type_.empty(); }
 
@@ -124,7 +124,7 @@ namespace zoneout {
         std::filesystem::remove_all(temp_dir);
     }
 
-    void Plot::toFiles(const std::filesystem::path &directory) const { save(directory); }
+    void Plot::to_files(const std::filesystem::path &directory) const { save(directory); }
 
     Plot Plot::load_tar(const std::filesystem::path &tar_file, const std::string &name, const std::string &type,
                         const concord::Datum &datum) {
@@ -193,7 +193,7 @@ namespace zoneout {
                         auto raster_path = entry.path() / "raster.tiff";
                         auto zone = Zone::from_files(vector_path, raster_path);
                         plot_datum = zone.datum();
-                        plot.addZone(zone);
+                        plot.add_zone(zone);
                     } catch (const std::exception &) {
                     }
                 }
@@ -203,7 +203,7 @@ namespace zoneout {
         return plot;
     }
 
-    Plot Plot::fromFiles(const std::filesystem::path &directory, const std::string &name, const std::string &type,
+    Plot Plot::from_files(const std::filesystem::path &directory, const std::string &name, const std::string &type,
                          const concord::Datum &datum) {
         return load(directory, name, type, datum);
     }

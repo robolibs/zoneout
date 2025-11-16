@@ -20,34 +20,34 @@ namespace zoneout {
                const concord::Datum &datum, const concord::Pose &shift, double resolution)
         : geotiv::Raster(datum, shift, resolution), meta_(name, type, subtype) {}
 
-    const UUID &Grid::getId() const { return meta_.id; }
-    const std::string &Grid::getName() const { return meta_.name; }
-    const std::string &Grid::getType() const { return meta_.type; }
-    const std::string &Grid::getSubtype() const { return meta_.subtype; }
+    const UUID &Grid::get_id() const { return meta_.id; }
+    const std::string &Grid::get_name() const { return meta_.name; }
+    const std::string &Grid::get_type() const { return meta_.type; }
+    const std::string &Grid::get_subtype() const { return meta_.subtype; }
 
-    void Grid::setName(const std::string &name) {
+    void Grid::set_name(const std::string &name) {
         meta_.name = name;
-        syncToGlobalProperties();
+        sync_to_global_properties();
     }
 
-    void Grid::setType(const std::string &type) {
+    void Grid::set_type(const std::string &type) {
         meta_.type = type;
-        syncToGlobalProperties();
+        sync_to_global_properties();
     }
 
-    void Grid::setSubtype(const std::string &subtype) {
+    void Grid::set_subtype(const std::string &subtype) {
         meta_.subtype = subtype;
-        syncToGlobalProperties();
+        sync_to_global_properties();
     }
 
-    void Grid::setId(const UUID &id) {
+    void Grid::set_id(const UUID &id) {
         meta_.id = id;
-        syncToGlobalProperties();
+        sync_to_global_properties();
     }
 
-    bool Grid::isValid() const { return hasGrids() && !meta_.name.empty(); }
+    bool Grid::is_valid() const { return hasGrids() && !meta_.name.empty(); }
 
-    Grid Grid::fromFile(const std::filesystem::path &file_path) {
+    Grid Grid::from_file(const std::filesystem::path &file_path) {
         if (!std::filesystem::exists(file_path)) {
             throw std::runtime_error("File does not exist: " + file_path.string());
         }
@@ -83,20 +83,20 @@ namespace zoneout {
         return grid;
     }
 
-    void Grid::toFile(const std::filesystem::path &file_path) const {
-        const_cast<Grid *>(this)->syncToGlobalProperties();
+    void Grid::to_file(const std::filesystem::path &file_path) const {
+        const_cast<Grid *>(this)->sync_to_global_properties();
 
         geotiv::Raster::toFile(file_path);
     }
 
-    void Grid::addGrid(uint32_t width, uint32_t height, const std::string &name, const std::string &type,
-                       const std::unordered_map<std::string, std::string> &properties) {
+    void Grid::add_grid(uint32_t width, uint32_t height, const std::string &name, const std::string &type,
+                        const std::unordered_map<std::string, std::string> &properties) {
         geotiv::Raster::addGrid(width, height, name, type, properties);
-        syncToGlobalProperties();
+        sync_to_global_properties();
     }
 
-    void Grid::addGrid(const concord::Grid<uint8_t> &grid, const std::string &name, const std::string &type,
-                       const std::unordered_map<std::string, std::string> &properties) {
+    void Grid::add_grid(const concord::Grid<uint8_t> &grid, const std::string &name, const std::string &type,
+                        const std::unordered_map<std::string, std::string> &properties) {
         auto props = properties;
         if (!type.empty()) {
             props["type"] = type;
@@ -112,10 +112,10 @@ namespace zoneout {
             lastLayer.grid = grid;
         }
 
-        syncToGlobalProperties();
+        sync_to_global_properties();
     }
 
-    void Grid::syncToGlobalProperties() {
+    void Grid::sync_to_global_properties() {
         if (hasGrids()) {
             setGlobalProperty("name", meta_.name);
             setGlobalProperty("type", meta_.type);
