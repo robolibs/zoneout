@@ -1,0 +1,496 @@
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "doctest/doctest.h"
+#include "zoneout/zoneout.hpp"
+
+using namespace zoneout;
+
+// Helper function to create a simple rectangular boundary
+concord::Polygon create_test_boundary(double width = 100.0, double height = 50.0) {
+    concord::Polygon rect;
+    rect.addPoint(concord::Point{0.0, 0.0, 0.0});
+    rect.addPoint(concord::Point{width, 0.0, 0.0});
+    rect.addPoint(concord::Point{width, height, 0.0});
+    rect.addPoint(concord::Point{0.0, height, 0.0});
+    return rect;
+}
+
+// ========== ZoneBuilder Tests ==========
+
+TEST_CASE("ZoneBuilder basic construction") {
+    concord::Datum datum{52.0, 5.0, 0.0};
+    auto boundary = create_test_boundary();
+
+    SUBCASE("Build valid zone with required fields only") {
+        auto zone = ZoneBuilder()
+                        .with_name("test_zone")
+                        .with_type("agricultural")
+                        .with_boundary(boundary)
+                        .with_datum(datum)
+                        .build();
+
+        CHECK(zone.name() == "test_zone");
+        CHECK(zone.type() == "agricultural");
+        CHECK(zone.is_valid());
+    }
+
+    SUBCASE("Build zone with optional resolution") {
+        auto zone = ZoneBuilder()
+                        .with_name("test_zone")
+                        .with_type("agricultural")
+                        .with_boundary(boundary)
+                        .with_datum(datum)
+                        .with_resolution(0.5)
+                        .build();
+
+        CHECK(zone.is_valid());
+        // Resolution affects grid size
+        auto info = zone.raster_info();
+        CHECK(info.find("202x102") != std::string::npos); // 100/0.5 + padding
+    }
+
+    SUBCASE("Build zone with properties") {
+        auto zone = ZoneBuilder()
+                        .with_name("test_zone")
+                        .with_type("agricultural")
+                        .with_boundary(boundary)
+                        .with_datum(datum)
+                        .with_property("crop", "wheat")
+                        .with_property("season", "2024")
+                        .build();
+
+        CHECK(zone.get_property("crop") == "wheat");
+        CHECK(zone.get_property("season") == "2024");
+    }
+
+    SUBCASE("Build zone with multiple properties at once") {
+        std::unordered_map<std::string, std::string> props = {{"crop", "corn"}, {"irrigation", "drip"}};
+
+        auto zone = ZoneBuilder()
+                        .with_name("test_zone")
+                        .with_type("agricultural")
+                        .with_boundary(boundary)
+                        .with_datum(datum)
+                        .with_properties(props)
+                        .build();
+
+        CHECK(zone.get_property("crop") == "corn");
+        CHECK(zone.get_property("irrigation") == "drip");
+    }
+}
+
+TEST_CASE("ZoneBuilder with features") {
+    concord::Datum datum{52.0, 5.0, 0.0};
+    auto boundary = create_test_boundary();
+
+    SUBCASE("Build zone with polygon feature") {
+        concord::Polygon obstacle;
+        obstacle.addPoint(concord::Point{20.0, 20.0, 0.0});
+        obstacle.addPoint(concord::Point{30.0, 20.0, 0.0});
+        obstacle.addPoint(concord::Point{30.0, 30.0, 0.0});
+        obstacle.addPoint(concord::Point{20.0, 30.0, 0.0});
+
+        auto zone = ZoneBuilder()
+                        .with_name("test_zone")
+                        .with_type("agricultural")
+                        .with_boundary(boundary)
+                        .with_datum(datum)
+                        .with_polygon_feature(obstacle, "tree", "obstacle")
+                        .build();
+
+        auto feature_info = zone.feature_info();
+        CHECK(feature_info.find("1 polygons") != std::string::npos);
+    }
+
+    SUBCASE("Build zone with multiple features") {
+        concord::Polygon obstacle1;
+        obstacle1.addPoint(concord::Point{20.0, 20.0, 0.0});
+        obstacle1.addPoint(concord::Point{25.0, 20.0, 0.0});
+        obstacle1.addPoint(concord::Point{25.0, 25.0, 0.0});
+        obstacle1.addPoint(concord::Point{20.0, 25.0, 0.0});
+
+        concord::Polygon obstacle2;
+        obstacle2.addPoint(concord::Point{40.0, 30.0, 0.0});
+        obstacle2.addPoint(concord::Point{45.0, 30.0, 0.0});
+        obstacle2.addPoint(concord::Point{45.0, 35.0, 0.0});
+        obstacle2.addPoint(concord::Point{40.0, 35.0, 0.0});
+
+        auto zone = ZoneBuilder()
+                        .with_name("test_zone")
+                        .with_type("agricultural")
+                        .with_boundary(boundary)
+                        .with_datum(datum)
+                        .with_polygon_feature(obstacle1, "tree1", "obstacle")
+                        .with_polygon_feature(obstacle2, "tree2", "obstacle")
+                        .build();
+
+        auto feature_info = zone.feature_info();
+        CHECK(feature_info.find("2 polygons") != std::string::npos);
+    }
+}
+
+TEST_CASE("ZoneBuilder validation") {
+    concord::Datum datum{52.0, 5.0, 0.0};
+    auto boundary = create_test_boundary();
+
+    SUBCASE("Missing name fails validation") {
+        ZoneBuilder builder;
+        builder.with_type("agricultural").with_boundary(boundary).with_datum(datum);
+
+        CHECK_FALSE(builder.is_valid());
+        CHECK(builder.validation_error().find("name") != std::string::npos);
+        CHECK_THROWS_AS(builder.build(), std::invalid_argument);
+    }
+
+    SUBCASE("Missing type fails validation") {
+        ZoneBuilder builder;
+        builder.with_name("test").with_boundary(boundary).with_datum(datum);
+
+        CHECK_FALSE(builder.is_valid());
+        CHECK(builder.validation_error().find("type") != std::string::npos);
+        CHECK_THROWS_AS(builder.build(), std::invalid_argument);
+    }
+
+    SUBCASE("Missing boundary fails validation") {
+        ZoneBuilder builder;
+        builder.with_name("test").with_type("agricultural").with_datum(datum);
+
+        CHECK_FALSE(builder.is_valid());
+        CHECK(builder.validation_error().find("boundary") != std::string::npos);
+        CHECK_THROWS_AS(builder.build(), std::invalid_argument);
+    }
+
+    SUBCASE("Missing datum fails validation") {
+        ZoneBuilder builder;
+        builder.with_name("test").with_type("agricultural").with_boundary(boundary);
+
+        CHECK_FALSE(builder.is_valid());
+        CHECK(builder.validation_error().find("datum") != std::string::npos);
+        CHECK_THROWS_AS(builder.build(), std::invalid_argument);
+    }
+
+    SUBCASE("Invalid resolution fails validation") {
+        ZoneBuilder builder;
+        builder.with_name("test")
+            .with_type("agricultural")
+            .with_boundary(boundary)
+            .with_datum(datum)
+            .with_resolution(-1.0);
+
+        CHECK_FALSE(builder.is_valid());
+        CHECK(builder.validation_error().find("Resolution") != std::string::npos);
+        CHECK_THROWS_AS(builder.build(), std::invalid_argument);
+    }
+
+    SUBCASE("Boundary with too few points fails validation") {
+        concord::Polygon invalid_boundary;
+        invalid_boundary.addPoint(concord::Point{0.0, 0.0, 0.0});
+        invalid_boundary.addPoint(concord::Point{10.0, 0.0, 0.0});
+
+        ZoneBuilder builder;
+        builder.with_name("test").with_type("agricultural").with_boundary(invalid_boundary).with_datum(datum);
+
+        CHECK_FALSE(builder.is_valid());
+        CHECK(builder.validation_error().find("at least 3 points") != std::string::npos);
+    }
+}
+
+TEST_CASE("ZoneBuilder reset functionality") {
+    concord::Datum datum{52.0, 5.0, 0.0};
+    auto boundary = create_test_boundary();
+
+    ZoneBuilder builder;
+
+    SUBCASE("Reset clears all configuration") {
+        builder.with_name("test1")
+            .with_type("agricultural")
+            .with_boundary(boundary)
+            .with_datum(datum)
+            .with_property("key", "value");
+
+        builder.reset();
+
+        CHECK_FALSE(builder.is_valid());
+        CHECK(builder.validation_error().find("name") != std::string::npos);
+    }
+
+    SUBCASE("Builder can be reused after reset") {
+        // First build
+        auto zone1 =
+            builder.with_name("zone1").with_type("agricultural").with_boundary(boundary).with_datum(datum).build();
+
+        CHECK(zone1.name() == "zone1");
+
+        // Reset and build again
+        builder.reset();
+        auto zone2 = builder.with_name("zone2").with_type("pasture").with_boundary(boundary).with_datum(datum).build();
+
+        CHECK(zone2.name() == "zone2");
+        CHECK(zone2.type() == "pasture");
+    }
+}
+
+// ========== PlotBuilder Tests ==========
+
+TEST_CASE("PlotBuilder basic construction") {
+    concord::Datum datum{52.0, 5.0, 0.0};
+
+    SUBCASE("Build valid plot with required fields only") {
+        auto plot = PlotBuilder().with_name("test_plot").with_type("agricultural").with_datum(datum).build();
+
+        CHECK(plot.get_name() == "test_plot");
+        CHECK(plot.get_type() == "agricultural");
+        CHECK(plot.is_valid());
+        CHECK(plot.empty());
+    }
+
+    SUBCASE("Build plot with properties") {
+        auto plot = PlotBuilder()
+                        .with_name("test_plot")
+                        .with_type("agricultural")
+                        .with_datum(datum)
+                        .with_property("owner", "Test Farm")
+                        .with_property("location", "Netherlands")
+                        .build();
+
+        CHECK(plot.get_property("owner") == "Test Farm");
+        CHECK(plot.get_property("location") == "Netherlands");
+    }
+}
+
+TEST_CASE("PlotBuilder with pre-built zones") {
+    concord::Datum datum{52.0, 5.0, 0.0};
+    auto boundary = create_test_boundary();
+
+    SUBCASE("Add single zone") {
+        auto zone = ZoneBuilder()
+                        .with_name("field1")
+                        .with_type("agricultural")
+                        .with_boundary(boundary)
+                        .with_datum(datum)
+                        .build();
+
+        auto plot =
+            PlotBuilder().with_name("test_plot").with_type("agricultural").with_datum(datum).add_zone(zone).build();
+
+        CHECK(plot.get_zone_count() == 1);
+        CHECK_FALSE(plot.empty());
+    }
+
+    SUBCASE("Add multiple zones separately") {
+        auto zone1 = ZoneBuilder()
+                         .with_name("field1")
+                         .with_type("agricultural")
+                         .with_boundary(boundary)
+                         .with_datum(datum)
+                         .build();
+
+        auto zone2 =
+            ZoneBuilder().with_name("field2").with_type("pasture").with_boundary(boundary).with_datum(datum).build();
+
+        auto plot = PlotBuilder()
+                        .with_name("test_plot")
+                        .with_type("agricultural")
+                        .with_datum(datum)
+                        .add_zone(zone1)
+                        .add_zone(zone2)
+                        .build();
+
+        CHECK(plot.get_zone_count() == 2);
+    }
+
+    SUBCASE("Add zones in bulk") {
+        auto zone1 = ZoneBuilder()
+                         .with_name("field1")
+                         .with_type("agricultural")
+                         .with_boundary(boundary)
+                         .with_datum(datum)
+                         .build();
+
+        auto zone2 =
+            ZoneBuilder().with_name("field2").with_type("pasture").with_boundary(boundary).with_datum(datum).build();
+
+        std::vector<Zone> zones = {zone1, zone2};
+
+        auto plot =
+            PlotBuilder().with_name("test_plot").with_type("agricultural").with_datum(datum).add_zones(zones).build();
+
+        CHECK(plot.get_zone_count() == 2);
+    }
+}
+
+TEST_CASE("PlotBuilder with inline zone construction") {
+    concord::Datum datum{52.0, 5.0, 0.0};
+    auto boundary = create_test_boundary();
+
+    SUBCASE("Add zone with lambda configurator") {
+        auto plot = PlotBuilder()
+                        .with_name("test_plot")
+                        .with_type("agricultural")
+                        .with_datum(datum)
+                        .add_zone([&boundary](ZoneBuilder &builder) {
+                            builder.with_name("inline_zone")
+                                .with_type("agricultural")
+                                .with_boundary(boundary)
+                                .with_property("inline", "true");
+                        })
+                        .build();
+
+        CHECK(plot.get_zone_count() == 1);
+        const auto &zones = plot.get_zones();
+        CHECK(zones[0].name() == "inline_zone");
+        CHECK(zones[0].get_property("inline") == "true");
+    }
+
+    SUBCASE("Add multiple zones with different configurations") {
+        auto boundary1 = create_test_boundary(100.0, 50.0);
+        auto boundary2 = create_test_boundary(80.0, 60.0);
+
+        auto plot =
+            PlotBuilder()
+                .with_name("test_plot")
+                .with_type("agricultural")
+                .with_datum(datum)
+                .add_zone([&boundary1](ZoneBuilder &builder) {
+                    builder.with_name("high_res")
+                        .with_type("experimental")
+                        .with_boundary(boundary1)
+                        .with_resolution(0.5);
+                })
+                .add_zone([&boundary2](ZoneBuilder &builder) {
+                    builder.with_name("low_res").with_type("production").with_boundary(boundary2).with_resolution(2.0);
+                })
+                .build();
+
+        CHECK(plot.get_zone_count() == 2);
+        const auto &zones = plot.get_zones();
+        CHECK(zones[0].name() == "high_res");
+        CHECK(zones[1].name() == "low_res");
+    }
+
+    SUBCASE("Mix pre-built and inline zones") {
+        auto zone1 = ZoneBuilder()
+                         .with_name("prebuilt")
+                         .with_type("agricultural")
+                         .with_boundary(boundary)
+                         .with_datum(datum)
+                         .build();
+
+        auto plot = PlotBuilder()
+                        .with_name("test_plot")
+                        .with_type("agricultural")
+                        .with_datum(datum)
+                        .add_zone(zone1)
+                        .add_zone([&boundary](ZoneBuilder &builder) {
+                            builder.with_name("inline").with_type("pasture").with_boundary(boundary);
+                        })
+                        .build();
+
+        CHECK(plot.get_zone_count() == 2);
+        const auto &zones = plot.get_zones();
+        CHECK(zones[0].name() == "prebuilt");
+        CHECK(zones[1].name() == "inline");
+    }
+}
+
+TEST_CASE("PlotBuilder validation") {
+    concord::Datum datum{52.0, 5.0, 0.0};
+
+    SUBCASE("Missing name fails validation") {
+        PlotBuilder builder;
+        builder.with_type("agricultural").with_datum(datum);
+
+        CHECK_FALSE(builder.is_valid());
+        CHECK(builder.validation_error().find("name") != std::string::npos);
+        CHECK_THROWS_AS(builder.build(), std::invalid_argument);
+    }
+
+    SUBCASE("Missing type fails validation") {
+        PlotBuilder builder;
+        builder.with_name("test").with_datum(datum);
+
+        CHECK_FALSE(builder.is_valid());
+        CHECK(builder.validation_error().find("type") != std::string::npos);
+        CHECK_THROWS_AS(builder.build(), std::invalid_argument);
+    }
+
+    SUBCASE("Missing datum fails validation") {
+        PlotBuilder builder;
+        builder.with_name("test").with_type("agricultural");
+
+        CHECK_FALSE(builder.is_valid());
+        CHECK(builder.validation_error().find("datum") != std::string::npos);
+        CHECK_THROWS_AS(builder.build(), std::invalid_argument);
+    }
+}
+
+TEST_CASE("PlotBuilder reset functionality") {
+    concord::Datum datum{52.0, 5.0, 0.0};
+
+    PlotBuilder builder;
+
+    SUBCASE("Reset clears all configuration") {
+        builder.with_name("test1").with_type("agricultural").with_datum(datum).with_property("key", "value");
+
+        builder.reset();
+
+        CHECK_FALSE(builder.is_valid());
+    }
+
+    SUBCASE("Builder can be reused after reset") {
+        auto plot1 = builder.with_name("plot1").with_type("agricultural").with_datum(datum).build();
+
+        CHECK(plot1.get_name() == "plot1");
+
+        builder.reset();
+        auto plot2 = builder.with_name("plot2").with_type("research").with_datum(datum).build();
+
+        CHECK(plot2.get_name() == "plot2");
+        CHECK(plot2.get_type() == "research");
+    }
+}
+
+TEST_CASE("PlotBuilder zone_count utility") {
+    concord::Datum datum{52.0, 5.0, 0.0};
+    auto boundary = create_test_boundary();
+
+    SUBCASE("Count includes pre-built zones") {
+        auto zone = ZoneBuilder()
+                        .with_name("field1")
+                        .with_type("agricultural")
+                        .with_boundary(boundary)
+                        .with_datum(datum)
+                        .build();
+
+        PlotBuilder builder;
+        builder.with_name("test").with_type("agricultural").with_datum(datum).add_zone(zone);
+
+        CHECK(builder.zone_count() == 1);
+    }
+
+    SUBCASE("Count includes inline zone configurations") {
+        PlotBuilder builder;
+        builder.with_name("test").with_type("agricultural").with_datum(datum).add_zone([&boundary](ZoneBuilder &b) {
+            b.with_name("z1").with_type("a").with_boundary(boundary);
+        });
+
+        CHECK(builder.zone_count() == 1);
+    }
+
+    SUBCASE("Count includes both pre-built and inline") {
+        auto zone = ZoneBuilder()
+                        .with_name("field1")
+                        .with_type("agricultural")
+                        .with_boundary(boundary)
+                        .with_datum(datum)
+                        .build();
+
+        PlotBuilder builder;
+        builder.with_name("test")
+            .with_type("agricultural")
+            .with_datum(datum)
+            .add_zone(zone)
+            .add_zone([&boundary](ZoneBuilder &b) { b.with_name("z2").with_type("a").with_boundary(boundary); });
+
+        CHECK(builder.zone_count() == 2);
+    }
+}
