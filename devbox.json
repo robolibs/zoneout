@@ -8,7 +8,9 @@
     "boost@latest",
     "boost.dev",
     "arrow-cpp@latest",
-    "rerun@latest"
+    "rerun@latest",
+    "spdlog@latest",
+    "spdlog.dev"
   ],
   "shell": {
     "init_hook": [

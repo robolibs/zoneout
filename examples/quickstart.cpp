@@ -1,61 +1,58 @@
-// Quickstart example demonstrating basic zoneout usage
-// Shows: boundary creation → zone creation → raster layer → point containment → path clearance
-
 #include "zoneout/zoneout.hpp"
 #include "zoneout/zoneout/constants.hpp"
-#include <iostream>
+#include <spdlog/spdlog.h>
 
 int main() {
     std::cout << "=== Zoneout Quickstart Example ===" << std::endl;
 
     // Step 1: Create a boundary polygon (100m x 50m rectangular field)
-    std::cout << "\n1. Creating boundary polygon..." << std::endl;
+    spdlog::info("Creating boundary polygon...");
     concord::Polygon boundary;
     boundary.addPoint(concord::Point{0.0, 0.0, 0.0});
     boundary.addPoint(concord::Point{100.0, 0.0, 0.0});
     boundary.addPoint(concord::Point{100.0, 50.0, 0.0});
     boundary.addPoint(concord::Point{0.0, 50.0, 0.0});
-    std::cout << "   Boundary area: " << boundary.area() << " m²" << std::endl;
+    spdlog::info("   Boundary created: {}", boundary.getPoints().size());
 
     // Step 2: Create a datum (WGS84 coordinates)
     concord::Datum datum{52.0, 5.0, 0.0}; // Lat, Lon, Alt
-    std::cout << "\n2. Creating datum at lat=" << datum.lat << ", lon=" << datum.lon << std::endl;
+    spdlog::info("Creating datum at lat={}, lon={}", datum.lat, datum.lon);
 
     // Step 3: Create a zone with auto-generated grid (1m resolution)
-    std::cout << "\n3. Creating zone with 1m resolution..." << std::endl;
+    spdlog::info("Creating zone with 1m resolution...");
     zoneout::Zone zone("test_field", "agricultural", boundary, datum, 1.0);
-    std::cout << "   Zone created: " << zone.name() << " (" << zone.type() << ")" << std::endl;
-    std::cout << "   " << zone.raster_info() << std::endl;
+    spdlog::info("   Zone created: {} ({})", zone.name(), zone.type());
+    spdlog::info("   {}", zone.raster_info());
 
     // Step 4: Add properties to the zone
-    std::cout << "\n4. Adding zone properties..." << std::endl;
+    spdlog::info("Adding properties to zone...");
     zone.set_property("crop", "wheat");
     zone.set_property("season", "2024");
-    std::cout << "   Crop: " << zone.get_property("crop") << std::endl;
-    std::cout << "   Season: " << zone.get_property("season") << std::endl;
+    spdlog::info("   Crop: {}", zone.get_property("crop"));
+    spdlog::info("   Season: {}", zone.get_property("season"));
 
     // Step 5: Test point containment
-    std::cout << "\n5. Testing point containment..." << std::endl;
+    spdlog::info("Testing point containment...");
     concord::Point inside_point{50.0, 25.0, 0.0};
     concord::Point outside_point{150.0, 25.0, 0.0};
 
     bool inside = zone.poly().contains(inside_point);
     bool outside = zone.poly().contains(outside_point);
 
-    std::cout << "   Point (50, 25) is " << (inside ? "inside" : "outside") << " the boundary" << std::endl;
-    std::cout << "   Point (150, 25) is " << (outside ? "inside" : "outside") << " the boundary" << std::endl;
+    spdlog::info("   Point (50, 25) is {} inside the boundary", inside ? "inside" : "outside");
+    spdlog::info("   Point (150, 25) is {} inside the boundary", outside ? "inside" : "outside");
 
     // Step 6: Save the zone
-    std::cout << "\n6. Saving zone..." << std::endl;
+    spdlog::info("Saving zone...");
     zone.save("quickstart_zone");
-    std::cout << "   Zone saved to ./quickstart_zone/" << std::endl;
+    spdlog::info("   Zone saved to ./quickstart_zone/");
 
     // Step 10: Load the zone
-    std::cout << "\n10. Loading zone..." << std::endl;
+    spdlog::info("Loading zone...");
     auto loaded_zone = zoneout::Zone::load("quickstart_zone");
-    std::cout << "   Loaded zone: " << loaded_zone.name() << " (" << loaded_zone.type() << ")" << std::endl;
-    std::cout << "   Crop: " << loaded_zone.get_property("crop") << std::endl;
+    spdlog::info("   Loaded zone: {} ({})", loaded_zone.name(), loaded_zone.type());
+    spdlog::info("   Crop: {}", loaded_zone.get_property("crop"));
 
-    std::cout << "\n=== Quickstart Complete ===" << std::endl;
+    spdlog::info("=== Quickstart Complete ===");
     return 0;
 }

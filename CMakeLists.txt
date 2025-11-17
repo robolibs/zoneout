@@ -94,6 +94,9 @@ if(${project_name_upper}_BUILD_EXAMPLES)
   find_package(rerun_sdk QUIET)
   list(APPEND ext_deps rerun_sdk)
 
+  find_package(spdlog REQUIRED)
+  list(APPEND ext_deps spdlog::spdlog)
+
   file(GLOB exe CONFIGURE_DEPENDS examples/*.cpp)
 
   # ----------------------------------------------
