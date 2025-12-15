@@ -43,16 +43,16 @@ int main() {
     spdlog::info("   Point (150, 25) is {} inside the boundary", outside ? "inside" : "outside");
 
     // Step 6: Save the zone
-    spdlog::info("Saving zone...");
+    std::cout << "Saving zone..." << std::endl;
     zone.save("quickstart_zone");
-    spdlog::info("   Zone saved to ./quickstart_zone/");
+    std::cout << "   Zone saved to ./quickstart_zone/" << std::endl;
 
     // Step 10: Load the zone
-    spdlog::info("Loading zone...");
+    std::cout << "Loading zone..." << std::endl;
     auto loaded_zone = zoneout::Zone::load("quickstart_zone");
-    spdlog::info("   Loaded zone: {} ({})", loaded_zone.name(), loaded_zone.type());
-    spdlog::info("   Crop: {}", loaded_zone.get_property("crop"));
+    std::cout << "   Loaded zone: " << loaded_zone.name() << " (" << loaded_zone.type() << ")" << std::endl;
+    std::cout << "   Crop: " << loaded_zone.get_property("crop") << std::endl;
 
-    spdlog::info("=== Quickstart Complete ===");
+    std::cout << "=== Quickstart Complete ===" << std::endl;
     return 0;
 }

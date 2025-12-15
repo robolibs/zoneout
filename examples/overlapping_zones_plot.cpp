@@ -1,6 +1,5 @@
 #include "zoneout/zoneout.hpp"
 #include <iostream>
-#include <spdlog/spdlog.h>
 
 /**
  * Example: Overlapping Zones with Different Grid Resolutions in a Plot
@@ -21,11 +20,11 @@
  */
 
 int main() {
-    spdlog::info("=== Overlapping Zones Plot Example ===");
+    std::cout << "=== Overlapping Zones Plot Example ===" << std::endl;
 
     // Create a GPS datum (example location: Netherlands)
     concord::Datum datum{52.0, 5.0, 0.0}; // Lat, Lon, Alt
-    spdlog::info("Using datum: lat={}, lon={}, alt={}", datum.lat, datum.lon, datum.alt);
+    std::cout << "Using datum: lat=" << datum.lat << ", lon=" << datum.lon << ", alt=" << datum.alt << std::endl;
 
     // Create a shared boundary for zones 1 and 2 (100m × 50m field)
     concord::Polygon boundary_exact;
@@ -33,8 +32,8 @@ int main() {
     boundary_exact.addPoint(concord::Point{100.0, 0.0, 0.0});
     boundary_exact.addPoint(concord::Point{100.0, 50.0, 0.0});
     boundary_exact.addPoint(concord::Point{0.0, 50.0, 0.0});
-    spdlog::info("Created exact boundary: {} points, area={} m²", boundary_exact.getPoints().size(),
-                 boundary_exact.area());
+    std::cout << "Created exact boundary: " << boundary_exact.getPoints().size()
+              << " points, area=" << boundary_exact.area() << " m²" << std::endl;
 
     // Create a slightly different boundary for zone 3 (90m × 45m field)
     concord::Polygon boundary_different;
@@ -42,29 +41,29 @@ int main() {
     boundary_different.addPoint(concord::Point{95.0, 5.0, 0.0});
     boundary_different.addPoint(concord::Point{95.0, 50.0, 0.0});
     boundary_different.addPoint(concord::Point{5.0, 50.0, 0.0});
-    spdlog::info("Created different boundary: {} points, area={} m²", boundary_different.getPoints().size(),
-                 boundary_different.area());
+    std::cout << "Created different boundary: " << boundary_different.getPoints().size()
+              << " points, area=" << boundary_different.area() << " m²" << std::endl;
 
     // ========== Create Plot ==========
-    spdlog::info("\n--- Creating Plot ---");
+    std::cout << std::endl << "--- Creating Plot ---" << std::endl;
     zoneout::Plot plot("Multi-Resolution Farm", "agricultural", datum);
     plot.set_property("farm_name", "Demo Farm");
     plot.set_property("location", "Netherlands");
     plot.set_property("year", "2024");
-    spdlog::info("Created plot: {} ({})", plot.get_name(), plot.get_type());
+    std::cout << "Created plot: " << plot.get_name() << " (" << plot.get_type() << ")" << std::endl;
 
     // ========== Zone 1: High Resolution (0.5m) - Exact Boundary ==========
-    spdlog::info("\n--- Creating Zone 1: High Resolution (0.5m) ---");
+    std::cout << std::endl << "--- Creating Zone 1: High Resolution (0.5m) ---" << std::endl;
     zoneout::Zone zone_high_res("field_high_res", "agricultural", boundary_exact, datum, 0.5);
     zone_high_res.set_property("resolution", "0.5m");
     zone_high_res.set_property("crop", "wheat");
     zone_high_res.set_property("use_case", "precision_planting");
 
-    spdlog::info("Zone 1 - Name: {}", zone_high_res.name());
-    spdlog::info("Zone 1 - Type: {}", zone_high_res.type());
-    spdlog::info("Zone 1 - Resolution: {}", zone_high_res.get_property("resolution"));
-    spdlog::info("Zone 1 - {}", zone_high_res.raster_info());
-    spdlog::info("Zone 1 - Boundary area: {} m²", zone_high_res.poly().area());
+    std::cout << "Zone 1 - Name: " << zone_high_res.name() << std::endl;
+    std::cout << "Zone 1 - Type: " << zone_high_res.type() << std::endl;
+    std::cout << "Zone 1 - Resolution: " << zone_high_res.get_property("resolution") << std::endl;
+    std::cout << "Zone 1 - " << zone_high_res.raster_info() << std::endl;
+    std::cout << "Zone 1 - Boundary area: " << zone_high_res.poly().area() << " m²" << std::endl;
 
     // Add a feature to high-res zone (obstacle)
     concord::Polygon obstacle_high;
@@ -73,43 +72,43 @@ int main() {
     obstacle_high.addPoint(concord::Point{30.0, 30.0, 0.0});
     obstacle_high.addPoint(concord::Point{20.0, 30.0, 0.0});
     zone_high_res.add_polygon_feature(obstacle_high, "tree_cluster", "obstacle", "vegetation");
-    spdlog::info("Zone 1 - {}", zone_high_res.feature_info());
+    std::cout << "Zone 1 - " << zone_high_res.feature_info() << std::endl;
 
     plot.add_zone(zone_high_res);
-    spdlog::info("Added Zone 1 to plot");
+    std::cout << "Added Zone 1 to plot" << std::endl;
 
     // ========== Zone 2: Medium Resolution (1.0m) - Exact Boundary ==========
-    spdlog::info("\n--- Creating Zone 2: Medium Resolution (1.0m) ---");
+    std::cout << std::endl << "--- Creating Zone 2: Medium Resolution (1.0m) ---" << std::endl;
     zoneout::Zone zone_medium_res("field_medium_res", "agricultural", boundary_exact, datum, 1.0);
     zone_medium_res.set_property("resolution", "1.0m");
     zone_medium_res.set_property("crop", "wheat");
     zone_medium_res.set_property("use_case", "navigation_planning");
 
-    spdlog::info("Zone 2 - Name: {}", zone_medium_res.name());
-    spdlog::info("Zone 2 - Type: {}", zone_medium_res.type());
-    spdlog::info("Zone 2 - Resolution: {}", zone_medium_res.get_property("resolution"));
-    spdlog::info("Zone 2 - {}", zone_medium_res.raster_info());
-    spdlog::info("Zone 2 - Boundary area: {} m²", zone_medium_res.poly().area());
+    std::cout << "Zone 2 - Name: " << zone_medium_res.name() << std::endl;
+    std::cout << "Zone 2 - Type: " << zone_medium_res.type() << std::endl;
+    std::cout << "Zone 2 - Resolution: " << zone_medium_res.get_property("resolution") << std::endl;
+    std::cout << "Zone 2 - " << zone_medium_res.raster_info() << std::endl;
+    std::cout << "Zone 2 - Boundary area: " << zone_medium_res.poly().area() << " m²" << std::endl;
 
     // Add same obstacle to medium-res zone for comparison
     zone_medium_res.add_polygon_feature(obstacle_high, "tree_cluster", "obstacle", "vegetation");
-    spdlog::info("Zone 2 - {}", zone_medium_res.feature_info());
+    std::cout << "Zone 2 - " << zone_medium_res.feature_info() << std::endl;
 
     plot.add_zone(zone_medium_res);
-    spdlog::info("Added Zone 2 to plot");
+    std::cout << "Added Zone 2 to plot" << std::endl;
 
     // ========== Zone 3: Low Resolution (2.0m) - Different Boundary ==========
-    spdlog::info("\n--- Creating Zone 3: Low Resolution (2.0m) ---");
+    std::cout << std::endl << "--- Creating Zone 3: Low Resolution (2.0m) ---" << std::endl;
     zoneout::Zone zone_low_res("field_low_res", "agricultural", boundary_different, datum, 2.0);
     zone_low_res.set_property("resolution", "2.0m");
     zone_low_res.set_property("crop", "corn");
     zone_low_res.set_property("use_case", "yield_estimation");
 
-    spdlog::info("Zone 3 - Name: {}", zone_low_res.name());
-    spdlog::info("Zone 3 - Type: {}", zone_low_res.type());
-    spdlog::info("Zone 3 - Resolution: {}", zone_low_res.get_property("resolution"));
-    spdlog::info("Zone 3 - {}", zone_low_res.raster_info());
-    spdlog::info("Zone 3 - Boundary area: {} m²", zone_low_res.poly().area());
+    std::cout << "Zone 3 - Name: " << zone_low_res.name() << std::endl;
+    std::cout << "Zone 3 - Type: " << zone_low_res.type() << std::endl;
+    std::cout << "Zone 3 - Resolution: " << zone_low_res.get_property("resolution") << std::endl;
+    std::cout << "Zone 3 - " << zone_low_res.raster_info() << std::endl;
+    std::cout << "Zone 3 - Boundary area: " << zone_low_res.poly().area() << " m²" << std::endl;
 
     // Add a different feature to low-res zone
     concord::Polygon obstacle_low;
@@ -118,111 +117,112 @@ int main() {
     obstacle_low.addPoint(concord::Point{70.0, 35.0, 0.0});
     obstacle_low.addPoint(concord::Point{60.0, 35.0, 0.0});
     zone_low_res.add_polygon_feature(obstacle_low, "building", "obstacle", "structure");
-    spdlog::info("Zone 3 - {}", zone_low_res.feature_info());
+    std::cout << "Zone 3 - " << zone_low_res.feature_info() << std::endl;
 
     plot.add_zone(zone_low_res);
-    spdlog::info("Added Zone 3 to plot");
+    std::cout << "Added Zone 3 to plot" << std::endl;
 
     // ========== Save Plot to Directory ==========
-    spdlog::info("\n--- Saving Plot to Directory ---");
+    std::cout << std::endl << "--- Saving Plot to Directory ---" << std::endl;
     std::filesystem::path save_dir = "overlapping_zones_plot";
     std::filesystem::remove_all(save_dir); // Clean up if exists
 
     plot.save(save_dir);
-    spdlog::info("Plot saved to: {}", save_dir.string());
-    spdlog::info("Total zones in plot: {}", plot.get_zone_count());
+    std::cout << "Plot saved to: " << save_dir.string() << std::endl;
+    std::cout << "Total zones in plot: " << plot.get_zone_count() << std::endl;
 
     // List the saved files
-    spdlog::info("\nSaved files structure:");
+    std::cout << std::endl << "Saved files structure:" << std::endl;
     for (const auto &entry : std::filesystem::recursive_directory_iterator(save_dir)) {
         if (entry.is_regular_file()) {
             auto relative = std::filesystem::relative(entry.path(), save_dir);
-            spdlog::info("  - {}", relative.string());
+            std::cout << "  - " << relative.string() << std::endl;
         }
     }
 
     // ========== Save Plot as TAR Archive ==========
-    spdlog::info("\n--- Saving Plot as TAR Archive ---");
+    std::cout << std::endl << "--- Saving Plot as TAR Archive ---" << std::endl;
     std::filesystem::path tar_file = "overlapping_zones_plot.tar";
     std::filesystem::remove(tar_file); // Clean up if exists
 
     plot.save_tar(tar_file);
-    spdlog::info("Plot saved as TAR archive: {}", tar_file.string());
-    spdlog::info("Archive size: {} bytes", std::filesystem::file_size(tar_file));
+    std::cout << "Plot saved as TAR archive: " << tar_file.string() << std::endl;
+    std::cout << "Archive size: " << std::filesystem::file_size(tar_file) << " bytes" << std::endl;
 
     // ========== Load Plot from Directory ==========
-    spdlog::info("\n--- Loading Plot from Directory ---");
+    std::cout << std::endl << "--- Loading Plot from Directory ---" << std::endl;
     auto loaded_plot = zoneout::Plot::load(save_dir, "Multi-Resolution Farm", "agricultural", datum);
 
-    spdlog::info("Loaded plot: {} ({})", loaded_plot.get_name(), loaded_plot.get_type());
-    spdlog::info("Total zones loaded: {}", loaded_plot.get_zone_count());
-    spdlog::info("Farm name property: {}", loaded_plot.get_property("farm_name"));
+    std::cout << "Loaded plot: " << loaded_plot.get_name() << " (" << loaded_plot.get_type() << ")" << std::endl;
+    std::cout << "Total zones loaded: " << loaded_plot.get_zone_count() << std::endl;
+    std::cout << "Farm name property: " << loaded_plot.get_property("farm_name") << std::endl;
 
     // Verify loaded zones
-    spdlog::info("\n--- Verifying Loaded Zones ---");
+    std::cout << std::endl << "--- Verifying Loaded Zones ---" << std::endl;
     const auto &loaded_zones = loaded_plot.get_zones();
 
     for (size_t i = 0; i < loaded_zones.size(); ++i) {
         const auto &zone = loaded_zones[i];
-        spdlog::info("\nLoaded Zone {}:", i);
-        spdlog::info("  Name: {}", zone.name());
-        spdlog::info("  Type: {}", zone.type());
-        spdlog::info("  Resolution: {}", zone.get_property("resolution"));
-        spdlog::info("  Use case: {}", zone.get_property("use_case"));
-        spdlog::info("  Crop: {}", zone.get_property("crop"));
-        spdlog::info("  Raster: {}", zone.raster_info());
-        spdlog::info("  Features: {}", zone.feature_info());
-        spdlog::info("  Boundary area: {:.2f} m²", zone.poly().area());
-        spdlog::info("  Has field boundary: {}", zone.poly().has_field_boundary());
+        std::cout << std::endl << "Loaded Zone " << i << ":" << std::endl;
+        std::cout << "  Name: " << zone.name() << std::endl;
+        std::cout << "  Type: " << zone.type() << std::endl;
+        std::cout << "  Resolution: " << zone.get_property("resolution") << std::endl;
+        std::cout << "  Use case: " << zone.get_property("use_case") << std::endl;
+        std::cout << "  Crop: " << zone.get_property("crop") << std::endl;
+        std::cout << "  Raster: " << zone.raster_info() << std::endl;
+        std::cout << "  Features: " << zone.feature_info() << std::endl;
+        std::cout << "  Boundary area: " << zone.poly().area() << " m²" << std::endl;
+        std::cout << "  Has field boundary: " << (zone.poly().has_field_boundary() ? "true" : "false") << std::endl;
     }
 
     // ========== Load Plot from TAR Archive ==========
-    spdlog::info("\n--- Loading Plot from TAR Archive ---");
+    std::cout << std::endl << "--- Loading Plot from TAR Archive ---" << std::endl;
     auto loaded_plot_tar = zoneout::Plot::load_tar(tar_file, "Multi-Resolution Farm", "agricultural", datum);
 
-    spdlog::info("Loaded plot from TAR: {} ({})", loaded_plot_tar.get_name(), loaded_plot_tar.get_type());
-    spdlog::info("Total zones loaded from TAR: {}", loaded_plot_tar.get_zone_count());
+    std::cout << "Loaded plot from TAR: " << loaded_plot_tar.get_name() << " (" << loaded_plot_tar.get_type() << ")"
+              << std::endl;
+    std::cout << "Total zones loaded from TAR: " << loaded_plot_tar.get_zone_count() << std::endl;
 
     // ========== Compare Zone Resolutions ==========
-    spdlog::info("\n--- Zone Resolution Comparison ---");
+    std::cout << std::endl << "--- Zone Resolution Comparison ---" << std::endl;
     const auto &zones = loaded_plot.get_zones();
 
     if (zones.size() >= 3) {
-        spdlog::info("Demonstrating multi-resolution analysis:");
-        spdlog::info("  Zone 0 (High-res): {}", zones[0].raster_info());
-        spdlog::info("  Zone 1 (Med-res):  {}", zones[1].raster_info());
-        spdlog::info("  Zone 2 (Low-res):  {}", zones[2].raster_info());
+        std::cout << "Demonstrating multi-resolution analysis:" << std::endl;
+        std::cout << "  Zone 0 (High-res): " << zones[0].raster_info() << std::endl;
+        std::cout << "  Zone 1 (Med-res):  " << zones[1].raster_info() << std::endl;
+        std::cout << "  Zone 2 (Low-res):  " << zones[2].raster_info() << std::endl;
 
         // Check if zones 0 and 1 have the same boundary (they should)
         double area0 = zones[0].poly().area();
         double area1 = zones[1].poly().area();
         double area2 = zones[2].poly().area();
 
-        spdlog::info("\nBoundary overlap analysis:");
-        spdlog::info("  Zone 0 area: {:.2f} m²", area0);
-        spdlog::info("  Zone 1 area: {:.2f} m²", area1);
-        spdlog::info("  Zone 2 area: {:.2f} m²", area2);
+        std::cout << std::endl << "Boundary overlap analysis:" << std::endl;
+        std::cout << "  Zone 0 area: " << area0 << " m²" << std::endl;
+        std::cout << "  Zone 1 area: " << area1 << " m²" << std::endl;
+        std::cout << "  Zone 2 area: " << area2 << " m²" << std::endl;
 
         if (std::abs(area0 - area1) < 1.0) {
-            spdlog::info("  → Zones 0 and 1 have IDENTICAL boundaries (overlap exactly)");
+            std::cout << "  → Zones 0 and 1 have IDENTICAL boundaries (overlap exactly)" << std::endl;
         }
 
         if (std::abs(area0 - area2) > 1.0) {
-            spdlog::info("  → Zone 2 has a DIFFERENT boundary (does not overlap exactly)");
+            std::cout << "  → Zone 2 has a DIFFERENT boundary (does not overlap exactly)" << std::endl;
         }
     }
 
     // ========== Summary ==========
-    spdlog::info("\n=== Summary ===");
-    spdlog::info("✓ Created a Plot with 3 zones");
-    spdlog::info("✓ Two zones (0.5m and 1.0m) share the exact same boundary");
-    spdlog::info("✓ One zone (2.0m) has a different boundary");
-    spdlog::info("✓ All zones saved as GeoJSON (vector) and GeoTIFF (raster)");
-    spdlog::info("✓ Plot saved both as directory and TAR archive");
-    spdlog::info("✓ Successfully loaded and verified all data");
-    spdlog::info("\nOutput files:");
-    spdlog::info("  - Directory: {}", save_dir.string());
-    spdlog::info("  - TAR file:  {}", tar_file.string());
+    std::cout << std::endl << "=== Summary ===" << std::endl;
+    std::cout << "✓ Created a Plot with 3 zones" << std::endl;
+    std::cout << "✓ Two zones (0.5m and 1.0m) share the exact same boundary" << std::endl;
+    std::cout << "✓ One zone (2.0m) has a different boundary" << std::endl;
+    std::cout << "✓ All zones saved as GeoJSON (vector) and GeoTIFF (raster)" << std::endl;
+    std::cout << "✓ Plot saved both as directory and TAR archive" << std::endl;
+    std::cout << "✓ Successfully loaded and verified all data" << std::endl;
+    std::cout << std::endl << "Output files:" << std::endl;
+    std::cout << "  - Directory: " << save_dir.string() << std::endl;
+    std::cout << "  - TAR file:  " << tar_file.string() << std::endl;
 
     return 0;
 }

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 
 set(project_name zoneout)
 
-project(${project_name} VERSION 1.4.0 LANGUAGES CXX)
+project(${project_name} VERSION 1.3.0 LANGUAGES CXX)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options(-Wno-all -Wno-extra -Wno-pedantic -Wno-maybe-uninitialized -Wno-unused-variable -Wno-reorder)
@@ -93,9 +93,6 @@ export(EXPORT ${project_name}Targets
 if(${project_name_upper}_BUILD_EXAMPLES)
   find_package(rerun_sdk QUIET)
   list(APPEND ext_deps rerun_sdk)
-
-  find_package(spdlog REQUIRED)
-  list(APPEND ext_deps spdlog::spdlog)
 
   file(GLOB exe CONFIGURE_DEPENDS examples/*.cpp)
 

@@ -37,7 +37,7 @@ concord::Polygon create_obstacle(double x, double y, double size) {
 }
 
 int main() {
-    spdlog::info("=== Builder Pattern Example ===\n");
+    std::cout << "=== Builder Pattern Example ===" << std::endl << std::endl;
 
     // Common datum for all examples
     concord::Datum datum{52.0, 5.0, 0.0}; // Netherlands
@@ -45,7 +45,7 @@ int main() {
     // ========================================================================
     // Example 1: Basic ZoneBuilder Usage
     // ========================================================================
-    spdlog::info("--- Example 1: Basic ZoneBuilder ---");
+    std::cout << "--- Example 1: Basic ZoneBuilder ---" << std::endl;
 
     try {
         auto zone1 = zoneout::ZoneBuilder()
@@ -58,18 +58,18 @@ int main() {
                          .with_property("season", "2024")
                          .build();
 
-        spdlog::info("✓ Created zone: {} ({})", zone1.name(), zone1.type());
-        spdlog::info("  Resolution: 1.0m");
-        spdlog::info("  Crop: {}", zone1.get_property("crop"));
-        spdlog::info("  {}", zone1.raster_info());
+        std::cout << "✓ Created zone: " << zone1.name() << " (" << zone1.type() << ")" << std::endl;
+        std::cout << "  Resolution: 1.0m" << std::endl;
+        std::cout << "  Crop: " << zone1.get_property("crop") << std::endl;
+        std::cout << "  " << zone1.raster_info() << std::endl;
     } catch (const std::exception &e) {
-        spdlog::error("✗ Failed to build zone: {}", e.what());
+        std::cout << "✗ Failed to build zone: " << e.what() << std::endl;
     }
 
     // ========================================================================
     // Example 2: ZoneBuilder with Features and Layers
     // ========================================================================
-    spdlog::info("\n--- Example 2: ZoneBuilder with Features ---");
+    std::cout << std::endl << "--- Example 2: ZoneBuilder with Features ---" << std::endl;
 
     try {
         // Create a high-resolution zone with obstacles
@@ -86,18 +86,18 @@ int main() {
                          .with_polygon_feature(create_obstacle(50.0, 30.0, 8.0), "building", "obstacle", "structure")
                          .build();
 
-        spdlog::info("✓ Created zone: {} ({})", zone2.name(), zone2.type());
-        spdlog::info("  Resolution: 0.5m (high precision)");
-        spdlog::info("  {}", zone2.raster_info());
-        spdlog::info("  {}", zone2.feature_info());
+        std::cout << "✓ Created zone: " << zone2.name() << " (" << zone2.type() << ")" << std::endl;
+        std::cout << "  Resolution: 0.5m (high precision)" << std::endl;
+        std::cout << "  " << zone2.raster_info() << std::endl;
+        std::cout << "  " << zone2.feature_info() << std::endl;
     } catch (const std::exception &e) {
-        spdlog::error("✗ Failed to build zone: {}", e.what());
+        std::cout << "✗ Failed to build zone: " << e.what() << std::endl;
     }
 
     // ========================================================================
     // Example 3: PlotBuilder with Pre-built Zones
     // ========================================================================
-    spdlog::info("\n--- Example 3: PlotBuilder with Pre-built Zones ---");
+    std::cout << std::endl << "--- Example 3: PlotBuilder with Pre-built Zones ---" << std::endl;
 
     try {
         // Build zones separately
@@ -130,21 +130,22 @@ int main() {
                          .add_zone(field2)
                          .build();
 
-        spdlog::info("✓ Created plot: {} ({})", plot1.get_name(), plot1.get_type());
-        spdlog::info("  Total zones: {}", plot1.get_zone_count());
-        spdlog::info("  Owner: {}", plot1.get_property("farm_owner"));
+        std::cout << "✓ Created plot: " << plot1.get_name() << " (" << plot1.get_type() << ")" << std::endl;
+        std::cout << "  Total zones: " << plot1.get_zone_count() << std::endl;
+        std::cout << "  Owner: " << plot1.get_property("farm_owner") << std::endl;
 
         for (const auto &zone : plot1.get_zones()) {
-            spdlog::info("    - {} ({}, crop: {})", zone.name(), zone.type(), zone.get_property("crop"));
+            std::cout << "    - " << zone.name() << " (" << zone.type() << ", crop: " << zone.get_property("crop")
+                      << ")" << std::endl;
         }
     } catch (const std::exception &e) {
-        spdlog::error("✗ Failed to build plot: {}", e.what());
+        std::cout << "✗ Failed to build plot: " << e.what() << std::endl;
     }
 
     // ========================================================================
     // Example 4: PlotBuilder with Inline Zone Construction (Lambda)
     // ========================================================================
-    spdlog::info("\n--- Example 4: PlotBuilder with Inline Zones ---");
+    std::cout << std::endl << "--- Example 4: PlotBuilder with Inline Zones ---" << std::endl;
 
     try {
         // Build plot with zones constructed inline using lambda configurators
@@ -198,7 +199,7 @@ int main() {
     // ========================================================================
     // Example 5: Complex Multi-Resolution Plot with All Features
     // ========================================================================
-    spdlog::info("\n--- Example 5: Complex Multi-Resolution Plot ---");
+    std::cout << std::endl << "--- Example 5: Complex Multi-Resolution Plot ---" << std::endl;
 
     try {
         // This demonstrates the most advanced use case:
@@ -251,32 +252,33 @@ int main() {
                 })
                 .build();
 
-        spdlog::info("✓ Created complex plot: {} ({})", complex_plot.get_name(), complex_plot.get_type());
-        spdlog::info("  Total zones: {}", complex_plot.get_zone_count());
-        spdlog::info("  Owner: {}", complex_plot.get_property("owner"));
-        spdlog::info("  Location: {}", complex_plot.get_property("location"));
+        std::cout << "✓ Created complex plot: " << complex_plot.get_name() << " (" << complex_plot.get_type() << ")"
+                  << std::endl;
+        std::cout << "  Total zones: " << complex_plot.get_zone_count() << std::endl;
+        std::cout << "  Owner: " << complex_plot.get_property("owner") << std::endl;
+        std::cout << "  Location: " << complex_plot.get_property("location") << std::endl;
 
-        spdlog::info("\n  Zone details:");
+        std::cout << std::endl << "  Zone details:" << std::endl;
         for (const auto &zone : complex_plot.get_zones()) {
-            spdlog::info("    - {} ({})", zone.name(), zone.type());
-            spdlog::info("      {}", zone.raster_info());
-            spdlog::info("      {}", zone.feature_info());
+            std::cout << "    - " << zone.name() << " (" << zone.type() << ")" << std::endl;
+            std::cout << "      " << zone.raster_info() << std::endl;
+            std::cout << "      " << zone.feature_info() << std::endl;
         }
 
         // Save the complex plot
         std::filesystem::path save_dir = "complex_builder_plot";
         std::filesystem::remove_all(save_dir);
         complex_plot.save(save_dir);
-        spdlog::info("\n✓ Saved complex plot to: {}", save_dir.string());
+        std::cout << std::endl << "✓ Saved complex plot to: " << save_dir.string() << std::endl;
 
     } catch (const std::exception &e) {
-        spdlog::error("✗ Failed to build complex plot: {}", e.what());
+        std::cout << "✗ Failed to build complex plot: " << e.what() << std::endl;
     }
 
     // ========================================================================
     // Example 6: Validation and Error Handling
     // ========================================================================
-    spdlog::info("\n--- Example 6: Validation and Error Handling ---");
+    std::cout << std::endl << "--- Example 6: Validation and Error Handling ---" << std::endl;
 
     // Test validation with missing required fields
     zoneout::ZoneBuilder invalid_builder;
@@ -328,17 +330,17 @@ int main() {
     // ========================================================================
     // Summary
     // ========================================================================
-    spdlog::info("\n=== Summary ===");
-    spdlog::info("✓ Demonstrated ZoneBuilder for fluent zone construction");
-    spdlog::info("✓ Demonstrated PlotBuilder with pre-built and inline zones");
-    spdlog::info("✓ Showed validation and error handling");
-    spdlog::info("✓ Demonstrated builder reset and reuse");
-    spdlog::info("✓ Created complex multi-resolution plots with features");
-    spdlog::info("\nBuilder patterns make code more:");
-    spdlog::info("  - Readable: Self-documenting method names");
-    spdlog::info("  - Maintainable: Easy to add/modify options");
-    spdlog::info("  - Safe: Validation before construction");
-    spdlog::info("  - Flexible: Optional parameters with defaults");
+    std::cout << std::endl << "=== Summary ===" << std::endl;
+    std::cout << "✓ Demonstrated ZoneBuilder for fluent zone construction" << std::endl;
+    std::cout << "✓ Demonstrated PlotBuilder with pre-built and inline zones" << std::endl;
+    std::cout << "✓ Showed validation and error handling" << std::endl;
+    std::cout << "✓ Demonstrated builder reset and reuse" << std::endl;
+    std::cout << "✓ Created complex multi-resolution plots with features" << std::endl;
+    std::cout << std::endl << "Builder patterns make code more:" << std::endl;
+    std::cout << "  - Readable: Self-documenting method names" << std::endl;
+    std::cout << "  - Maintainable: Easy to add/modify options" << std::endl;
+    std::cout << "  - Safe: Validation before construction" << std::endl;
+    std::cout << "  - Flexible: Optional parameters with defaults" << std::endl;
 
     return 0;
 }

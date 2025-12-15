@@ -1,5 +1,5 @@
 set_project("zoneout")
-set_version("1.4.0")
+set_version("1.3.0")
 set_xmakever("2.7.0")
 
 -- Set C++ standard
@@ -190,7 +190,6 @@ add_requires("concord", "entropy", "geoson", "geotiv")
 
 if has_config("examples") then
     add_requires("rerun_sdk")
-    add_requires("spdlog", {system = true})
 end
 
 if has_config("tests") then
@@ -227,7 +226,7 @@ if has_config("examples") and os.projectdir() == os.curdir() then
             set_kind("binary")
             add_files(filepath)
             add_deps("zoneout")
-            add_packages("concord", "entropy", "geoson", "geotiv", "rerun_sdk", "spdlog")
+            add_packages("concord", "entropy", "geoson", "geotiv", "rerun_sdk")
 
             -- Add HAS_RERUN define for examples
             on_load(function (target)
