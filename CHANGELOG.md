@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.3.0] - 2025-12-15
+
+### <!-- 0 -->⛰️  Features
+
+- Introduce C++ Builder pattern for plot and zone objects
+- Introduce fluent builders for zone and plot objects
+- Introduce spdlog and add multi-resolution zones example
+
+### <!-- 2 -->🚜 Refactor
+
+- Move PlotBuilder and ZoneBuilder into their base classes
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Refactor build system and update dependencies
+- Cleanup accidentally comminted files
+
 ## [1.2.0] - 2025-11-16
 
 ### <!-- 0 -->⛰️  Features
