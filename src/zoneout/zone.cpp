@@ -79,8 +79,8 @@ namespace zoneout {
 
         grid_data_.setShift(grid_pose);
 
-        entropy::NoiseGen noise;
-        noise.SetNoiseType(entropy::NoiseGen::NoiseType_OpenSimplex2);
+        entropy::noise::NoiseGen noise;
+        noise.SetNoiseType(entropy::noise::NoiseGen::NoiseType_OpenSimplex2);
         auto sz = std::max(aabb.size().x, aabb.size().y);
         noise.SetFrequency(sz / 300000.0f);
         noise.SetSeed(std::random_device{}());

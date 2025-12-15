@@ -67,9 +67,7 @@ namespace zoneout {
 
     // ========== Poly Constructors ==========
 
-    Poly::Poly() : geoson::Vector(concord::Polygon{}), meta_("", "other", "default") {
-        sync_to_global_properties();
-    }
+    Poly::Poly() : geoson::Vector(concord::Polygon{}), meta_("", "other", "default") { sync_to_global_properties(); }
 
     Poly::Poly(const std::string &name, const std::string &type, const std::string &subtype)
         : geoson::Vector(concord::Polygon{}), meta_(name, type, subtype) {
@@ -87,8 +85,7 @@ namespace zoneout {
     Poly::Poly(const std::string &name, const std::string &type, const std::string &subtype,
                const concord::Polygon &boundary, const concord::Datum &datum, const concord::Euler &heading,
                geoson::CRS crs)
-        : geoson::Vector(boundary, datum, heading, crs), meta_(name, type,
-          subtype) {
+        : geoson::Vector(boundary, datum, heading, crs), meta_(name, type, subtype) {
         sync_to_global_properties();
         load_structured_elements();
     }
@@ -123,22 +120,22 @@ namespace zoneout {
     // ========== Structured Element Management ==========
 
     void Poly::add_polygon_element(const UUID &id, const std::string &name, const std::string &type,
-                                 const std::string &subtype, const concord::Polygon &geometry,
-                                 const std::unordered_map<std::string, std::string> &props) {
+                                   const std::string &subtype, const concord::Polygon &geometry,
+                                   const std::unordered_map<std::string, std::string> &props) {
         polygon_elements_.emplace_back(id, name, type, subtype, geometry, props);
         geoson::Vector::addElement(geometry, type, polygon_elements_.back().toProperties());
     }
 
     void Poly::add_line_element(const UUID &id, const std::string &name, const std::string &type,
-                              const std::string &subtype, const concord::Line &geometry,
-                              const std::unordered_map<std::string, std::string> &props) {
+                                const std::string &subtype, const concord::Line &geometry,
+                                const std::unordered_map<std::string, std::string> &props) {
         line_elements_.emplace_back(id, name, type, subtype, geometry, props);
         geoson::Vector::addElement(geometry, type, line_elements_.back().toProperties());
     }
 
     void Poly::add_point_element(const UUID &id, const std::string &name, const std::string &type,
-                               const std::string &subtype, const concord::Point &geometry,
-                               const std::unordered_map<std::string, std::string> &props) {
+                                 const std::string &subtype, const concord::Point &geometry,
+                                 const std::unordered_map<std::string, std::string> &props) {
         point_elements_.emplace_back(id, name, type, subtype, geometry, props);
         geoson::Vector::addElement(geometry, type, point_elements_.back().toProperties());
     }

@@ -28,12 +28,12 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
             auto temp_grid = base_grid;
             auto moisture_grid = base_grid;
 
-            entropy::NoiseGen temp_noise, moisture_noise;
-            temp_noise.SetNoiseType(entropy::NoiseGen::NoiseType_Perlin);
+            entropy::noise::NoiseGen temp_noise, moisture_noise;
+            temp_noise.SetNoiseType(entropy::noise::NoiseGen::NoiseType_Perlin);
             temp_noise.SetFrequency(0.08f);
             temp_noise.SetSeed(std::random_device{}());
 
-            moisture_noise.SetNoiseType(entropy::NoiseGen::NoiseType_OpenSimplex2);
+            moisture_noise.SetNoiseType(entropy::noise::NoiseGen::NoiseType_OpenSimplex2);
             moisture_noise.SetFrequency(0.05f);
             moisture_noise.SetSeed(std::random_device{}() + 100);
 
