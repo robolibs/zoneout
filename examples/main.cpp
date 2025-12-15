@@ -29,12 +29,12 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
             auto temp_grid = base_grid;
             auto moisture_grid = base_grid;
 
-            entropy::NoiseGen temp_noise, moisture_noise;
-            temp_noise.SetNoiseType(entropy::NoiseGen::NoiseType_Perlin);
+            entropy::noise::NoiseGen temp_noise, moisture_noise;
+            temp_noise.SetNoiseType(entropy::noise::NoiseGen::NoiseType_Perlin);
             temp_noise.SetFrequency(0.08f);
             temp_noise.SetSeed(std::random_device{}());
 
-            moisture_noise.SetNoiseType(entropy::NoiseGen::NoiseType_OpenSimplex2);
+            moisture_noise.SetNoiseType(entropy::noise::NoiseGen::NoiseType_OpenSimplex2);
             moisture_noise.SetFrequency(0.05f);
             moisture_noise.SetSeed(std::random_device{}() + 100);
 
@@ -52,7 +52,6 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
 
             zone.add_raster_layer(temp_grid, "temperature", "environmental", {{"units", "celsius"}}, true);
             zone.add_raster_layer(moisture_grid, "moisture", "environmental", {{"units", "percentage"}}, true);
-
 
             zone.set_property("crop_type", crop_type);
             zone.set_property("planting_date", "2024-04-15");
