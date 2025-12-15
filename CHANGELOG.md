@@ -1,13 +1,5 @@
 # Changelog
 
-## [1.4.0] - 2025-12-15
-
-### <!-- 7 -->⚙️ Miscellaneous Tasks
-
-- Refactor: Update devbox dependencies
-- Refactor build system and update dependencies
-- Feat: Add xmake build system support
-
 ## [1.3.0] - 2025-12-15
 
 ### <!-- 0 -->⛰️  Features

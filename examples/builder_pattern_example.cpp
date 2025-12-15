@@ -1,6 +1,5 @@
 #include "zoneout/zoneout.hpp"
 #include <iostream>
-#include <spdlog/spdlog.h>
 
 /**
  * Example: Builder Pattern for Zone and Plot Construction
@@ -185,15 +184,15 @@ int main() {
                          })
                          .build();
 
-        spdlog::info("✓ Created plot: {} ({})", plot2.get_name(), plot2.get_type());
-        spdlog::info("  Total zones: {}", plot2.get_zone_count());
-        spdlog::info("  Farm type: {}", plot2.get_property("farm_type"));
+        std::cout << "✓ Created plot: " << plot2.get_name() << " (" << plot2.get_type() << ")" << std::endl;
+        std::cout << "  Total zones: " << plot2.get_zone_count() << std::endl;
+        std::cout << "  Farm type: " << plot2.get_property("farm_type") << std::endl;
 
         for (const auto &zone : plot2.get_zones()) {
-            spdlog::info("    - {} ({}) - {}", zone.name(), zone.type(), zone.raster_info());
+            std::cout << "    - " << zone.name() << " (" << zone.type() << ") - " << zone.raster_info() << std::endl;
         }
     } catch (const std::exception &e) {
-        spdlog::error("✗ Failed to build plot: {}", e.what());
+        std::cout << "✗ Failed to build plot: " << e.what() << std::endl;
     }
 
     // ========================================================================
@@ -286,21 +285,21 @@ int main() {
     // Missing boundary!
 
     if (!invalid_builder.is_valid()) {
-        spdlog::warn("✗ Builder validation failed (as expected): {}", invalid_builder.validation_error());
+        std::cout << "✗ Builder validation failed (as expected): " << invalid_builder.validation_error() << std::endl;
     }
 
     // Attempting to build will throw
     try {
         auto invalid_zone = invalid_builder.build();
-        spdlog::error("Should not reach here!");
+        std::cout << "Should not reach here!" << std::endl;
     } catch (const std::invalid_argument &e) {
-        spdlog::info("✓ Build correctly threw exception: {}", e.what());
+        std::cout << "✓ Build correctly threw exception: " << e.what() << std::endl;
     }
 
     // ========================================================================
     // Example 7: Builder Reset and Reuse
     // ========================================================================
-    spdlog::info("\n--- Example 7: Builder Reset and Reuse ---");
+    std::cout << std::endl << "--- Example 7: Builder Reset and Reuse ---" << std::endl;
 
     zoneout::ZoneBuilder reusable_builder;
 
@@ -312,7 +311,7 @@ int main() {
                        .with_resolution(1.0)
                        .build();
 
-    spdlog::info("✓ Built zone: {}", zone_v1.name());
+    std::cout << "✓ Built zone: " << zone_v1.name() << std::endl;
 
     // Reset and reuse for different zone
     reusable_builder.reset();
@@ -325,7 +324,7 @@ int main() {
                        .with_property("grass", "clover")
                        .build();
 
-    spdlog::info("✓ Built zone after reset: {}", zone_v2.name());
+    std::cout << "✓ Built zone after reset: " << zone_v2.name() << std::endl;
 
     // ========================================================================
     // Summary
