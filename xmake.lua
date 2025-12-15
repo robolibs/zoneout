@@ -1,5 +1,5 @@
 set_project("zoneout")
-set_version("1.3.0")
+set_version("1.4.0")
 set_xmakever("2.7.0")
 
 -- Set C++ standard
