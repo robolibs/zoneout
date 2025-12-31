@@ -23,14 +23,14 @@ namespace zoneout {
         void save_plot(const Plot &plot, const std::filesystem::path &directory) { plot.save(directory); }
 
         Plot load_plot(const std::filesystem::path &directory, const std::string &name, const std::string &type,
-                       const concord::Datum &datum) {
+                       const dp::Geo &datum) {
             return Plot::load(directory, name, type, datum);
         }
 
         void save_plot_tar(const Plot &plot, const std::filesystem::path &tar_file) { plot.save_tar(tar_file); }
 
         Plot load_plot_tar(const std::filesystem::path &tar_file, const std::string &name, const std::string &type,
-                           const concord::Datum &datum) {
+                           const dp::Geo &datum) {
             return Plot::load_tar(tar_file, name, type, datum);
         }
 

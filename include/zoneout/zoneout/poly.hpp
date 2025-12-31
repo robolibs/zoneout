@@ -7,9 +7,14 @@
 #include <unordered_map>
 #include <vector>
 
-#include "geoson/vector.hpp"
+#include <concord/concord.hpp>
+#include <datapod/datapod.hpp>
+#include <geoson/geoson.hpp>
+
 #include "utils/meta.hpp"
 #include "utils/uuid.hpp"
+
+namespace dp = datapod;
 
 namespace zoneout {
 
@@ -23,36 +28,38 @@ namespace zoneout {
         StructuredElement(const UUID &id, const std::string &n, const std::string &t, const std::string &st,
                           const std::unordered_map<std::string, std::string> &props = {});
 
-        static bool isValid(const geoson::Element &element);
+        static bool isValid(const geoson::Feature &feature);
 
-        static std::optional<StructuredElement> fromElement(const geoson::Element &element);
+        static std::optional<StructuredElement> fromFeature(const geoson::Feature &feature);
 
         std::unordered_map<std::string, std::string> toProperties() const;
     };
 
     struct PolygonElement : public StructuredElement {
-        concord::Polygon geometry;
+        dp::Polygon geometry;
 
         PolygonElement(const UUID &id, const std::string &n, const std::string &t, const std::string &st,
-                       const concord::Polygon &geom, const std::unordered_map<std::string, std::string> &props = {});
+                       const dp::Polygon &geom, const std::unordered_map<std::string, std::string> &props = {});
     };
 
     struct LineElement : public StructuredElement {
-        concord::Line geometry;
+        dp::Segment geometry;
 
         LineElement(const UUID &id, const std::string &n, const std::string &t, const std::string &st,
-                    const concord::Line &geom, const std::unordered_map<std::string, std::string> &props = {});
+                    const dp::Segment &geom, const std::unordered_map<std::string, std::string> &props = {});
     };
 
     struct PointElement : public StructuredElement {
-        concord::Point geometry;
+        dp::Point geometry;
 
         PointElement(const UUID &id, const std::string &n, const std::string &t, const std::string &st,
-                     const concord::Point &geom, const std::unordered_map<std::string, std::string> &props = {});
+                     const dp::Point &geom, const std::unordered_map<std::string, std::string> &props = {});
     };
 
-    class Poly : public geoson::Vector {
+    class Poly {
       private:
+        geoson::FeatureCollection collection_;
+        dp::Polygon field_boundary_;
         Meta meta_;
 
         std::vector<PolygonElement> polygon_elements_;
@@ -64,12 +71,37 @@ namespace zoneout {
 
         Poly(const std::string &name, const std::string &type, const std::string &subtype = "default");
 
-        Poly(const std::string &name, const std::string &type, const std::string &subtype,
-             const concord::Polygon &boundary);
+        Poly(const std::string &name, const std::string &type, const std::string &subtype, const dp::Polygon &boundary);
 
-        Poly(const std::string &name, const std::string &type, const std::string &subtype,
-             const concord::Polygon &boundary, const concord::Datum &datum, const concord::Euler &heading,
-             geoson::CRS crs);
+        Poly(const std::string &name, const std::string &type, const std::string &subtype, const dp::Polygon &boundary,
+             const dp::Geo &datum, const dp::Euler &heading, geoson::CRS crs);
+
+        // Access to the underlying FeatureCollection
+        geoson::FeatureCollection &collection();
+        const geoson::FeatureCollection &collection() const;
+
+        // Field boundary access
+        const dp::Polygon &get_field_boundary() const;
+        void set_field_boundary(const dp::Polygon &boundary);
+
+        // Datum and heading access
+        const dp::Geo &get_datum() const;
+        void set_datum(const dp::Geo &datum);
+        const dp::Euler &get_heading() const;
+        void set_heading(const dp::Euler &heading);
+
+        // Global properties access
+        void set_global_property(const std::string &key, const std::string &value);
+        std::string get_global_property(const std::string &key) const;
+        const std::unordered_map<std::string, std::string> &get_global_properties() const;
+
+        // Feature management
+        void add_feature(const geoson::Feature &feature);
+        size_t feature_count() const;
+        const geoson::Feature &get_feature(size_t index) const;
+
+        // Field boundary properties
+        void set_field_property(const std::string &key, const std::string &value);
 
         const UUID &get_id() const;
         const std::string &get_name() const;
@@ -85,15 +117,15 @@ namespace zoneout {
         void set_id(const UUID &id);
 
         void add_polygon_element(const UUID &id, const std::string &name, const std::string &type,
-                                 const std::string &subtype, const concord::Polygon &geometry,
+                                 const std::string &subtype, const dp::Polygon &geometry,
                                  const std::unordered_map<std::string, std::string> &props = {});
 
         void add_line_element(const UUID &id, const std::string &name, const std::string &type,
-                              const std::string &subtype, const concord::Line &geometry,
+                              const std::string &subtype, const dp::Segment &geometry,
                               const std::unordered_map<std::string, std::string> &props = {});
 
         void add_point_element(const UUID &id, const std::string &name, const std::string &type,
-                               const std::string &subtype, const concord::Point &geometry,
+                               const std::string &subtype, const dp::Point &geometry,
                                const std::unordered_map<std::string, std::string> &props = {});
 
         const std::vector<PolygonElement> &get_polygon_elements() const;
@@ -106,7 +138,7 @@ namespace zoneout {
 
         double area() const;
         double perimeter() const;
-        bool contains(const concord::Point &point) const;
+        bool contains(const dp::Point &point) const;
         bool has_field_boundary() const;
         bool is_valid() const;
 

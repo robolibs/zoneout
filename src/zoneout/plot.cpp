@@ -2,10 +2,10 @@
 
 namespace zoneout {
 
-    Plot::Plot(const std::string &name, const std::string &type, const concord::Datum &datum)
+    Plot::Plot(const std::string &name, const std::string &type, const dp::Geo &datum)
         : id_(generateUUID()), name_(name), type_(type), datum_(datum) {}
 
-    Plot::Plot(const UUID &id, const std::string &name, const std::string &type, const concord::Datum &datum)
+    Plot::Plot(const UUID &id, const std::string &name, const std::string &type, const dp::Geo &datum)
         : id_(id), name_(name), type_(type), datum_(datum) {}
 
     const UUID &Plot::get_id() const { return id_; }
@@ -16,8 +16,8 @@ namespace zoneout {
     const std::string &Plot::get_type() const { return type_; }
     void Plot::set_type(const std::string &type) { type_ = type; }
 
-    const concord::Datum &Plot::get_datum() const { return datum_; }
-    void Plot::set_datum(const concord::Datum &datum) { datum_ = datum; }
+    const dp::Geo &Plot::get_datum() const { return datum_; }
+    void Plot::set_datum(const dp::Geo &datum) { datum_ = datum; }
 
     void Plot::add_zone(const Zone &zone) { zones_.push_back(zone); }
 
@@ -127,7 +127,7 @@ namespace zoneout {
     void Plot::to_files(const std::filesystem::path &directory) const { save(directory); }
 
     Plot Plot::load_tar(const std::filesystem::path &tar_file, const std::string &name, const std::string &type,
-                        const concord::Datum &datum) {
+                        const dp::Geo &datum) {
         mtar_t tar;
         int err = mtar_open(&tar, tar_file.string().c_str(), "r");
         if (err != MTAR_ESUCCESS) {
@@ -181,9 +181,9 @@ namespace zoneout {
     }
 
     Plot Plot::load(const std::filesystem::path &directory, const std::string &name, const std::string &type,
-                    const concord::Datum &datum) {
+                    const dp::Geo &datum) {
         Plot plot(name, type, datum);
-        concord::Datum plot_datum;
+        dp::Geo plot_datum;
 
         if (std::filesystem::exists(directory)) {
             for (const auto &entry : std::filesystem::directory_iterator(directory)) {
@@ -204,7 +204,7 @@ namespace zoneout {
     }
 
     Plot Plot::from_files(const std::filesystem::path &directory, const std::string &name, const std::string &type,
-                          const concord::Datum &datum) {
+                          const dp::Geo &datum) {
         return load(directory, name, type, datum);
     }
 
@@ -221,7 +221,7 @@ namespace zoneout {
         return *this;
     }
 
-    PlotBuilder &PlotBuilder::with_datum(const concord::Datum &datum) {
+    PlotBuilder &PlotBuilder::with_datum(const dp::Geo &datum) {
         datum_ = datum;
         return *this;
     }

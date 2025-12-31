@@ -12,8 +12,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "concord/concord.hpp"
-#include "entropy/generator.hpp"
+#include "zoneout/entropy/generator.hpp"
 #include "zoneout/zoneout/polygrid.hpp"
 #include "zoneout/zoneout/utils/time.hpp"
 #include "zoneout/zoneout/utils/uuid.hpp"
@@ -22,8 +21,8 @@ namespace zoneout {
 
     // ========== Factory Helper ==========
 
-    Zone make_zone(const std::string &name, const std::string &type, const concord::Polygon &boundary,
-                   const concord::Datum &datum, double resolution) {
+    Zone make_zone(const std::string &name, const std::string &type, const dp::Polygon &boundary, const dp::Geo &datum,
+                   double resolution) {
         // Validate inputs
         if (name.empty()) {
             throw std::invalid_argument("Zone name cannot be empty");
@@ -31,7 +30,7 @@ namespace zoneout {
         if (type.empty()) {
             throw std::invalid_argument("Zone type cannot be empty");
         }
-        if (boundary.getPoints().size() < 3) {
+        if (boundary.vertices.size() < 3) {
             throw std::invalid_argument("Boundary polygon must have at least 3 points");
         }
         if (resolution <= 0.0) {
@@ -44,29 +43,30 @@ namespace zoneout {
 
     // ========== Constructors ==========
 
-    Zone::Zone(const std::string &name, const std::string &type, const concord::Polygon &boundary,
-               const concord::Grid<uint8_t> &initial_grid, const concord::Datum &datum)
+    Zone::Zone(const std::string &name, const std::string &type, const dp::Polygon &boundary,
+               const dp::Grid<uint8_t> &initial_grid, const dp::Geo &datum)
         : id_(generateUUID()), name_(name), type_(type), poly_data_(name, type, "default", boundary),
           grid_data_(name, type, "default") {
         set_datum(datum);
-        auto aabb = boundary.getAABB();
-        concord::Pose grid_pose(aabb.center(), concord::Euler{0, 0, 0});
-        grid_data_.setShift(grid_pose);
+        auto aabb = boundary.get_aabb();
+        dp::Pose grid_pose{aabb.center(), dp::Euler{0, 0, 0}.to_quaternion()};
+        grid_data_.shift() = grid_pose;
         grid_data_.add_grid(initial_grid, "base_layer", "terrain");
         sync_to_poly_grid();
     }
 
-    Zone::Zone(const std::string &name, const std::string &type, const concord::Polygon &boundary,
-               const concord::Datum &datum, double resolution)
+    Zone::Zone(const std::string &name, const std::string &type, const dp::Polygon &boundary, const dp::Geo &datum,
+               double resolution)
         : id_(generateUUID()), name_(name), type_(type), poly_data_(name, type, "default", boundary),
           grid_data_(name, type, "default") {
         set_datum(datum);
 
-        auto aabb = boundary.getAABB();
+        auto aabb = boundary.get_aabb();
 
         double padding = resolution * 2.0;
-        double grid_width = aabb.size().x + padding;
-        double grid_height = aabb.size().y + padding;
+        dp::Point aabb_size = aabb.max_point - aabb.min_point;
+        double grid_width = aabb_size.x + padding;
+        double grid_height = aabb_size.y + padding;
 
         size_t grid_rows = static_cast<size_t>(std::ceil(grid_height / resolution));
         size_t grid_cols = static_cast<size_t>(std::ceil(grid_width / resolution));
@@ -74,25 +74,31 @@ namespace zoneout {
         grid_rows = std::max(grid_rows, static_cast<size_t>(1));
         grid_cols = std::max(grid_cols, static_cast<size_t>(1));
 
-        concord::Pose grid_pose(aabb.center(), concord::Euler{0, 0, 0});
-        concord::Grid<uint8_t> generated_grid(grid_rows, grid_cols, resolution, true, grid_pose, false);
+        dp::Pose grid_pose{aabb.center(), dp::Euler{0, 0, 0}.to_quaternion()};
+        dp::Grid<uint8_t> generated_grid;
+        generated_grid.rows = grid_rows;
+        generated_grid.cols = grid_cols;
+        generated_grid.resolution = resolution;
+        generated_grid.centered = true;
+        generated_grid.pose = grid_pose;
+        generated_grid.data.resize(grid_rows * grid_cols, 0);
 
-        grid_data_.setShift(grid_pose);
+        grid_data_.shift() = grid_pose;
 
         entropy::noise::NoiseGen noise;
         noise.SetNoiseType(entropy::noise::NoiseGen::NoiseType_OpenSimplex2);
-        auto sz = std::max(aabb.size().x, aabb.size().y);
+        auto sz = std::max(aabb_size.x, aabb_size.y);
         noise.SetFrequency(sz / 300000.0f);
         noise.SetSeed(std::random_device{}());
 
-        for (size_t r = 0; r < generated_grid.rows(); ++r) {
-            for (size_t c = 0; c < generated_grid.cols(); ++c) {
+        for (size_t r = 0; r < generated_grid.rows; ++r) {
+            for (size_t c = 0; c < generated_grid.cols; ++c) {
                 auto cell_center = generated_grid.get_point(r, c);
 
                 if (boundary.contains(cell_center)) {
-                    generated_grid.set_value(r, c, 255);
+                    generated_grid(r, c) = 255;
                 } else {
-                    generated_grid.set_value(r, c, 0);
+                    generated_grid(r, c) = 0;
                 }
             }
         }
@@ -132,34 +138,34 @@ namespace zoneout {
 
     // ========== Datum Management ==========
 
-    const concord::Datum &Zone::datum() const { return poly_data_.getDatum(); }
+    const dp::Geo &Zone::datum() const { return poly_data_.get_datum(); }
 
-    void Zone::set_datum(const concord::Datum &datum) {
-        poly_data_.setDatum(datum);
-        grid_data_.setDatum(datum);
+    void Zone::set_datum(const dp::Geo &datum) {
+        poly_data_.set_datum(datum);
+        grid_data_.datum() = datum;
     }
 
     // ========== Raster Layer Management ==========
 
-    void Zone::add_raster_layer(const concord::Grid<uint8_t> &grid, const std::string &name, const std::string &type,
+    void Zone::add_raster_layer(const dp::Grid<uint8_t> &grid, const std::string &name, const std::string &type,
                                 const std::unordered_map<std::string, std::string> &properties, bool poly_cut,
                                 int layer_index) {
         if (poly_cut && poly_data_.has_field_boundary()) {
             auto modified_grid = grid;
 
-            auto boundary = poly_data_.getFieldBoundary();
+            auto boundary = poly_data_.get_field_boundary();
 
             size_t cells_inside = 0;
-            size_t total_cells = modified_grid.rows() * modified_grid.cols();
+            size_t total_cells = modified_grid.rows * modified_grid.cols;
 
-            for (size_t r = 0; r < modified_grid.rows(); ++r) {
-                for (size_t c = 0; c < modified_grid.cols(); ++c) {
+            for (size_t r = 0; r < modified_grid.rows; ++r) {
+                for (size_t c = 0; c < modified_grid.cols; ++c) {
                     auto cell_center = modified_grid.get_point(r, c);
 
                     if (boundary.contains(cell_center)) {
                         cells_inside++;
                     } else {
-                        modified_grid.set_value(r, c, 0);
+                        modified_grid(r, c) = 0;
                     }
                 }
             }
@@ -171,23 +177,23 @@ namespace zoneout {
     }
 
     std::string Zone::raster_info() const {
-        if (grid_data_.gridCount() > 0) {
-            const auto &first_layer = grid_data_.getGrid(0);
-            return "Raster size: " + std::to_string(first_layer.grid.cols()) + "x" +
-                   std::to_string(first_layer.grid.rows()) + " (" + std::to_string(grid_data_.gridCount()) + " layers)";
+        if (grid_data_.layer_count() > 0) {
+            const auto &first_layer = grid_data_.get_layer(0);
+            return "Raster size: " + std::to_string(first_layer.grid.cols) + "x" +
+                   std::to_string(first_layer.grid.rows) + " (" + std::to_string(grid_data_.layer_count()) + " layers)";
         }
         return "No raster layers";
     }
 
     // ========== Polygon Feature Management ==========
 
-    void Zone::add_polygon_feature(const concord::Polygon &geometry, const std::string &name, const std::string &type,
+    void Zone::add_polygon_feature(const dp::Polygon &geometry, const std::string &name, const std::string &type,
                                    const std::string &subtype,
                                    const std::unordered_map<std::string, std::string> &properties) {
         if (poly_data_.has_field_boundary()) {
-            auto boundary = poly_data_.getFieldBoundary();
+            auto boundary = poly_data_.get_field_boundary();
 
-            for (const auto &point : geometry.getPoints()) {
+            for (const auto &point : geometry.vertices) {
                 if (!boundary.contains(point)) {
                     throw std::runtime_error("Polygon feature '" + name +
                                              "' is not valid: points must be inside field boundary");
@@ -200,13 +206,13 @@ namespace zoneout {
         static std::uniform_int_distribution<> color_dist(50, 200);
         uint8_t polygon_color = static_cast<uint8_t>(color_dist(gen));
 
-        if (grid_data_.gridCount() > 0) {
-            auto &base_grid = grid_data_.getGrid(0).grid;
-            for (size_t r = 0; r < base_grid.rows(); ++r) {
-                for (size_t c = 0; c < base_grid.cols(); ++c) {
+        if (grid_data_.layer_count() > 0) {
+            auto &base_grid = grid_data_.get_layer(0).grid;
+            for (size_t r = 0; r < base_grid.rows; ++r) {
+                for (size_t c = 0; c < base_grid.cols; ++c) {
                     auto cell_center = base_grid.get_point(r, c);
                     if (geometry.contains(cell_center)) {
-                        base_grid.set_value(r, c, polygon_color);
+                        base_grid(r, c) = polygon_color;
                     }
                 }
             }
@@ -241,17 +247,22 @@ namespace zoneout {
     Zone Zone::from_files(const std::filesystem::path &vector_path, const std::filesystem::path &raster_path) {
         auto [poly, grid] = loadPolyGrid(vector_path, raster_path);
 
-        auto datum = poly.getDatum();
+        auto datum = poly.get_datum();
 
-        concord::Grid<uint8_t> base_grid;
-        if (grid.hasGrids()) {
-            base_grid = grid.getGrid(0).grid;
+        dp::Grid<uint8_t> base_grid;
+        if (grid.has_layers()) {
+            base_grid = grid.get_layer(0).grid;
         } else {
-            concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
-            base_grid = concord::Grid<uint8_t>(10, 10, 1.0, true, shift);
+            dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}.to_quaternion()};
+            base_grid.rows = 10;
+            base_grid.cols = 10;
+            base_grid.resolution = 1.0;
+            base_grid.centered = true;
+            base_grid.pose = shift;
+            base_grid.data.resize(100, 0);
         }
 
-        concord::Polygon default_boundary;
+        dp::Polygon default_boundary;
         Zone zone("", "", default_boundary, base_grid, datum);
         zone.poly_data_ = poly;
         zone.grid_data_ = grid;
@@ -275,7 +286,7 @@ namespace zoneout {
         }
 
         if (std::filesystem::exists(vector_path)) {
-            auto field_props = poly.getFieldProperties();
+            auto field_props = poly.get_global_properties();
             for (const auto &[key, value] : field_props) {
                 if (key.substr(0, 5) == "prop_") {
                     zone.set_property(key.substr(5), value);
@@ -297,7 +308,7 @@ namespace zoneout {
         grid_copy.set_id(id_);
 
         for (const auto &[key, value] : properties_) {
-            poly_copy.setFieldProperty("prop_" + key, value);
+            poly_copy.set_global_property("prop_" + key, value);
         }
 
         savePolyGrid(poly_copy, grid_copy, vector_path, raster_path);
@@ -316,23 +327,23 @@ namespace zoneout {
         return from_files(vector_path, raster_path);
     }
 
-    const geoson::Vector &Zone::vector_data() const { return poly_data_; }
-    const geotiv::Raster &Zone::raster_data() const { return grid_data_; }
+    const geoson::FeatureCollection &Zone::vector_data() const { return poly_data_.collection(); }
+    const geotiv::RasterCollection &Zone::raster_data() const { return grid_data_.raster(); }
 
-    geoson::Vector &Zone::vector_data() { return poly_data_; }
-    geotiv::Raster &Zone::raster_data() { return grid_data_; }
+    geoson::FeatureCollection &Zone::vector_data() { return poly_data_.collection(); }
+    geotiv::RasterCollection &Zone::raster_data() { return grid_data_.raster(); }
 
     // ========== Unified Global Property Access ==========
 
     std::string Zone::global_property(const char *global_name) const {
-        auto field_props = poly_data_.getFieldProperties();
+        auto field_props = poly_data_.get_global_properties();
         auto it = field_props.find(global_name);
         if (it != field_props.end()) {
             return it->second;
         }
 
-        if (grid_data_.hasGrids()) {
-            auto metadata = grid_data_.getGlobalProperties();
+        if (grid_data_.has_layers()) {
+            auto metadata = grid_data_.raster().getGlobalPropertiesFromFirstLayer();
             auto grid_it = metadata.find(global_name);
             if (grid_it != metadata.end()) {
                 return grid_it->second;
@@ -342,9 +353,9 @@ namespace zoneout {
     }
 
     void Zone::set_global_property(const char *global_name, const std::string &value) {
-        poly_data_.setFieldProperty(global_name, value);
-        if (grid_data_.hasGrids()) {
-            grid_data_.setGlobalProperty(global_name, value);
+        poly_data_.set_global_property(global_name, value);
+        if (grid_data_.has_layers()) {
+            grid_data_.get_layer(0).setGlobalProperty(global_name, value);
         }
     }
 
@@ -379,12 +390,12 @@ namespace zoneout {
         return *this;
     }
 
-    ZoneBuilder &ZoneBuilder::with_boundary(const concord::Polygon &boundary) {
+    ZoneBuilder &ZoneBuilder::with_boundary(const dp::Polygon &boundary) {
         boundary_ = boundary;
         return *this;
     }
 
-    ZoneBuilder &ZoneBuilder::with_datum(const concord::Datum &datum) {
+    ZoneBuilder &ZoneBuilder::with_datum(const dp::Geo &datum) {
         datum_ = datum;
         return *this;
     }
@@ -395,7 +406,7 @@ namespace zoneout {
         return *this;
     }
 
-    ZoneBuilder &ZoneBuilder::with_initial_grid(const concord::Grid<uint8_t> &grid) {
+    ZoneBuilder &ZoneBuilder::with_initial_grid(const dp::Grid<uint8_t> &grid) {
         initial_grid_ = grid;
         return *this;
     }
@@ -413,7 +424,7 @@ namespace zoneout {
     }
 
     // Feature Configuration Methods
-    ZoneBuilder &ZoneBuilder::with_raster_layer(const concord::Grid<uint8_t> &grid, const std::string &name,
+    ZoneBuilder &ZoneBuilder::with_raster_layer(const dp::Grid<uint8_t> &grid, const std::string &name,
                                                 const std::string &type,
                                                 const std::unordered_map<std::string, std::string> &properties,
                                                 bool poly_cut, int layer_index) {
@@ -428,7 +439,7 @@ namespace zoneout {
         return *this;
     }
 
-    ZoneBuilder &ZoneBuilder::with_polygon_feature(const concord::Polygon &geometry, const std::string &name,
+    ZoneBuilder &ZoneBuilder::with_polygon_feature(const dp::Polygon &geometry, const std::string &name,
                                                    const std::string &type, const std::string &subtype,
                                                    const std::unordered_map<std::string, std::string> &properties) {
         PolygonFeatureConfig config;
@@ -457,7 +468,7 @@ namespace zoneout {
             return "Zone boundary is required";
         }
 
-        if (boundary_->getPoints().size() < 3) {
+        if (boundary_->vertices.size() < 3) {
             return "Boundary polygon must have at least 3 points";
         }
 

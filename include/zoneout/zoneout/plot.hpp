@@ -10,10 +10,14 @@
 #include <unordered_map>
 #include <vector>
 
-#include "concord/concord.hpp"
+#include <concord/concord.hpp>
+#include <datapod/datapod.hpp>
+
 #include "microtar/microtar.hpp"
 #include "utils/uuid.hpp"
 #include "zone.hpp"
+
+namespace dp = datapod;
 
 namespace zoneout {
 
@@ -24,19 +28,19 @@ namespace zoneout {
         std::string type_;
         std::vector<Zone> zones_;
         std::unordered_map<std::string, std::string> properties_;
-        concord::Datum datum_;
+        dp::Geo datum_;
 
       public:
-        Plot(const std::string &name, const std::string &type, const concord::Datum &datum);
-        Plot(const UUID &id, const std::string &name, const std::string &type, const concord::Datum &datum);
+        Plot(const std::string &name, const std::string &type, const dp::Geo &datum);
+        Plot(const UUID &id, const std::string &name, const std::string &type, const dp::Geo &datum);
 
         const UUID &get_id() const;
         const std::string &get_name() const;
         void set_name(const std::string &name);
         const std::string &get_type() const;
         void set_type(const std::string &type);
-        const concord::Datum &get_datum() const;
-        void set_datum(const concord::Datum &datum);
+        const dp::Geo &get_datum() const;
+        void set_datum(const dp::Geo &datum);
 
         void add_zone(const Zone &zone);
         bool remove_zone(const UUID &zone_id);
@@ -60,11 +64,11 @@ namespace zoneout {
         void to_files(const std::filesystem::path &directory) const;
 
         static Plot load_tar(const std::filesystem::path &tar_file, const std::string &name, const std::string &type,
-                             const concord::Datum &datum);
+                             const dp::Geo &datum);
         static Plot load(const std::filesystem::path &directory, const std::string &name, const std::string &type,
-                         const concord::Datum &datum = concord::Datum{0.001, 0.001, 1.0});
+                         const dp::Geo &datum = dp::Geo{0.001, 0.001, 1.0});
         static Plot from_files(const std::filesystem::path &directory, const std::string &name, const std::string &type,
-                               const concord::Datum &datum);
+                               const dp::Geo &datum);
     };
 
     /**
@@ -96,7 +100,7 @@ namespace zoneout {
         // Required fields
         std::optional<std::string> name_;
         std::optional<std::string> type_;
-        std::optional<concord::Datum> datum_;
+        std::optional<dp::Geo> datum_;
 
         // Optional fields
         std::unordered_map<std::string, std::string> properties_;
@@ -113,7 +117,7 @@ namespace zoneout {
         // Required configuration methods
         PlotBuilder &with_name(const std::string &name);
         PlotBuilder &with_type(const std::string &type);
-        PlotBuilder &with_datum(const concord::Datum &datum);
+        PlotBuilder &with_datum(const dp::Geo &datum);
 
         // Optional configuration methods
         PlotBuilder &with_property(const std::string &key, const std::string &value);

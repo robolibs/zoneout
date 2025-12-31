@@ -2,8 +2,12 @@
 
 #include "plot.hpp"
 #include "zone.hpp"
+#include <concord/concord.hpp>
+#include <datapod/datapod.hpp>
 #include <filesystem>
 #include <optional>
+
+namespace dp = datapod;
 
 namespace zoneout {
     namespace io {
@@ -22,12 +26,12 @@ namespace zoneout {
         void save_plot(const Plot &plot, const std::filesystem::path &directory);
 
         Plot load_plot(const std::filesystem::path &directory, const std::string &name, const std::string &type,
-                       const concord::Datum &datum);
+                       const dp::Geo &datum);
 
         void save_plot_tar(const Plot &plot, const std::filesystem::path &tar_file);
 
         Plot load_plot_tar(const std::filesystem::path &tar_file, const std::string &name, const std::string &type,
-                           const concord::Datum &datum);
+                           const dp::Geo &datum);
 
     } // namespace io
 } // namespace zoneout

@@ -12,13 +12,19 @@
 #include <unordered_set>
 #include <vector>
 
-#include "concord/concord.hpp"
+#include <concord/concord.hpp>
+#include <datapod/datapod.hpp>
+#include <geoson/geoson.hpp>
+#include <geotiv/geotiv.hpp>
+
 #include "constants.hpp"
-#include "entropy/generator.hpp"
 #include "polygrid.hpp"
 #include "utils/meta.hpp"
 #include "utils/time.hpp"
 #include "utils/uuid.hpp"
+#include "zoneout/entropy/generator.hpp"
+
+namespace dp = datapod;
 
 namespace zoneout {
 
@@ -26,8 +32,8 @@ namespace zoneout {
     class Zone;
 
     // Factory helper for creating zones with validation
-    Zone make_zone(const std::string &name, const std::string &type, const concord::Polygon &boundary,
-                   const concord::Datum &datum, double resolution = DEFAULT_RESOLUTION);
+    Zone make_zone(const std::string &name, const std::string &type, const dp::Polygon &boundary, const dp::Geo &datum,
+                   double resolution = DEFAULT_RESOLUTION);
 
     class Zone {
       private:
@@ -41,11 +47,11 @@ namespace zoneout {
         std::unordered_map<std::string, std::string> properties_;
 
       public:
-        Zone(const std::string &name, const std::string &type, const concord::Polygon &boundary,
-             const concord::Grid<uint8_t> &initial_grid, const concord::Datum &datum);
+        Zone(const std::string &name, const std::string &type, const dp::Polygon &boundary,
+             const dp::Grid<uint8_t> &initial_grid, const dp::Geo &datum);
 
-        Zone(const std::string &name, const std::string &type, const concord::Polygon &boundary,
-             const concord::Datum &datum, double resolution = 1.0);
+        Zone(const std::string &name, const std::string &type, const dp::Polygon &boundary, const dp::Geo &datum,
+             double resolution = 1.0);
 
         const UUID &id() const;
         const std::string &name() const;
@@ -55,15 +61,15 @@ namespace zoneout {
         void set_property(const std::string &key, const std::string &value);
         std::string get_property(const std::string &key, const std::string &default_value = "") const;
         const std::unordered_map<std::string, std::string> &properties() const;
-        const concord::Datum &datum() const;
-        void set_datum(const concord::Datum &datum);
+        const dp::Geo &datum() const;
+        void set_datum(const dp::Geo &datum);
 
-        void add_raster_layer(const concord::Grid<uint8_t> &grid, const std::string &name, const std::string &type = "",
+        void add_raster_layer(const dp::Grid<uint8_t> &grid, const std::string &name, const std::string &type = "",
                               const std::unordered_map<std::string, std::string> &properties = {},
                               bool poly_cut = false, int layer_index = -1);
         std::string raster_info() const;
-        void add_polygon_feature(const concord::Polygon &geometry, const std::string &name,
-                                 const std::string &type = "", const std::string &subtype = "default",
+        void add_polygon_feature(const dp::Polygon &geometry, const std::string &name, const std::string &type = "",
+                                 const std::string &subtype = "default",
                                  const std::unordered_map<std::string, std::string> &properties = {});
         std::string feature_info() const;
 
@@ -74,10 +80,10 @@ namespace zoneout {
         void save(const std::filesystem::path &directory) const;
         static Zone load(const std::filesystem::path &directory);
 
-        const geoson::Vector &vector_data() const;
-        const geotiv::Raster &raster_data() const;
-        geoson::Vector &vector_data();
-        geotiv::Raster &raster_data();
+        const geoson::FeatureCollection &vector_data() const;
+        const geotiv::RasterCollection &raster_data() const;
+        geoson::FeatureCollection &vector_data();
+        geotiv::RasterCollection &raster_data();
 
         std::string global_property(const char *global_name) const;
         void set_global_property(const char *global_name, const std::string &value);
@@ -117,18 +123,18 @@ namespace zoneout {
         // Required fields
         std::optional<std::string> name_;
         std::optional<std::string> type_;
-        std::optional<concord::Polygon> boundary_;
-        std::optional<concord::Datum> datum_;
+        std::optional<dp::Polygon> boundary_;
+        std::optional<dp::Geo> datum_;
 
         // Optional fields with defaults
         double resolution_ = 1.0;
-        std::optional<concord::Grid<uint8_t>> initial_grid_;
+        std::optional<dp::Grid<uint8_t>> initial_grid_;
 
         // Collections
         std::unordered_map<std::string, std::string> properties_;
 
         struct RasterLayerConfig {
-            concord::Grid<uint8_t> grid;
+            dp::Grid<uint8_t> grid;
             std::string name;
             std::string type;
             std::unordered_map<std::string, std::string> properties;
@@ -138,7 +144,7 @@ namespace zoneout {
         std::vector<RasterLayerConfig> raster_layers_;
 
         struct PolygonFeatureConfig {
-            concord::Polygon geometry;
+            dp::Polygon geometry;
             std::string name;
             std::string type;
             std::string subtype;
@@ -152,22 +158,22 @@ namespace zoneout {
         // Required configuration methods
         ZoneBuilder &with_name(const std::string &name);
         ZoneBuilder &with_type(const std::string &type);
-        ZoneBuilder &with_boundary(const concord::Polygon &boundary);
-        ZoneBuilder &with_datum(const concord::Datum &datum);
+        ZoneBuilder &with_boundary(const dp::Polygon &boundary);
+        ZoneBuilder &with_datum(const dp::Geo &datum);
 
         // Optional configuration methods
         ZoneBuilder &with_resolution(double resolution);
-        ZoneBuilder &with_initial_grid(const concord::Grid<uint8_t> &grid);
+        ZoneBuilder &with_initial_grid(const dp::Grid<uint8_t> &grid);
         ZoneBuilder &with_property(const std::string &key, const std::string &value);
         ZoneBuilder &with_properties(const std::unordered_map<std::string, std::string> &properties);
 
         // Feature configuration methods
-        ZoneBuilder &with_raster_layer(const concord::Grid<uint8_t> &grid, const std::string &name,
+        ZoneBuilder &with_raster_layer(const dp::Grid<uint8_t> &grid, const std::string &name,
                                        const std::string &type = "",
                                        const std::unordered_map<std::string, std::string> &properties = {},
                                        bool poly_cut = false, int layer_index = -1);
 
-        ZoneBuilder &with_polygon_feature(const concord::Polygon &geometry, const std::string &name,
+        ZoneBuilder &with_polygon_feature(const dp::Polygon &geometry, const std::string &name,
                                           const std::string &type = "", const std::string &subtype = "default",
                                           const std::unordered_map<std::string, std::string> &properties = {});
 

@@ -1,6 +1,4 @@
 -- Project configuration
--- NOTE: Due to xmake description domain limitations, PROJECT_NAME must be hardcoded
---       and kept in sync with the NAME file. The VERSION is read dynamically.
 local PROJECT_NAME = "zoneout"
 local PROJECT_VERSION = "1.4.0"
 
@@ -9,10 +7,10 @@ local PROJECT_VERSION = "1.4.0"
 --   Local:  {"name", "../path/to/local"}  (optional: uses git if not found)
 --   System: "pkgconfig::libname" or {system = "boost"}
 local LIB_DEPS = {
-    {"concord", "https://github.com/robolibs/concord.git", "2.5.0"},
-    {"entropy", "https://github.com/robolibs/entropy.git", "0.0.2"},
-    {"geoson", "https://github.com/robolibs/geoson.git", "2.2.0"},
-    {"geotiv", "https://github.com/robolibs/geotiv.git", "3.1.0"},
+    {"datapod", "https://github.com/robolibs/datapod.git", "0.0.16"},
+    {"optinum", "https://github.com/robolibs/optinum.git", "0.0.14"},
+    {"graphix", "https://github.com/robolibs/graphix.git", "0.0.4"},
+    {"concord", "https://github.com/robolibs/concord.git", "0.0.5"},
 }
 local EXAMPLE_DEPS = {
     {system = "rerun_sdk"},
@@ -28,6 +26,18 @@ set_xmakever("2.7.0")
 set_languages("c++20")
 add_rules("mode.debug", "mode.release")
 
+-- Compiler selection option
+option("toolchain", {default = nil, showmenu = true, description = "Compiler toolchain: gcc, clang, or nil for default"})
+
+if has_config("toolchain") then
+    local tc = get_config("toolchain")
+    if tc == "gcc" then
+        set_toolchains("gcc")
+    elseif tc == "clang" then
+        set_toolchains("clang")
+    end
+end
+
 -- Common compiler flags
 local COMMON_FLAGS = {
     "-Wall", "-Wextra", "-Wpedantic",
@@ -40,8 +50,6 @@ local COMMON_FLAGS = {
 for _, flag in ipairs(COMMON_FLAGS) do
     add_cxxflags(flag)
 end
-
--- Compiler-specific flags (added conditionally via on_config for each target)
 
 -- SIMD configuration option
 option("simd", {default = true, showmenu = true, description = "Enable SIMD optimizations"})
@@ -61,11 +69,11 @@ else
     print("SIMD optimizations disabled")
 end
 
-
 -- Options
 option("examples", {default = false, showmenu = true, description = "Build examples"})
 option("tests",    {default = false, showmenu = true, description = "Enable tests"})
-option("short_namespace", {default = false, showmenu = true, description = "Enable short namespace alias"})
+option("short_namespace", {default = true, showmenu = true, description = "Enable short namespace alias"})
+option("expose_all", {default = false, showmenu = true, description = "Expose all submodule functions in optinum:: namespace"})
 
 -- Helper: process dependency
 local function process_dep(dep)
@@ -84,10 +92,25 @@ local function process_dep(dep)
     -- Table: {name, source, tag}
     local name, source, tag = dep[1], dep[2], dep[3]
 
+    -- Local path (no tag, source is a path)
+    if not tag and source and not source:match("^https?://") then
+        local local_dir = path.join(os.projectdir(), source)
+        if os.isdir(local_dir) then
+            package(name)
+                set_sourcedir(local_dir)
+                on_install(function (pkg)
+                    local configs = {"-DCMAKE_BUILD_TYPE=" .. (pkg:is_debug() and "Debug" or "Release")}
+                    import("package.tools.cmake").install(pkg, configs, {cmake_generator = "Unix Makefiles"})
+                end)
+            package_end()
+            add_requires(name)
+            return name
+        end
+    end
+
     -- Git dependency
     local sourcedir = path.join(os.projectdir(), "build/_deps/" .. name .. "-src")
     package(name)
-        add_deps("cmake")
         set_sourcedir(sourcedir)
         on_fetch(function (pkg)
             if not os.isdir(pkg:sourcedir()) then
@@ -100,11 +123,10 @@ local function process_dep(dep)
         on_install(function (pkg)
             local configs = {
                 "-DCMAKE_BUILD_TYPE=" .. (pkg:is_debug() and "Debug" or "Release"),
-                -- Disable doctest examples/tests to avoid -Werror issues with clang
                 "-DDOCTEST_WITH_TESTS=OFF",
                 "-DDOCTEST_WITH_MAIN_IN_STATIC_LIB=OFF"
             }
-            import("package.tools.cmake").install(pkg, configs)
+            import("package.tools.cmake").install(pkg, configs, {cmake_generator = "Unix Makefiles"})
         end)
     package_end()
     add_requires(name)
@@ -117,6 +139,10 @@ for _, dep in ipairs(LIB_DEPS) do
     table.insert(LIB_DEP_NAMES, process_dep(dep))
 end
 
+-- Add local geoson and geotiv from xtra/
+includes("xtra/geoson")
+includes("xtra/geotiv")
+
 -- Process example deps only when examples are enabled
 local EXAMPLE_DEP_NAMES = {unpack(LIB_DEP_NAMES)}
 if has_config("examples") then
@@ -125,7 +151,7 @@ if has_config("examples") then
     end
 end
 
--- Process test deps only when tests are enabled (without inheriting example deps)
+-- Process test deps only when tests are enabled
 local TEST_DEP_NAMES = {unpack(LIB_DEP_NAMES)}
 if has_config("tests") then
     for _, dep in ipairs(TEST_DEPS) do
@@ -142,9 +168,13 @@ target(PROJECT_NAME)
     add_installfiles("include/(" .. PROJECT_NAME .. "/**.hpp)")
 
     for _, dep in ipairs(LIB_DEP_NAMES) do add_packages(dep) end
+    add_deps("geoson", "geotiv")
 
     if has_config("short_namespace") then
         add_defines("SHORT_NAMESPACE", {public = true})
+    end
+    if has_config("expose_all") then
+        add_defines("OPTINUM_EXPOSE_ALL", {public = true})
     end
 
     on_install(function (target)

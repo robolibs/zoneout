@@ -46,7 +46,7 @@ namespace zoneout {
     void savePolyGrid(const Poly &poly, const Grid &grid, const std::filesystem::path &vector_path,
                       const std::filesystem::path &raster_path, geoson::CRS crs) {
         poly.to_file(vector_path, crs);
-        if (grid.hasGrids()) {
+        if (grid.has_layers()) {
             grid.to_file(raster_path);
         }
     }
