@@ -120,12 +120,24 @@ namespace zoneout {
                                  const std::string &subtype, const dp::Polygon &geometry,
                                  const std::unordered_map<std::string, std::string> &props = {});
 
+        // Convenience overload: auto-generates UUID, uses type as name and "default" as subtype
+        void add_polygon_element(const dp::Polygon &geometry, const std::string &type,
+                                 const std::unordered_map<std::string, std::string> &props = {});
+
         void add_line_element(const UUID &id, const std::string &name, const std::string &type,
                               const std::string &subtype, const dp::Segment &geometry,
                               const std::unordered_map<std::string, std::string> &props = {});
 
+        // Convenience overload: auto-generates UUID, uses type as name and "default" as subtype
+        void add_line_element(const dp::Segment &geometry, const std::string &type,
+                              const std::unordered_map<std::string, std::string> &props = {});
+
         void add_point_element(const UUID &id, const std::string &name, const std::string &type,
                                const std::string &subtype, const dp::Point &geometry,
+                               const std::unordered_map<std::string, std::string> &props = {});
+
+        // Convenience overload: auto-generates UUID, uses type as name and "default" as subtype
+        void add_point_element(const dp::Point &geometry, const std::string &type,
                                const std::unordered_map<std::string, std::string> &props = {});
 
         const std::vector<PolygonElement> &get_polygon_elements() const;
@@ -133,6 +145,8 @@ namespace zoneout {
         const std::vector<PointElement> &get_point_elements() const;
 
         std::vector<PolygonElement> get_polygons_by_type(const std::string &type) const;
+        std::vector<LineElement> get_lines_by_type(const std::string &type) const;
+        std::vector<PointElement> get_points_by_type(const std::string &type) const;
 
         std::vector<PolygonElement> get_polygons_by_subtype(const std::string &subtype) const;
 

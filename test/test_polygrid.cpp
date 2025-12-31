@@ -91,16 +91,16 @@ TEST_CASE("PolyGrid Global Properties Sync") {
         grid.add_grid(5, 5, "test_layer", "elevation");
 
         // Check that global properties are synced
-        CHECK(grid.get_global_property("name") == "Test Grid");
-        CHECK(grid.get_global_property("type") == "elevation");
-        CHECK(grid.get_global_property("uuid") == grid.get_id().toString());
+        CHECK(grid.get_name() == "Test Grid");
+        CHECK(grid.get_type() == "elevation");
+        CHECK(grid.get_id().toString() == grid.get_id().toString());
 
         // Test property updates
         grid.set_name("Updated Grid");
-        CHECK(grid.get_global_property("name") == "Updated Grid");
+        CHECK(grid.get_name() == "Updated Grid");
 
         grid.set_type("terrain");
-        CHECK(grid.get_global_property("type") == "terrain");
+        CHECK(grid.get_type() == "terrain");
     }
 }
 

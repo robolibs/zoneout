@@ -27,8 +27,8 @@ TEST_CASE("Test coordinate system ordering") {
 
         // Get the generated grid
         const auto &grid_data = zone.raster_data();
-        REQUIRE(grid_data.hasGrids());
-        const auto &first_layer = grid_data.getGrid(0);
+        REQUIRE(!grid_data.layers.empty());
+        const auto &first_layer = grid_data.layers[0];
         const auto &grid = first_layer.grid;
 
         std::cout << "\n=== Coordinate System Analysis ===\n";
@@ -39,15 +39,15 @@ TEST_CASE("Test coordinate system ordering") {
         std::cout << "  Center: " << aabb.center().x << ", " << aabb.center().y << std::endl;
 
         std::cout << "\nGrid info:\n";
-        std::cout << "  Dimensions: " << grid.cols() << " x " << grid.rows() << std::endl;
-        std::cout << "  Resolution: " << grid.inradius() << std::endl;
+        std::cout << "  Dimensions: " << grid.cols << " x " << grid.rows << std::endl;
+        std::cout << "  Resolution: " << grid.resolution << std::endl;
 
         // Check grid corner coordinates
         std::cout << "\nGrid corner coordinates:\n";
         auto top_left = grid.get_point(0, 0);
-        auto top_right = grid.get_point(0, grid.cols() - 1);
-        auto bottom_left = grid.get_point(grid.rows() - 1, 0);
-        auto bottom_right = grid.get_point(grid.rows() - 1, grid.cols() - 1);
+        auto top_right = grid.get_point(0, grid.cols - 1);
+        auto bottom_left = grid.get_point(grid.rows - 1, 0);
+        auto bottom_right = grid.get_point(grid.rows - 1, grid.cols - 1);
 
         std::cout << "  Top-left (0,0): " << top_left.x << ", " << top_left.y << std::endl;
         std::cout << "  Top-right (0,cols-1): " << top_right.x << ", " << top_right.y << std::endl;
@@ -55,8 +55,8 @@ TEST_CASE("Test coordinate system ordering") {
         std::cout << "  Bottom-right (rows-1,cols-1): " << bottom_right.x << ", " << bottom_right.y << std::endl;
 
         // Check center coordinates
-        auto center_r = grid.rows() / 2;
-        auto center_c = grid.cols() / 2;
+        auto center_r = grid.rows / 2;
+        auto center_c = grid.cols / 2;
         auto grid_center = grid.get_point(center_r, center_c);
         std::cout << "  Grid center (" << center_r << "," << center_c << "): " << grid_center.x << ", " << grid_center.y
                   << std::endl;
@@ -82,8 +82,13 @@ TEST_CASE("Test coordinate system ordering") {
 
         // Test with reverse_y=true
         std::cout << "\n=== Testing with reverse_y=true ===\n";
-        dp::Pose grid_pose(aabb.center(), dp::Euler{0, 0, 0});
-        dp::Grid<uint8_t> reverse_grid(10, 10, 1.0, true, grid_pose, true);
+        dp::Grid<uint8_t> reverse_grid;
+        reverse_grid.rows = 10;
+        reverse_grid.cols = 10;
+        reverse_grid.resolution = 1.0;
+        reverse_grid.centered = true;
+        reverse_grid.pose = dp::Pose{aabb.center(), dp::Euler{0, 0, 0}.to_quaternion()};
+        reverse_grid.data.resize(10 * 10, 0);
 
         auto rev_top_left = reverse_grid.get_point(0, 0);
         auto rev_bottom_left = reverse_grid.get_point(9, 0);

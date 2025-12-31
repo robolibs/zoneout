@@ -1,6 +1,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
 #include "zoneout/zoneout.hpp"
+#include <concord/concord.hpp>
 #include <filesystem>
 #include <iomanip>
 #include <iostream>
@@ -34,42 +35,41 @@ TEST_CASE("Test different resolutions with same polygon") {
 
             // Get the grid info
             const auto &grid_data = zone.raster_data();
-            if (grid_data.hasGrids()) {
-                const auto &first_layer = grid_data.getGrid(0);
+            if (!grid_data.layers.empty()) {
+                const auto &first_layer = grid_data.layers[0];
                 const auto &grid = first_layer.grid;
 
                 std::cout << "\n=== Resolution " << res << "m ===" << std::endl;
-                std::cout << "Grid dimensions: " << grid.cols() << " x " << grid.rows() << std::endl;
-                std::cout << "Grid size in meters: " << (grid.cols() * res) << " x " << (grid.rows() * res)
-                          << std::endl;
+                std::cout << "Grid dimensions: " << grid.cols << " x " << grid.rows << std::endl;
+                std::cout << "Grid size in meters: " << (grid.cols * res) << " x " << (grid.rows * res) << std::endl;
 
                 // Calculate what the GeoTIFF extent should be
-                double grid_width_meters = grid.cols() * res;
-                double grid_height_meters = grid.rows() * res;
+                double grid_width_meters = grid.cols * res;
+                double grid_height_meters = grid.rows * res;
 
                 // Get the shift (center) of the grid
-                auto shift = grid_data.getShift();
+                auto shift = grid_data.shift;
                 std::cout << "Grid center (ENU): " << shift.point.x << ", " << shift.point.y << std::endl;
 
-                // Convert to WGS84 to see the actual geographic extent
-                dp::ENU center_enu(shift.point.x, shift.point.y, shift.point.z, test_datum);
-                dp::WGS center_wgs = center_enu.toWGS();
+                // Convert to WGS84 to see the actual geographic extent using concord
+                concord::frame::ENU center_enu(shift.point.x, shift.point.y, shift.point.z, test_datum);
+                concord::earth::WGS center_wgs = concord::frame::to_wgs(center_enu);
 
                 // Calculate corners
-                dp::ENU tl_enu(shift.point.x - grid_width_meters / 2, shift.point.y + grid_height_meters / 2, 0,
-                               test_datum);
-                dp::ENU br_enu(shift.point.x + grid_width_meters / 2, shift.point.y - grid_height_meters / 2, 0,
-                               test_datum);
-                dp::WGS tl_wgs = tl_enu.toWGS();
-                dp::WGS br_wgs = br_enu.toWGS();
+                concord::frame::ENU tl_enu(shift.point.x - grid_width_meters / 2,
+                                           shift.point.y + grid_height_meters / 2, 0, test_datum);
+                concord::frame::ENU br_enu(shift.point.x + grid_width_meters / 2,
+                                           shift.point.y - grid_height_meters / 2, 0, test_datum);
+                concord::earth::WGS tl_wgs = concord::frame::to_wgs(tl_enu);
+                concord::earth::WGS br_wgs = concord::frame::to_wgs(br_enu);
 
                 std::cout << std::fixed << std::setprecision(10);
-                std::cout << "Center (WGS): " << center_wgs.lon << ", " << center_wgs.lat << std::endl;
-                std::cout << "Top-left (WGS): " << tl_wgs.lon << ", " << tl_wgs.lat << std::endl;
-                std::cout << "Bottom-right (WGS): " << br_wgs.lon << ", " << br_wgs.lat << std::endl;
+                std::cout << "Center (WGS): " << center_wgs.longitude << ", " << center_wgs.latitude << std::endl;
+                std::cout << "Top-left (WGS): " << tl_wgs.longitude << ", " << tl_wgs.latitude << std::endl;
+                std::cout << "Bottom-right (WGS): " << br_wgs.longitude << ", " << br_wgs.latitude << std::endl;
 
-                double lon_span = br_wgs.lon - tl_wgs.lon;
-                double lat_span = tl_wgs.lat - br_wgs.lat;
+                double lon_span = br_wgs.longitude - tl_wgs.longitude;
+                double lat_span = tl_wgs.latitude - br_wgs.latitude;
                 std::cout << "Geographic span: " << lon_span << "° lon x " << lat_span << "° lat" << std::endl;
 
                 // Grid should encompass 100m polygon with reasonable padding

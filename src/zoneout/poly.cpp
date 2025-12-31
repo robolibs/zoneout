@@ -205,6 +205,22 @@ namespace zoneout {
         collection_.features.push_back(feature);
     }
 
+    // Convenience overloads that auto-generate UUID
+    void Poly::add_polygon_element(const dp::Polygon &geometry, const std::string &type,
+                                   const std::unordered_map<std::string, std::string> &props) {
+        add_polygon_element(generateUUID(), type, type, "default", geometry, props);
+    }
+
+    void Poly::add_line_element(const dp::Segment &geometry, const std::string &type,
+                                const std::unordered_map<std::string, std::string> &props) {
+        add_line_element(generateUUID(), type, type, "default", geometry, props);
+    }
+
+    void Poly::add_point_element(const dp::Point &geometry, const std::string &type,
+                                 const std::unordered_map<std::string, std::string> &props) {
+        add_point_element(generateUUID(), type, type, "default", geometry, props);
+    }
+
     const std::vector<PolygonElement> &Poly::get_polygon_elements() const { return polygon_elements_; }
     const std::vector<LineElement> &Poly::get_line_elements() const { return line_elements_; }
     const std::vector<PointElement> &Poly::get_point_elements() const { return point_elements_; }
@@ -212,6 +228,24 @@ namespace zoneout {
     std::vector<PolygonElement> Poly::get_polygons_by_type(const std::string &type) const {
         std::vector<PolygonElement> result;
         for (const auto &elem : polygon_elements_) {
+            if (elem.type == type)
+                result.push_back(elem);
+        }
+        return result;
+    }
+
+    std::vector<LineElement> Poly::get_lines_by_type(const std::string &type) const {
+        std::vector<LineElement> result;
+        for (const auto &elem : line_elements_) {
+            if (elem.type == type)
+                result.push_back(elem);
+        }
+        return result;
+    }
+
+    std::vector<PointElement> Poly::get_points_by_type(const std::string &type) const {
+        std::vector<PointElement> result;
+        for (const auto &elem : point_elements_) {
             if (elem.type == type)
                 result.push_back(elem);
         }

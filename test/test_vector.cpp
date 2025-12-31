@@ -71,7 +71,7 @@ TEST_CASE("Vector Global Properties - Save and Load") {
         CHECK(global_props.at("name") == "Test Field");
 
         // Verify boundary and elements are preserved
-        CHECK(!loaded_vector.getFieldBoundary().getPoints().empty());
+        CHECK(!loaded_vector.getFieldBoundary().vertices.empty());
         CHECK(loaded_vector.elementCount() == 4); // 1 crop area + 1 irrigation + 2 sensors
 
         // Check specific elements

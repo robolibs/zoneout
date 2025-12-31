@@ -31,33 +31,35 @@ TEST_CASE("Test real irregular field from misc/field4.geojson") {
 
         // Get the grid info for analysis
         const auto &grid_data = zone.raster_data();
-        if (grid_data.hasGrids()) {
-            const auto &first_layer = grid_data.getGrid(0);
+        if (!grid_data.layers.empty()) {
+            const auto &first_layer = grid_data.layers[0];
             const auto &grid = first_layer.grid;
 
             std::cout << "\n=== Real Field Analysis ===\n";
             std::cout << "Zone name: " << zone.name() << std::endl;
-            std::cout << "Grid dimensions: " << grid.cols() << " x " << grid.rows() << std::endl;
-            std::cout << "Grid resolution: " << grid.inradius() << "m" << std::endl;
+            std::cout << "Grid dimensions: " << grid.cols << " x " << grid.rows << std::endl;
+            std::cout << "Grid resolution: " << grid.resolution << "m" << std::endl;
 
             // Get polygon boundary for analysis
-            auto boundary = zone.vector_data().getFieldBoundary();
-            auto aabb = boundary.getAABB();
+            auto boundary = zone.poly().get_field_boundary();
+            auto aabb = boundary.get_aabb();
 
             std::cout << "Polygon AABB (ENU coordinates):\n";
             std::cout << "  Min: " << std::fixed << std::setprecision(6) << aabb.min_point.x << ", " << aabb.min_point.y
                       << std::endl;
             std::cout << "  Max: " << std::fixed << std::setprecision(6) << aabb.max_point.x << ", " << aabb.max_point.y
                       << std::endl;
-            std::cout << "  Size: " << aabb.size().x << "m x " << aabb.size().y << "m" << std::endl;
+            double aabb_width = aabb.max_point.x - aabb.min_point.x;
+            double aabb_height = aabb.max_point.y - aabb.min_point.y;
+            std::cout << "  Size: " << aabb_width << "m x " << aabb_height << "m" << std::endl;
 
             // Get grid shift (center)
-            auto shift = grid_data.getShift();
+            auto shift = grid_data.shift;
             std::cout << "Grid center (shift): " << shift.point.x << ", " << shift.point.y << std::endl;
 
             // Check grid vs polygon alignment
-            double grid_width = grid.cols() * grid.inradius();
-            double grid_height = grid.rows() * grid.inradius();
+            double grid_width = grid.cols * grid.resolution;
+            double grid_height = grid.rows * grid.resolution;
             double grid_min_x = shift.point.x - grid_width / 2;
             double grid_max_x = shift.point.x + grid_width / 2;
             double grid_min_y = shift.point.y - grid_height / 2;
@@ -69,10 +71,10 @@ TEST_CASE("Test real irregular field from misc/field4.geojson") {
             std::cout << "  Size: " << grid_width << "m x " << grid_height << "m" << std::endl;
 
             // Check for the vertical shift issue
-            double height_diff = grid_height - aabb.size().y;
+            double height_diff = grid_height - aabb_height;
             std::cout << "\nHeight difference analysis:" << std::endl;
             std::cout << "  Grid height: " << grid_height << "m" << std::endl;
-            std::cout << "  Polygon height: " << aabb.size().y << "m" << std::endl;
+            std::cout << "  Polygon height: " << aabb_height << "m" << std::endl;
             std::cout << "  Difference: " << height_diff << "m" << std::endl;
 
             if (std::abs(height_diff) > 0.1) {

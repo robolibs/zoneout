@@ -31,29 +31,29 @@ TEST_CASE("Test irregular polygon alignment") {
 
         // Get the grid info
         const auto &grid_data = zone.raster_data();
-        if (grid_data.hasGrids()) {
-            const auto &first_layer = grid_data.getGrid(0);
+        if (!grid_data.layers.empty()) {
+            const auto &first_layer = grid_data.layers[0];
             const auto &grid = first_layer.grid;
 
             std::cout << "\n=== Irregular Polygon Analysis ===" << std::endl;
-            std::cout << "Grid dimensions: " << grid.cols() << " x " << grid.rows() << std::endl;
+            std::cout << "Grid dimensions: " << grid.cols << " x " << grid.rows << std::endl;
 
             // Get polygon AABB
             auto aabb = trapezoid.get_aabb();
             std::cout << "Polygon AABB min: " << aabb.min_point.x << ", " << aabb.min_point.y << std::endl;
             std::cout << "Polygon AABB max: " << aabb.max_point.x << ", " << aabb.max_point.y << std::endl;
             std::cout << "Polygon AABB center: " << aabb.center().x << ", " << aabb.center().y << std::endl;
-            std::cout << "Polygon AABB size: " << aabb.size().x << " x " << aabb.size().y << std::endl;
+            std::cout << "Polygon AABB size: " << dp::Point(aabb.max_point.x - aabb.min_point.x, aabb.max_point.y - aabb.min_point.y, 0).x << " x " << dp::Point(aabb.max_point.x - aabb.min_point.x, aabb.max_point.y - aabb.min_point.y, 0).y << std::endl;
 
             // Get grid shift (center)
-            auto shift = grid_data.getShift();
+            auto shift = grid_data.shift;
             std::cout << "Grid center (shift): " << shift.point.x << ", " << shift.point.y << ", " << shift.point.z
                       << std::endl;
-            std::cout << "Grid resolution: " << grid.inradius() << std::endl;
+            std::cout << "Grid resolution: " << grid.resolution << std::endl;
 
             // Calculate grid bounds
-            double grid_width_meters = grid.cols() * 1.0;
-            double grid_height_meters = grid.rows() * 1.0;
+            double grid_width_meters = grid.cols * 1.0;
+            double grid_height_meters = grid.rows * 1.0;
             double grid_min_x = shift.point.x - grid_width_meters / 2;
             double grid_max_x = shift.point.x + grid_width_meters / 2;
             double grid_min_y = shift.point.y - grid_height_meters / 2;

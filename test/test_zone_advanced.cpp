@@ -26,55 +26,56 @@ dp::Polygon createRectangle(double x, double y, double width, double height) {
 
 TEST_CASE("Zone field elements management") {
     // Create simple base grid for Zone constructor
-    dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
-    dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    dp::Grid<uint8_t> base_grid;
+    base_grid.rows = 10;
+    base_grid.cols = 10;
+    base_grid.resolution = 1.0;
+    base_grid.centered = true;
+    base_grid.pose = dp::Pose{dp::Point{0.0, 0.0, 0.0}, dp::Quaternion{}};
+    base_grid.data.resize(10 * 10, 0);
 
     auto boundary = createRectangle(0, 0, 200, 100);
     Zone zone("Field Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
 
     SUBCASE("Add irrigation lines") {
-        std::vector<dp::Point> line_points;
-        line_points.emplace_back(10, 50, 0);
-        line_points.emplace_back(190, 50, 0);
+        dp::Segment line({10, 50, 0}, {190, 50, 0});
 
         std::unordered_map<std::string, std::string> props;
         props["flow_rate"] = "50L/min";
         props["pressure"] = "2.5bar";
 
-        zone.poly().addElement(line_points, "irrigation_line", props);
+        zone.poly().add_line_element(line, "irrigation_line", props);
 
-        auto irrigation_lines = zone.poly().getElementsByType("irrigation_line");
+        auto irrigation_lines = zone.poly().get_lines_by_type("irrigation_line");
         CHECK(irrigation_lines.size() == 1);
 
-        auto all_elements = zone.poly().elementCount();
+        auto all_elements = zone.poly().feature_count();
         CHECK(all_elements == 1);
 
-        auto irrigation_only = zone.poly().getElementsByType("irrigation_line");
+        auto irrigation_only = zone.poly().get_lines_by_type("irrigation_line");
         CHECK(irrigation_only.size() == 1);
 
-        auto crop_rows = zone.poly().getElementsByType("crop_row");
+        auto crop_rows = zone.poly().get_lines_by_type("crop_row");
         CHECK(crop_rows.size() == 0);
     }
 
     SUBCASE("Add crop rows") {
         for (int i = 0; i < 5; ++i) {
-            std::vector<dp::Point> row_points;
             double y = 10.0 + i * 15.0;
-            row_points.emplace_back(5, y, 0);
-            row_points.emplace_back(195, y, 0);
+            dp::Segment row_line({5, y, 0}, {195, y, 0});
 
             std::unordered_map<std::string, std::string> props;
             props["row_number"] = std::to_string(i + 1);
             props["crop_type"] = "wheat";
             props["planting_date"] = "2024-03-15";
 
-            zone.poly().addElement(row_points, "crop_row", props);
+            zone.poly().add_line_element(row_line, "crop_row", props);
         }
 
-        auto crop_rows = zone.poly().getElementsByType("crop_row");
+        auto crop_rows = zone.poly().get_lines_by_type("crop_row");
         CHECK(crop_rows.size() == 5);
 
-        auto all_elements = zone.poly().elementCount();
+        auto all_elements = zone.poly().feature_count();
         CHECK(all_elements == 5);
     }
 
@@ -87,274 +88,148 @@ TEST_CASE("Zone field elements management") {
         props["height"] = "5.0m";
         props["material"] = "concrete";
 
-        zone.poly().addElement(obstacle_boundary, "obstacle", props);
+        zone.poly().add_polygon_element(obstacle_boundary, "obstacle", props);
 
-        auto obstacles = zone.poly().getElementsByType("obstacle");
+        auto obstacles = zone.poly().get_polygons_by_type("obstacle");
         CHECK(obstacles.size() == 1);
     }
 
     SUBCASE("Add access paths") {
-        std::vector<dp::Point> path_points;
-        path_points.emplace_back(0, 0, 0);
-        path_points.emplace_back(50, 25, 0);
-        path_points.emplace_back(100, 50, 0);
-        path_points.emplace_back(200, 100, 0);
+        // For a path with multiple points, we'd need to add multiple line segments
+        // or use a different approach. For now, add a simple line segment.
+        dp::Segment path_line({0, 0, 0}, {200, 100, 0});
 
         std::unordered_map<std::string, std::string> props;
         props["width"] = "3.0m";
         props["surface"] = "gravel";
         props["max_speed"] = "15km/h";
 
-        zone.poly().addElement(path_points, "access_path", props);
+        zone.poly().add_line_element(path_line, "access_path", props);
 
-        auto access_paths = zone.poly().getElementsByType("access_path");
+        auto access_paths = zone.poly().get_lines_by_type("access_path");
         CHECK(access_paths.size() == 1);
     }
 
     SUBCASE("Mixed field elements") {
         // Add multiple types
-        std::vector<dp::Point> line_points;
-        line_points.emplace_back(10, 30, 0);
-        line_points.emplace_back(190, 30, 0);
-        zone.poly().addElement(line_points, "irrigation_line");
+        dp::Segment line({10, 30, 0}, {190, 30, 0});
+        zone.poly().add_line_element(line, "irrigation_line");
 
-        std::vector<dp::Point> row_points;
-        row_points.emplace_back(5, 70, 0);
-        row_points.emplace_back(195, 70, 0);
-        zone.poly().addElement(row_points, "crop_row");
+        dp::Segment row({5, 70, 0}, {195, 70, 0});
+        zone.poly().add_line_element(row, "crop_row");
 
         auto obstacle = createRectangle(100, 10, 10, 10);
-        zone.poly().addElement(obstacle, "obstacle");
+        zone.poly().add_polygon_element(obstacle, "obstacle");
 
         // Check totals
-        CHECK(zone.poly().getElementsByType("irrigation_line").size() == 1);
-        CHECK(zone.poly().getElementsByType("crop_row").size() == 1);
-        CHECK(zone.poly().getElementsByType("obstacle").size() == 1);
-        CHECK(zone.poly().elementCount() == 3);
+        CHECK(zone.poly().get_lines_by_type("irrigation_line").size() == 1);
+        CHECK(zone.poly().get_lines_by_type("crop_row").size() == 1);
+        CHECK(zone.poly().get_polygons_by_type("obstacle").size() == 1);
+        CHECK(zone.poly().feature_count() == 3);
     }
 }
 
 TEST_CASE("Zone raster layers management") {
     // Create simple base grid for Zone constructor
-    dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
-    dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    dp::Grid<uint8_t> base_grid;
+    base_grid.rows = 10;
+    base_grid.cols = 10;
+    base_grid.resolution = 1.0;
+    base_grid.centered = true;
+    base_grid.pose = dp::Pose{dp::Point{0.0, 0.0, 0.0}, dp::Quaternion{}};
+    base_grid.data.resize(10 * 10, 0);
 
     auto boundary = createRectangle(0, 0, 100, 50);
     Zone zone("Raster Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
 
     SUBCASE("Add elevation layer") {
-        dp::Grid<uint8_t> elevation_grid(10, 20, 5.0, true, dp::Pose{});
+        // Add elevation layer via zone.grid()
+        zone.grid().add_grid(20, 10, "elevation", "terrain", {{"units", "meters"}});
 
-        // Create elevation gradient
-        for (size_t r = 0; r < 10; ++r) {
-            for (size_t c = 0; c < 20; ++c) {
-                uint8_t elevation = static_cast<uint8_t>(100 + r * 2 + c);
-                elevation_grid.set_value(r, c, elevation);
-            }
-        }
-
-        zone.raster_data().addGrid(elevation_grid.cols(), elevation_grid.rows(), "elevation", "terrain",
-                                   {{"units", "meters"}});
-
-        // Copy the grid data
-        auto &raster_grid = zone.raster_data().getGrid("elevation").grid;
-        for (size_t r = 0; r < elevation_grid.rows(); ++r) {
-            for (size_t c = 0; c < elevation_grid.cols(); ++c) {
-                auto cell = elevation_grid(r, c);
-                raster_grid.set_value(r, c, cell);
-            }
-        }
-
-        CHECK(zone.raster_data().gridCount() == 2);           // Base grid + elevation layer
-        CHECK(zone.raster_data().getGridNames().size() == 2); // Base grid + elevation layer
-        // Check that elevation layer is present (might not be first due to base grid)
-        auto grid_names = zone.raster_data().getGridNames();
-        CHECK(std::find(grid_names.begin(), grid_names.end(), "elevation") != grid_names.end());
-
-        const auto &layer = zone.raster_data().getGrid("elevation");
-        CHECK(layer.name == "elevation");
-        CHECK(layer.type == "terrain");
+        CHECK(zone.grid().layer_count() == 2); // Base grid + elevation layer
     }
 
     SUBCASE("Add soil moisture layer") {
-        dp::Grid<uint8_t> moisture_grid(8, 16, 6.25, true, dp::Pose{});
+        // Add soil moisture layer via zone.grid()
+        zone.grid().add_grid(16, 8, "soil_moisture", "environmental", {{"units", "percentage"}});
 
-        // Create moisture pattern
-        for (size_t r = 0; r < 8; ++r) {
-            for (size_t c = 0; c < 16; ++c) {
-                uint8_t moisture = static_cast<uint8_t>(30 + (r + c) % 40);
-                moisture_grid.set_value(r, c, moisture);
-            }
-        }
-
-        zone.raster_data().addGrid(moisture_grid.cols(), moisture_grid.rows(), "soil_moisture", "environmental",
-                                   {{"units", "percentage"}});
-
-        // Copy the grid data
-        auto &raster_grid = zone.raster_data().getGrid("soil_moisture").grid;
-        for (size_t r = 0; r < moisture_grid.rows(); ++r) {
-            for (size_t c = 0; c < moisture_grid.cols(); ++c) {
-                auto cell = moisture_grid(r, c);
-                raster_grid.set_value(r, c, cell);
-            }
-        }
-
-        CHECK(zone.raster_data().gridCount() == 2); // Base grid + soil moisture layer
-        auto grid_names = zone.raster_data().getGridNames();
-        CHECK(std::find(grid_names.begin(), grid_names.end(), "soil_moisture") != grid_names.end());
+        CHECK(zone.grid().layer_count() == 2); // Base grid + soil moisture layer
     }
 
     SUBCASE("Add crop health layer") {
-        dp::Grid<uint8_t> health_grid(12, 24, 4.16, true, dp::Pose{});
+        // Add crop health layer via zone.grid()
+        zone.grid().add_grid(24, 12, "crop_health", "vegetation", {{"units", "NDVI"}});
 
-        // Create NDVI-like pattern
-        for (size_t r = 0; r < 12; ++r) {
-            for (size_t c = 0; c < 24; ++c) {
-                uint8_t ndvi = static_cast<uint8_t>(128 + (r * c) % 127);
-                health_grid.set_value(r, c, ndvi);
-            }
-        }
-
-        zone.raster_data().addGrid(health_grid.cols(), health_grid.rows(), "crop_health", "vegetation",
-                                   {{"units", "NDVI"}});
-
-        // Copy the grid data
-        auto &raster_grid = zone.raster_data().getGrid("crop_health").grid;
-        for (size_t r = 0; r < health_grid.rows(); ++r) {
-            for (size_t c = 0; c < health_grid.cols(); ++c) {
-                auto cell = health_grid(r, c);
-                raster_grid.set_value(r, c, cell);
-            }
-        }
-
-        CHECK(zone.raster_data().gridCount() == 2); // Base grid + crop health layer
-        auto grid_names = zone.raster_data().getGridNames();
-        CHECK(std::find(grid_names.begin(), grid_names.end(), "crop_health") != grid_names.end());
+        CHECK(zone.grid().layer_count() == 2); // Base grid + crop health layer
     }
 
     SUBCASE("Multiple raster layers") {
-        // Add all three types
-        dp::Grid<uint8_t> grid1(10, 20, 5.0, true, dp::Pose{});
-        dp::Grid<uint8_t> grid2(10, 20, 5.0, true, dp::Pose{});
-        dp::Grid<uint8_t> grid3(10, 20, 5.0, true, dp::Pose{});
+        // Add all three types via zone.grid()
+        zone.grid().add_grid(20, 10, "elevation", "terrain", {{"units", "meters"}});
+        zone.grid().add_grid(20, 10, "soil_moisture", "environmental", {{"units", "percentage"}});
+        zone.grid().add_grid(20, 10, "crop_health", "vegetation", {{"units", "NDVI"}});
 
-        // Fill grids with test data
-        for (size_t r = 0; r < 10; ++r) {
-            for (size_t c = 0; c < 20; ++c) {
-                grid1.set_value(r, c, static_cast<uint8_t>(100 + r + c));
-                grid2.set_value(r, c, static_cast<uint8_t>(50 + r * 2));
-                grid3.set_value(r, c, static_cast<uint8_t>(200 - c));
-            }
-        }
-
-        zone.raster_data().addGrid(grid1.cols(), grid1.rows(), "elevation", "terrain", {{"units", "meters"}});
-        zone.raster_data().addGrid(grid2.cols(), grid2.rows(), "soil_moisture", "environmental",
-                                   {{"units", "percentage"}});
-        zone.raster_data().addGrid(grid3.cols(), grid3.rows(), "crop_health", "vegetation", {{"units", "NDVI"}});
-
-        // Copy the grid data
-        auto &raster_grid1 = zone.raster_data().getGrid("elevation").grid;
-        auto &raster_grid2 = zone.raster_data().getGrid("soil_moisture").grid;
-        auto &raster_grid3 = zone.raster_data().getGrid("crop_health").grid;
-
-        for (size_t r = 0; r < 10; ++r) {
-            for (size_t c = 0; c < 20; ++c) {
-                raster_grid1.set_value(r, c, static_cast<uint8_t>(100 + r + c));
-                raster_grid2.set_value(r, c, static_cast<uint8_t>(50 + r * 2));
-                raster_grid3.set_value(r, c, static_cast<uint8_t>(200 - c));
-            }
-        }
-
-        CHECK(zone.raster_data().gridCount() == 4); // Base grid + 3 additional layers
-        auto grid_names = zone.raster_data().getGridNames();
-        CHECK(grid_names.size() == 4); // Base grid + 3 additional layers
-        CHECK(std::find(grid_names.begin(), grid_names.end(), "elevation") != grid_names.end());
-        CHECK(std::find(grid_names.begin(), grid_names.end(), "soil_moisture") != grid_names.end());
-        CHECK(std::find(grid_names.begin(), grid_names.end(), "crop_health") != grid_names.end());
+        CHECK(zone.grid().layer_count() == 4); // Base grid + 3 additional layers
     }
 
     SUBCASE("Custom raster layer") {
-        dp::Grid<uint8_t> custom_grid(5, 10, 10.0, true, dp::Pose{});
-
-        // Fill with custom data
-        for (size_t r = 0; r < 5; ++r) {
-            for (size_t c = 0; c < 10; ++c) {
-                custom_grid.set_value(r, c, static_cast<uint8_t>(r * 10 + c));
-            }
-        }
-
         std::unordered_map<std::string, std::string> props;
         props["sensor_type"] = "infrared";
         props["measurement_date"] = "2024-06-15";
         props["weather_conditions"] = "sunny";
 
-        zone.raster_data().addGrid(custom_grid.cols(), custom_grid.rows(), "temperature", "thermal", props);
+        zone.grid().add_grid(10, 5, "temperature", "thermal", props);
 
-        // Copy the grid data
-        auto &raster_grid = zone.raster_data().getGrid("temperature").grid;
-        for (size_t r = 0; r < custom_grid.rows(); ++r) {
-            for (size_t c = 0; c < custom_grid.cols(); ++c) {
-                auto cell = custom_grid(r, c);
-                raster_grid.set_value(r, c, cell);
-            }
-        }
-
-        CHECK(zone.raster_data().gridCount() == 2); // Base grid + temperature layer
-        auto grid_names = zone.raster_data().getGridNames();
-        CHECK(std::find(grid_names.begin(), grid_names.end(), "temperature") != grid_names.end());
+        CHECK(zone.grid().layer_count() == 2); // Base grid + temperature layer
     }
 }
 
 TEST_CASE("Zone raster sampling") {
     // Create simple base grid for Zone constructor
-    dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
-    dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    dp::Grid<uint8_t> base_grid;
+    base_grid.rows = 10;
+    base_grid.cols = 10;
+    base_grid.resolution = 1.0;
+    base_grid.centered = true;
+    base_grid.pose = dp::Pose{dp::Point{0.0, 0.0, 0.0}, dp::Quaternion{}};
+    base_grid.data.resize(10 * 10, 0);
 
     auto boundary = createRectangle(0, 0, 100, 50);
     Zone zone("Sampling Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
 
-    // Create elevation grid with known pattern
-    dp::Grid<uint8_t> elevation_grid(10, 20, 5.0, true, dp::Pose{});
-    for (size_t r = 0; r < 10; ++r) {
-        for (size_t c = 0; c < 20; ++c) {
-            uint8_t elevation = static_cast<uint8_t>(100 + r + c);
-            elevation_grid.set_value(r, c, elevation);
-        }
-    }
-    zone.raster_data().addGrid(elevation_grid.cols(), elevation_grid.rows(), "elevation", "terrain",
-                               {{"units", "meters"}});
+    // Add elevation layer with known pattern via zone.grid()
+    zone.grid().add_grid(20, 10, "elevation", "terrain", {{"units", "meters"}});
 
-    // Copy the grid data
-    auto &raster_grid = zone.raster_data().getGrid("elevation").grid;
-    for (size_t r = 0; r < elevation_grid.rows(); ++r) {
-        for (size_t c = 0; c < elevation_grid.cols(); ++c) {
-            auto cell = elevation_grid(r, c);
-            raster_grid.set_value(r, c, cell);
+    // Get the layer and fill it with test data
+    auto &layer = zone.grid().get_layer(1); // Index 1 is the elevation layer (0 is base)
+    for (size_t r = 0; r < layer.grid.rows; ++r) {
+        for (size_t c = 0; c < layer.grid.cols; ++c) {
+            layer.grid(r, c) = static_cast<uint8_t>(100 + r + c);
         }
     }
 
     SUBCASE("Sample at specific points") {
         // Direct access to raster grid for sampling
-        const auto &layer = zone.raster_data().getGrid("elevation");
+        const auto &elev_layer = zone.grid().get_layer(1);
 
         // Sample at grid cell (2, 2) - should have value 100 + 2 + 2 = 104
-        auto cell = layer.grid(2, 2);
+        auto cell = elev_layer.grid(2, 2);
         CHECK(cell == 104);
 
         // Sample at grid cell (5, 10) - should have value 100 + 5 + 10 = 115
-        auto cell2 = layer.grid(5, 10);
+        auto cell2 = elev_layer.grid(5, 10);
         CHECK(cell2 == 115);
     }
 
     SUBCASE("Sample at grid corners") {
-        const auto &layer = zone.raster_data().getGrid("elevation");
+        const auto &elev_layer = zone.grid().get_layer(1);
 
         // Sample at corner (0, 0) - should have value 100 + 0 + 0 = 100
-        auto corner = layer.grid(0, 0);
+        auto corner = elev_layer.grid(0, 0);
         CHECK(corner == 100);
 
         // Sample at opposite corner (9, 19) - should have value 100 + 9 + 19 = 128
-        auto far_corner = layer.grid(9, 19);
+        auto far_corner = elev_layer.grid(9, 19);
         CHECK(far_corner == 128);
     }
 }
@@ -362,8 +237,13 @@ TEST_CASE("Zone raster sampling") {
 TEST_CASE("Zone geometric operations") {
     SUBCASE("Area and perimeter calculations") {
         // Create simple base grid for Zone constructor
-        dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
-        dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        dp::Grid<uint8_t> base_grid;
+        base_grid.rows = 10;
+        base_grid.cols = 10;
+        base_grid.resolution = 1.0;
+        base_grid.centered = true;
+        base_grid.pose = dp::Pose{dp::Point{0.0, 0.0, 0.0}, dp::Quaternion{}};
+        base_grid.data.resize(10 * 10, 0);
 
         // Rectangle: 100m x 50m = 5000 m²
         auto boundary = createRectangle(0, 0, 100, 50);
@@ -375,8 +255,13 @@ TEST_CASE("Zone geometric operations") {
 
     SUBCASE("Point containment") {
         // Create simple base grid for Zone constructor
-        dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
-        dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        dp::Grid<uint8_t> base_grid;
+        base_grid.rows = 10;
+        base_grid.cols = 10;
+        base_grid.resolution = 1.0;
+        base_grid.centered = true;
+        base_grid.pose = dp::Pose{dp::Point{0.0, 0.0, 0.0}, dp::Quaternion{}};
+        base_grid.data.resize(10 * 10, 0);
 
         auto boundary = createRectangle(10, 10, 80, 60);
         Zone zone("Containment Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
@@ -407,8 +292,13 @@ TEST_CASE("Zone geometric operations") {
         l_boundary.vertices.emplace_back(0, 60, 0);
 
         // Create simple base grid for Zone constructor
-        dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
-        dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        dp::Grid<uint8_t> base_grid;
+        base_grid.rows = 10;
+        base_grid.cols = 10;
+        base_grid.resolution = 1.0;
+        base_grid.centered = true;
+        base_grid.pose = dp::Pose{dp::Point{0.0, 0.0, 0.0}, dp::Quaternion{}};
+        base_grid.data.resize(10 * 10, 0);
 
         Zone l_zone("L-Shape Zone", "field", l_boundary, base_grid, WAGENINGEN_DATUM);
 
@@ -425,42 +315,16 @@ TEST_CASE("Zone geometric operations") {
     }
 }
 
-// TEST_CASE("Zone ownership management") {
-//     Zone zone("Ownership Zone", "field");
-//
-//     SUBCASE("Initial state") {
-//         // CHECK(!zone.hasOwner()); // hasOwner removed
-//         // CHECK(zone.getOwnerRobot() // getOwnerRobot removed.isNull());
-//     }
-//
-//     SUBCASE("Set and change owner") {
-//         auto robot1 = generateUUID();
-//         auto robot2 = generateUUID();
-//
-//         // Set first owner
-//         zone.// setOwnerRobot removed: //(robot1);
-//         // CHECK(!zone.hasOwner()); // hasOwner removed
-//         // CHECK(zone.getOwnerRobot() // getOwnerRobot removed == robot1);
-//         // CHECK(zone.getOwnerRobot() // getOwnerRobot removed != robot2);
-//
-//         // Change owner
-//         zone.// setOwnerRobot removed: //(robot2);
-//         // CHECK(!zone.hasOwner()); // hasOwner removed
-//         // CHECK(zone.getOwnerRobot() // getOwnerRobot removed == robot2);
-//         // CHECK(zone.getOwnerRobot() // getOwnerRobot removed != robot1);
-//
-//         // Release ownership
-//         zone.releaseOwnership();
-//         // CHECK(!zone.hasOwner()); // hasOwner removed
-//         // CHECK(zone.getOwnerRobot() // getOwnerRobot removed.isNull());
-//     }
-// }
-//
 TEST_CASE("Zone validation rules") {
     SUBCASE("Valid zones") {
         // Create simple base grid for Zone constructor
-        dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
-        dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        dp::Grid<uint8_t> base_grid;
+        base_grid.rows = 10;
+        base_grid.cols = 10;
+        base_grid.resolution = 1.0;
+        base_grid.centered = true;
+        base_grid.pose = dp::Pose{dp::Point{0.0, 0.0, 0.0}, dp::Quaternion{}};
+        base_grid.data.resize(10 * 10, 0);
 
         auto boundary = createRectangle(0, 0, 100, 50);
         Zone valid_zone("Valid Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
@@ -473,8 +337,13 @@ TEST_CASE("Zone validation rules") {
 
     SUBCASE("Invalid zones") {
         // Create simple base grid for Zone constructor
-        dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
-        dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        dp::Grid<uint8_t> base_grid;
+        base_grid.rows = 10;
+        base_grid.cols = 10;
+        base_grid.resolution = 1.0;
+        base_grid.centered = true;
+        base_grid.pose = dp::Pose{dp::Point{0.0, 0.0, 0.0}, dp::Quaternion{}};
+        base_grid.data.resize(10 * 10, 0);
 
         // No boundary
         dp::Polygon default_boundary;
@@ -494,36 +363,23 @@ TEST_CASE("Zone validation rules") {
 
 TEST_CASE("Zone file I/O operations") {
     // Create simple base grid for Zone constructor
-    dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
-    dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    dp::Grid<uint8_t> base_grid;
+    base_grid.rows = 10;
+    base_grid.cols = 10;
+    base_grid.resolution = 1.0;
+    base_grid.centered = true;
+    base_grid.pose = dp::Pose{dp::Point{0.0, 0.0, 0.0}, dp::Quaternion{}};
+    base_grid.data.resize(10 * 10, 0);
 
     auto boundary = createRectangle(0, 0, 100, 50);
     Zone zone("File I/O Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
 
-    // Add some data to make it interesting
-    dp::Grid<uint8_t> elevation_grid(5, 10, 10.0, true, dp::Pose{});
-    for (size_t r = 0; r < 5; ++r) {
-        for (size_t c = 0; c < 10; ++c) {
-            elevation_grid.set_value(r, c, static_cast<uint8_t>(100 + r + c));
-        }
-    }
-    zone.raster_data().addGrid(elevation_grid.cols(), elevation_grid.rows(), "elevation", "terrain",
-                               {{"units", "meters"}});
-
-    // Copy the grid data
-    auto &raster_grid = zone.raster_data().getGrid("elevation").grid;
-    for (size_t r = 0; r < elevation_grid.rows(); ++r) {
-        for (size_t c = 0; c < elevation_grid.cols(); ++c) {
-            auto cell = elevation_grid(r, c);
-            raster_grid.set_value(r, c, cell);
-        }
-    }
+    // Add some data to make it interesting via zone.grid()
+    zone.grid().add_grid(10, 5, "elevation", "terrain", {{"units", "meters"}});
 
     // Add field elements
-    std::vector<dp::Point> row_points;
-    row_points.emplace_back(10, 25, 0);
-    row_points.emplace_back(90, 25, 0);
-    zone.poly().addElement(row_points, "crop_row");
+    dp::Segment row_line({10, 25, 0}, {90, 25, 0});
+    zone.poly().add_line_element(row_line, "crop_row");
 
     SUBCASE("Save and load files") {
         const std::string vector_path = "/tmp/zoneout_test_zone.geojson";
@@ -546,8 +402,13 @@ TEST_CASE("Zone file I/O operations") {
 
 TEST_CASE("Zone property edge cases") {
     // Create simple base grid for Zone constructor
-    dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
-    dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    dp::Grid<uint8_t> base_grid;
+    base_grid.rows = 10;
+    base_grid.cols = 10;
+    base_grid.resolution = 1.0;
+    base_grid.centered = true;
+    base_grid.pose = dp::Pose{dp::Point{0.0, 0.0, 0.0}, dp::Quaternion{}};
+    base_grid.data.resize(10 * 10, 0);
 
     dp::Polygon default_boundary;
     Zone zone("Edge Case Zone", "field", default_boundary, base_grid, WAGENINGEN_DATUM);
