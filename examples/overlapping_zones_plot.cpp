@@ -1,6 +1,8 @@
 #include "zoneout/zoneout.hpp"
 #include <iostream>
 
+namespace dp = datapod;
+
 /**
  * Example: Overlapping Zones with Different Grid Resolutions in a Plot
  *
@@ -23,25 +25,25 @@ int main() {
     std::cout << "=== Overlapping Zones Plot Example ===" << std::endl;
 
     // Create a GPS datum (example location: Netherlands)
-    concord::Datum datum{52.0, 5.0, 0.0}; // Lat, Lon, Alt
+    dp::Geo datum{52.0, 5.0, 0.0}; // Lat, Lon, Alt
     std::cout << "Using datum: lat=" << datum.lat << ", lon=" << datum.lon << ", alt=" << datum.alt << std::endl;
 
     // Create a shared boundary for zones 1 and 2 (100m × 50m field)
-    concord::Polygon boundary_exact;
-    boundary_exact.addPoint(concord::Point{0.0, 0.0, 0.0});
-    boundary_exact.addPoint(concord::Point{100.0, 0.0, 0.0});
-    boundary_exact.addPoint(concord::Point{100.0, 50.0, 0.0});
-    boundary_exact.addPoint(concord::Point{0.0, 50.0, 0.0});
-    std::cout << "Created exact boundary: " << boundary_exact.getPoints().size()
+    dp::Polygon boundary_exact;
+    boundary_exact.vertices.push_back(dp::Point{0.0, 0.0, 0.0});
+    boundary_exact.vertices.push_back(dp::Point{100.0, 0.0, 0.0});
+    boundary_exact.vertices.push_back(dp::Point{100.0, 50.0, 0.0});
+    boundary_exact.vertices.push_back(dp::Point{0.0, 50.0, 0.0});
+    std::cout << "Created exact boundary: " << boundary_exact.vertices.size()
               << " points, area=" << boundary_exact.area() << " m²" << std::endl;
 
     // Create a slightly different boundary for zone 3 (90m × 45m field)
-    concord::Polygon boundary_different;
-    boundary_different.addPoint(concord::Point{5.0, 5.0, 0.0});
-    boundary_different.addPoint(concord::Point{95.0, 5.0, 0.0});
-    boundary_different.addPoint(concord::Point{95.0, 50.0, 0.0});
-    boundary_different.addPoint(concord::Point{5.0, 50.0, 0.0});
-    std::cout << "Created different boundary: " << boundary_different.getPoints().size()
+    dp::Polygon boundary_different;
+    boundary_different.vertices.push_back(dp::Point{5.0, 5.0, 0.0});
+    boundary_different.vertices.push_back(dp::Point{95.0, 5.0, 0.0});
+    boundary_different.vertices.push_back(dp::Point{95.0, 50.0, 0.0});
+    boundary_different.vertices.push_back(dp::Point{5.0, 50.0, 0.0});
+    std::cout << "Created different boundary: " << boundary_different.vertices.size()
               << " points, area=" << boundary_different.area() << " m²" << std::endl;
 
     // ========== Create Plot ==========
@@ -66,11 +68,11 @@ int main() {
     std::cout << "Zone 1 - Boundary area: " << zone_high_res.poly().area() << " m²" << std::endl;
 
     // Add a feature to high-res zone (obstacle)
-    concord::Polygon obstacle_high;
-    obstacle_high.addPoint(concord::Point{20.0, 20.0, 0.0});
-    obstacle_high.addPoint(concord::Point{30.0, 20.0, 0.0});
-    obstacle_high.addPoint(concord::Point{30.0, 30.0, 0.0});
-    obstacle_high.addPoint(concord::Point{20.0, 30.0, 0.0});
+    dp::Polygon obstacle_high;
+    obstacle_high.vertices.push_back(dp::Point{20.0, 20.0, 0.0});
+    obstacle_high.vertices.push_back(dp::Point{30.0, 20.0, 0.0});
+    obstacle_high.vertices.push_back(dp::Point{30.0, 30.0, 0.0});
+    obstacle_high.vertices.push_back(dp::Point{20.0, 30.0, 0.0});
     zone_high_res.add_polygon_feature(obstacle_high, "tree_cluster", "obstacle", "vegetation");
     std::cout << "Zone 1 - " << zone_high_res.feature_info() << std::endl;
 
@@ -111,11 +113,11 @@ int main() {
     std::cout << "Zone 3 - Boundary area: " << zone_low_res.poly().area() << " m²" << std::endl;
 
     // Add a different feature to low-res zone
-    concord::Polygon obstacle_low;
-    obstacle_low.addPoint(concord::Point{60.0, 25.0, 0.0});
-    obstacle_low.addPoint(concord::Point{70.0, 25.0, 0.0});
-    obstacle_low.addPoint(concord::Point{70.0, 35.0, 0.0});
-    obstacle_low.addPoint(concord::Point{60.0, 35.0, 0.0});
+    dp::Polygon obstacle_low;
+    obstacle_low.vertices.push_back(dp::Point{60.0, 25.0, 0.0});
+    obstacle_low.vertices.push_back(dp::Point{70.0, 25.0, 0.0});
+    obstacle_low.vertices.push_back(dp::Point{70.0, 35.0, 0.0});
+    obstacle_low.vertices.push_back(dp::Point{60.0, 35.0, 0.0});
     zone_low_res.add_polygon_feature(obstacle_low, "building", "obstacle", "structure");
     std::cout << "Zone 3 - " << zone_low_res.feature_info() << std::endl;
 

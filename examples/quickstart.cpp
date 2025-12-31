@@ -2,20 +2,22 @@
 #include "zoneout/zoneout/constants.hpp"
 #include <iostream>
 
+namespace dp = datapod;
+
 int main() {
     std::cout << "=== Zoneout Quickstart Example ===" << std::endl;
 
     // Step 1: Create a boundary polygon (100m x 50m rectangular field)
     std::cout << "Creating boundary polygon..." << std::endl;
-    concord::Polygon boundary;
-    boundary.addPoint(concord::Point{0.0, 0.0, 0.0});
-    boundary.addPoint(concord::Point{100.0, 0.0, 0.0});
-    boundary.addPoint(concord::Point{100.0, 50.0, 0.0});
-    boundary.addPoint(concord::Point{0.0, 50.0, 0.0});
-    std::cout << "   Boundary created: " << boundary.getPoints().size() << std::endl;
+    dp::Polygon boundary;
+    boundary.vertices.push_back(dp::Point{0.0, 0.0, 0.0});
+    boundary.vertices.push_back(dp::Point{100.0, 0.0, 0.0});
+    boundary.vertices.push_back(dp::Point{100.0, 50.0, 0.0});
+    boundary.vertices.push_back(dp::Point{0.0, 50.0, 0.0});
+    std::cout << "   Boundary created: " << boundary.vertices.size() << std::endl;
 
     // Step 2: Create a datum (WGS84 coordinates)
-    concord::Datum datum{52.0, 5.0, 0.0}; // Lat, Lon, Alt
+    dp::Geo datum{52.0, 5.0, 0.0}; // Lat, Lon, Alt
     std::cout << "Creating datum at lat=" << datum.lat << ", lon=" << datum.lon << std::endl;
 
     // Step 3: Create a zone with auto-generated grid (1m resolution)
@@ -33,8 +35,8 @@ int main() {
 
     // Step 5: Test point containment
     std::cout << "Testing point containment..." << std::endl;
-    concord::Point inside_point{50.0, 25.0, 0.0};
-    concord::Point outside_point{150.0, 25.0, 0.0};
+    dp::Point inside_point{50.0, 25.0, 0.0};
+    dp::Point outside_point{150.0, 25.0, 0.0};
 
     bool inside = zone.poly().contains(inside_point);
     bool outside = zone.poly().contains(outside_point);

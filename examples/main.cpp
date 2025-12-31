@@ -9,8 +9,10 @@
 #include <unordered_map>
 #include <vector>
 
+namespace dp = datapod;
+
 zoneout::Plot create_field(const std::string &zone_name, const std::string &crop_type,
-                           const concord::Datum &datum = concord::Datum{51.98776171041831, 5.662378206146002, 0.0}) {
+                           const dp::Geo &datum = dp::Geo{51.98776171041831, 5.662378206146002, 0.0}) {
     zoneout::Plot plot("Wageningen Farm", "agricultural", datum);
     plot.set_property("farm_type", "research");
     plot.set_property("owner", "Wageningen Research Labs");
@@ -89,7 +91,7 @@ int main() {
     rec->log("", rerun::Clear::RECURSIVE);
     rec->log_with_static("", true, rerun::Clear::RECURSIVE);
 
-    // auto farm = create_field("Pea_Field", "pea", concord::Datum{51.73019, 4.23883, 0.0});
+    // auto farm = create_field("Pea_Field", "pea", dp::Geo{51.73019, 4.23883, 0.0});
     // farm.save("/home/bresilla/farm_plot_2");
     auto farm = zoneout::Plot::load("/home/bresilla/farm_plot_2", "Pea Farm", "agricultural");
 

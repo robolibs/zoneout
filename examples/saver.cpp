@@ -1,5 +1,5 @@
 
-#include "concord/concord.hpp"
+#include "datapod/datapod.hpp"
 #include "entropy/generator.hpp"
 #include "geoget/geoget.hpp"
 #include "rerun.hpp"
@@ -8,8 +8,10 @@
 #include <iomanip>
 #include <iostream>
 
+namespace dp = datapod;
+
 zoneout::Plot create_field(const std::string &zone_name, const std::string &crop_type,
-                           const concord::Datum &datum = concord::Datum{51.98776171041831, 5.662378206146002, 0.0}) {
+                           const dp::Geo &datum = dp::Geo{51.98776171041831, 5.662378206146002, 0.0}) {
     zoneout::Plot plot("Wageningen Farm", "agricultural", datum);
     plot.set_property("farm_type", "research");
     plot.set_property("owner", "Wageningen Research Labs");
@@ -87,7 +89,7 @@ int main() {
     rec->log("", rerun::Clear::RECURSIVE);
     rec->log_with_static("", true, rerun::Clear::RECURSIVE);
 
-    // auto farm = create_field("Just_Field", "wheat", concord::Datum{51.73019, 4.23883, 0.0});
+    // auto farm = create_field("Just_Field", "wheat", dp::Geo{51.73019, 4.23883, 0.0});
     // farm.save("/home/bresilla/farm_plot");
     auto farm = zoneout::Plot::load("/home/bresilla/farm_plot", "Just Farm", "wheat");
 
@@ -102,11 +104,11 @@ int main() {
     std::cout << "Number of polygon elements: " << polygon_elements.size() << std::endl;
     std::cout << "Has field boundary: " << zone0.poly().has_field_boundary() << std::endl;
 
-    std::vector<concord::Polygon> obstacles;
+    std::vector<dp::Polygon> obstacles;
     if (!polygon_elements.empty()) {
         auto obstacle = polygon_elements[0].geometry;
-        std::cout << "Zone 0 obstacle: " << obstacle.getPoints().size() << " points" << std::endl;
-        obstacle.addPoint(obstacle.getPoints().front());
+        std::cout << "Zone 0 obstacle: " << obstacle.vertices.size() << " points" << std::endl;
+        obstacle.vertices.push_back(obstacle.vertices.front());
         obstacles.push_back(obstacle);
     }
 

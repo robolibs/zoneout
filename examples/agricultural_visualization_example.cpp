@@ -5,6 +5,8 @@
 #include <rerun/recording_stream.hpp>
 #endif
 
+namespace dp = datapod;
+
 int main() {
     std::cout << "Zoneout Agricultural Visualization Example" << std::endl;
 
@@ -21,22 +23,22 @@ int main() {
 
     // Set up realistic agricultural coordinates
     // Use Wageningen Research Labs (Netherlands) as reference - real agricultural research location
-    concord::Datum datum{51.98776171041831, 5.662378206146002, 0.0}; // Wageningen Research Labs
+    dp::Geo datum{51.98776171041831, 5.662378206146002, 0.0}; // Wageningen Research Labs
 
     // Create simple base grid for Zone constructor
-    concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
-    concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
+    dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
 
     // Create a realistic agricultural zone (wheat field)
-    concord::Polygon default_boundary;
+    dp::Polygon default_boundary;
     zoneout::Zone wheat_field("Wheat_Field_North", "field", default_boundary, base_grid, datum);
 
     // Create field boundary in local ENU coordinates (meters from datum)
-    concord::Polygon boundary;
-    boundary.addPoint(concord::Point(0.0, 0.0, 0.0));     // SW corner
-    boundary.addPoint(concord::Point(300.0, 0.0, 0.0));   // SE corner
-    boundary.addPoint(concord::Point(300.0, 200.0, 0.0)); // NE corner
-    boundary.addPoint(concord::Point(0.0, 200.0, 0.0));   // NW corner
+    dp::Polygon boundary;
+    boundary.vertices.push_back(dp::Point(0.0, 0.0, 0.0));     // SW corner
+    boundary.vertices.push_back(dp::Point(300.0, 0.0, 0.0));   // SE corner
+    boundary.vertices.push_back(dp::Point(300.0, 200.0, 0.0)); // NE corner
+    boundary.vertices.push_back(dp::Point(0.0, 200.0, 0.0));   // NW corner
 
     wheat_field.poly().setFieldBoundary(boundary);
     wheat_field.set_property("crop_type", "wheat");

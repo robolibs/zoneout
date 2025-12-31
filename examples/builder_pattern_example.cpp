@@ -1,6 +1,8 @@
 #include "zoneout/zoneout.hpp"
 #include <iostream>
 
+namespace dp = datapod;
+
 /**
  * Example: Builder Pattern for Zone and Plot Construction
  *
@@ -16,22 +18,22 @@
  */
 
 // Helper function to create a simple rectangular boundary
-concord::Polygon create_rectangle(double width, double height, double offset_x = 0.0, double offset_y = 0.0) {
-    concord::Polygon rect;
-    rect.addPoint(concord::Point{offset_x, offset_y, 0.0});
-    rect.addPoint(concord::Point{offset_x + width, offset_y, 0.0});
-    rect.addPoint(concord::Point{offset_x + width, offset_y + height, 0.0});
-    rect.addPoint(concord::Point{offset_x, offset_y + height, 0.0});
+dp::Polygon create_rectangle(double width, double height, double offset_x = 0.0, double offset_y = 0.0) {
+    dp::Polygon rect;
+    rect.vertices.push_back(dp::Point{offset_x, offset_y, 0.0});
+    rect.vertices.push_back(dp::Point{offset_x + width, offset_y, 0.0});
+    rect.vertices.push_back(dp::Point{offset_x + width, offset_y + height, 0.0});
+    rect.vertices.push_back(dp::Point{offset_x, offset_y + height, 0.0});
     return rect;
 }
 
 // Helper function to create an obstacle polygon
-concord::Polygon create_obstacle(double x, double y, double size) {
-    concord::Polygon obstacle;
-    obstacle.addPoint(concord::Point{x, y, 0.0});
-    obstacle.addPoint(concord::Point{x + size, y, 0.0});
-    obstacle.addPoint(concord::Point{x + size, y + size, 0.0});
-    obstacle.addPoint(concord::Point{x, y + size, 0.0});
+dp::Polygon create_obstacle(double x, double y, double size) {
+    dp::Polygon obstacle;
+    obstacle.vertices.push_back(dp::Point{x, y, 0.0});
+    obstacle.vertices.push_back(dp::Point{x + size, y, 0.0});
+    obstacle.vertices.push_back(dp::Point{x + size, y + size, 0.0});
+    obstacle.vertices.push_back(dp::Point{x, y + size, 0.0});
     return obstacle;
 }
 
@@ -39,7 +41,7 @@ int main() {
     std::cout << "=== Builder Pattern Example ===" << std::endl << std::endl;
 
     // Common datum for all examples
-    concord::Datum datum{52.0, 5.0, 0.0}; // Netherlands
+    dp::Geo datum{52.0, 5.0, 0.0}; // Netherlands
 
     // ========================================================================
     // Example 1: Basic ZoneBuilder Usage
