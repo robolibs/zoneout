@@ -26,7 +26,7 @@ int main() {
     dp::Geo datum{51.98776171041831, 5.662378206146002, 0.0}; // Wageningen Research Labs
 
     // Create simple base grid for Zone constructor
-    dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
+    dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Quaternion{1.0, 0.0, 0.0, 0.0}};
     dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
 
     // Create a realistic agricultural zone (wheat field)
@@ -40,7 +40,7 @@ int main() {
     boundary.vertices.push_back(dp::Point(300.0, 200.0, 0.0)); // NE corner
     boundary.vertices.push_back(dp::Point(0.0, 200.0, 0.0));   // NW corner
 
-    wheat_field.poly().setFieldBoundary(boundary);
+    wheat_field.poly().set_field_boundary(boundary);
     wheat_field.set_property("crop_type", "wheat");
     wheat_field.set_property("planting_date", "2024-10-15");
     wheat_field.set_property("area_hectares", "6.0");
@@ -50,7 +50,7 @@ int main() {
 
     // Visualize the zone
     std::cout << "\nSending visualization data to Rerun..." << std::endl;
-    zoneout::visualize::visualize_zone(wheat_field, rec, datum, wheat_field.name(), 0);
+    zoneout::visualize::show_zone(wheat_field, rec, datum, wheat_field.name(), 0);
 
     std::cout << "\n=== Visualization Ready ===" << std::endl;
     std::cout << "Open your browser to: http://localhost:9876" << std::endl;
@@ -60,7 +60,7 @@ int main() {
     std::cout << "• GPS map coordinates: /" << wheat_field.name() << "/wgs (lat/lon on world map)" << std::endl;
     std::cout << "\nMap view shows real GPS coordinates around Wageningen, Netherlands" << std::endl;
     std::cout << "\nZone area: " << wheat_field.poly().area() / 10000.0 << " hectares" << std::endl;
-    std::cout << "Datum reference: " << datum.lat << "°N, " << datum.lon << "°E" << std::endl;
+    std::cout << "Datum reference: " << datum.latitude << "°N, " << datum.longitude << "°E" << std::endl;
 
     // Keep the program running to maintain the visualization
     std::cout << "\nPress Enter to exit..." << std::endl;

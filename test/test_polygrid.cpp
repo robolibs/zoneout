@@ -136,6 +136,7 @@ TEST_CASE("PolyGrid File I/O") {
         // Create grid with data
         dp::Geo datum{52.0, 4.0, 10.0};
         zoneout::Grid original_grid("Test Grid", "elevation", "dem", datum);
+        original_grid.resolution() = 1.0; // Set resolution before adding grid
         original_grid.add_grid(5, 5, "test_layer", "elevation");
 
         // Save to file
@@ -166,8 +167,10 @@ TEST_CASE("PolyGrid Combined Operations") {
         dp::Polygon boundary;
         boundary.vertices = {{0.0, 0.0, 0.0}, {10.0, 0.0, 0.0}, {10.0, 10.0, 0.0}, {0.0, 10.0, 0.0}, {0.0, 0.0, 0.0}};
 
+        dp::Geo datum{52.0, 4.0, 10.0};
         zoneout::Poly poly("Test Zone", "agricultural", "crop", boundary);
-        zoneout::Grid grid("Test Zone", "agricultural", "crop");
+        zoneout::Grid grid("Test Zone", "agricultural", "crop", datum);
+        grid.resolution() = 1.0; // Set resolution before adding grid
         grid.add_grid(10, 10, "elevation", "elevation");
 
         // Make them match

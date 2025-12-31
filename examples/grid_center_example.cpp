@@ -33,13 +33,13 @@ int main() {
 
     // Get the grid
     auto &raster = zone.raster_data();
-    if (raster.hasGrids()) {
-        auto &grid = raster.getGrid(0).grid;
+    if (!raster.layers.empty()) {
+        auto &grid = raster.layers[0].grid;
 
         std::cout << std::fixed << std::setprecision(1);
 
         // Get center position of cell [5, 6]
-        dp::Point center = grid.grid_to_world(5, 6);
+        dp::Point center = grid.get_point(5, 6);
         std::cout << "Cell [5,6] center: (" << center.x << ", " << center.y << ")" << std::endl;
 
         // Get value at that cell

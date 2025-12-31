@@ -22,7 +22,6 @@
 #include "utils/meta.hpp"
 #include "utils/time.hpp"
 #include "utils/uuid.hpp"
-#include "zoneout/entropy/generator.hpp"
 
 namespace dp = datapod;
 

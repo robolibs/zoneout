@@ -26,7 +26,8 @@ int main() {
 
     // Create a GPS datum (example location: Netherlands)
     dp::Geo datum{52.0, 5.0, 0.0}; // Lat, Lon, Alt
-    std::cout << "Using datum: lat=" << datum.lat << ", lon=" << datum.lon << ", alt=" << datum.alt << std::endl;
+    std::cout << "Using datum: lat=" << datum.latitude << ", lon=" << datum.longitude << ", alt=" << datum.altitude
+              << std::endl;
 
     // Create a shared boundary for zones 1 and 2 (100m × 50m field)
     dp::Polygon boundary_exact;

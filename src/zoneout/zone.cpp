@@ -12,10 +12,10 @@
 #include <unordered_set>
 #include <vector>
 
-#include "zoneout/entropy/generator.hpp"
 #include "zoneout/zoneout/polygrid.hpp"
 #include "zoneout/zoneout/utils/time.hpp"
 #include "zoneout/zoneout/utils/uuid.hpp"
+#include <entropy/generator.hpp>
 
 namespace zoneout {
 
@@ -51,6 +51,7 @@ namespace zoneout {
         auto aabb = boundary.get_aabb();
         dp::Pose grid_pose{aabb.center(), dp::Euler{0, 0, 0}.to_quaternion()};
         grid_data_.shift() = grid_pose;
+        grid_data_.resolution() = initial_grid.resolution; // Set resolution from the provided grid
         grid_data_.add_grid(initial_grid, "base_layer", "terrain");
         sync_to_poly_grid();
     }
@@ -84,6 +85,7 @@ namespace zoneout {
         generated_grid.data.resize(grid_rows * grid_cols, 0);
 
         grid_data_.shift() = grid_pose;
+        grid_data_.resolution() = resolution; // Set resolution on the Grid object for GeoTIFF export
 
         entropy::noise::NoiseGen noise;
         noise.SetNoiseType(entropy::noise::NoiseGen::NoiseType_OpenSimplex2);

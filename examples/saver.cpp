@@ -1,10 +1,10 @@
+#include "zoneout/zoneout.hpp"
 
 #include "datapod/datapod.hpp"
-#include "entropy/generator.hpp"
 #include "geoget/geoget.hpp"
 #include "rerun.hpp"
 #include "rerun/recording_stream.hpp"
-#include "zoneout/zoneout.hpp"
+#include <entropy/generator.hpp>
 #include <iomanip>
 #include <iostream>
 
@@ -25,7 +25,7 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
 
         if (!polygons.empty()) {
             zoneout::Zone zone(zone_name, "field", polygons.front(), datum, 0.1);
-            const auto &base_grid = zone.grid().getGrid(0).grid;
+            const auto &base_grid = zone.grid().get_layer(0).grid;
 
             auto temp_grid = base_grid;
             auto moisture_grid = base_grid;
@@ -39,15 +39,15 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
             moisture_noise.SetFrequency(0.05f);
             moisture_noise.SetSeed(std::random_device{}() + 100);
 
-            for (size_t r = 0; r < temp_grid.rows(); ++r) {
-                for (size_t c = 0; c < temp_grid.cols(); ++c) {
+            for (size_t r = 0; r < temp_grid.rows; ++r) {
+                for (size_t c = 0; c < temp_grid.cols; ++c) {
                     float temp_noise_val = temp_noise.GetNoise(static_cast<float>(r), static_cast<float>(c));
                     uint8_t temp_value = static_cast<uint8_t>(15 + (temp_noise_val + 1.0f) * 0.5f * (35 - 15));
-                    temp_grid.set_value(r, c, temp_value);
+                    temp_grid(r, c) = temp_value;
 
                     float moisture_noise_val = moisture_noise.GetNoise(static_cast<float>(r), static_cast<float>(c));
                     uint8_t moisture_value = static_cast<uint8_t>(20 + (moisture_noise_val + 1.0f) * 0.5f * (80 - 20));
-                    moisture_grid.set_value(r, c, moisture_value);
+                    moisture_grid(r, c) = moisture_value;
                 }
             }
 
@@ -97,8 +97,8 @@ int main() {
     std::cout << "Num zones: " << zones.size() << std::endl;
 
     auto zone0 = zones.at(0);
-    auto boundary = zone0.poly().getFieldBoundary();
-    std::cout << "Zone 0 boundary: " << boundary.getPoints().size() << " points" << std::endl;
+    auto boundary = zone0.poly().get_field_boundary();
+    std::cout << "Zone 0 boundary: " << boundary.vertices.size() << " points" << std::endl;
 
     const auto &polygon_elements = zone0.poly().get_polygon_elements();
     std::cout << "Number of polygon elements: " << polygon_elements.size() << std::endl;

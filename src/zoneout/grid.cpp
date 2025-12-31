@@ -103,12 +103,12 @@ namespace zoneout {
         layer.datum = raster_.datum;
         layer.shift = raster_.shift;
         layer.resolution = raster_.resolution;
-        layer.imageDescription = name;
+        // Note: Do NOT set layer.imageDescription here - let geotiv generate the geospatial metadata
 
         // Create grid with proper dimensions
         layer.grid = dp::make_grid<uint8_t>(height, width, raster_.resolution, true, raster_.shift, uint8_t{0});
 
-        // Store properties as custom tags
+        // Store properties as custom tags (including name)
         for (const auto &[key, value] : properties) {
             layer.setGlobalProperty(key, value);
         }
@@ -131,10 +131,10 @@ namespace zoneout {
         layer.datum = raster_.datum;
         layer.shift = raster_.shift;
         layer.resolution = raster_.resolution;
-        layer.imageDescription = name;
+        // Note: Do NOT set layer.imageDescription here - let geotiv generate the geospatial metadata
         layer.grid = grid;
 
-        // Store properties as custom tags
+        // Store properties as custom tags (including name)
         for (const auto &[key, value] : properties) {
             layer.setGlobalProperty(key, value);
         }

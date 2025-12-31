@@ -1,6 +1,8 @@
 -- Project configuration
+-- NOTE: Due to xmake description domain limitations, PROJECT_NAME must be hardcoded
+--       and kept in sync with the NAME file. The VERSION is read dynamically.
 local PROJECT_NAME = "zoneout"
-local PROJECT_VERSION = "1.4.0"
+local PROJECT_VERSION = "0.0.1"
 
 -- Dependencies formats:
 --   Git:    {"name", "https://github.com/org/repo.git", "tag"}
@@ -11,6 +13,9 @@ local LIB_DEPS = {
     {"optinum", "https://github.com/robolibs/optinum.git", "0.0.14"},
     {"graphix", "https://github.com/robolibs/graphix.git", "0.0.4"},
     {"concord", "https://github.com/robolibs/concord.git", "0.0.5"},
+    {"geoson", "https://github.com/robolibs/geoson.git", "0.0.2"},
+    {"geotiv", "https://github.com/robolibs/geotiv.git", "0.0.2"},
+    {"entropy", "https://github.com/robolibs/entropy.git", "0.0.4"},
 }
 local EXAMPLE_DEPS = {
     {system = "rerun_sdk"},
@@ -27,6 +32,7 @@ set_languages("c++20")
 add_rules("mode.debug", "mode.release")
 
 -- Compiler selection option
+-- Usage: xmake f --toolchain=gcc or xmake f --toolchain=clang
 option("toolchain", {default = nil, showmenu = true, description = "Compiler toolchain: gcc, clang, or nil for default"})
 
 if has_config("toolchain") then
@@ -51,6 +57,17 @@ for _, flag in ipairs(COMMON_FLAGS) do
     add_cxxflags(flag)
 end
 
+-- Compiler-specific flags
+if is_plat("linux", "macosx") then
+    on_load(function (target)
+        if target:toolchain("gcc") then
+            target:add("cxxflags", "-Wno-stringop-overflow")
+        elseif target:toolchain("clang") then
+            target:add("cxxflags", "-Wno-unknown-warning-option")
+        end
+    end)
+end
+
 -- SIMD configuration option
 option("simd", {default = true, showmenu = true, description = "Enable SIMD optimizations"})
 
@@ -65,14 +82,15 @@ if get_config("simd") ~= false then
     end
 else
     -- Define macro to disable SIMD in the code
-    add_defines("ZONEOUT_SIMD_DISABLED")
+    add_defines("GEOSON_SIMD_DISABLED")
     print("SIMD optimizations disabled")
 end
+
 
 -- Options
 option("examples", {default = false, showmenu = true, description = "Build examples"})
 option("tests",    {default = false, showmenu = true, description = "Enable tests"})
-option("short_namespace", {default = true, showmenu = true, description = "Enable short namespace alias"})
+option("short_namespace", {default = false, showmenu = true, description = "Enable short namespace alias"})
 option("expose_all", {default = false, showmenu = true, description = "Expose all submodule functions in optinum:: namespace"})
 
 -- Helper: process dependency
@@ -123,6 +141,7 @@ local function process_dep(dep)
         on_install(function (pkg)
             local configs = {
                 "-DCMAKE_BUILD_TYPE=" .. (pkg:is_debug() and "Debug" or "Release"),
+                -- Disable doctest examples/tests to avoid -Werror issues with clang
                 "-DDOCTEST_WITH_TESTS=OFF",
                 "-DDOCTEST_WITH_MAIN_IN_STATIC_LIB=OFF"
             }
@@ -139,20 +158,12 @@ for _, dep in ipairs(LIB_DEPS) do
     table.insert(LIB_DEP_NAMES, process_dep(dep))
 end
 
--- Add local geoson and geotiv from xtra/
-includes("xtra/geoson")
-includes("xtra/geotiv")
-
--- Process example deps only when examples are enabled
 local EXAMPLE_DEP_NAMES = {unpack(LIB_DEP_NAMES)}
-if has_config("examples") then
-    for _, dep in ipairs(EXAMPLE_DEPS) do
-        table.insert(EXAMPLE_DEP_NAMES, process_dep(dep))
-    end
+for _, dep in ipairs(EXAMPLE_DEPS) do
+    table.insert(EXAMPLE_DEP_NAMES, process_dep(dep))
 end
 
--- Process test deps only when tests are enabled
-local TEST_DEP_NAMES = {unpack(LIB_DEP_NAMES)}
+local TEST_DEP_NAMES = {unpack(EXAMPLE_DEP_NAMES)}
 if has_config("tests") then
     for _, dep in ipairs(TEST_DEPS) do
         table.insert(TEST_DEP_NAMES, process_dep(dep))
@@ -168,7 +179,6 @@ target(PROJECT_NAME)
     add_installfiles("include/(" .. PROJECT_NAME .. "/**.hpp)")
 
     for _, dep in ipairs(LIB_DEP_NAMES) do add_packages(dep) end
-    add_deps("geoson", "geotiv")
 
     if has_config("short_namespace") then
         add_defines("SHORT_NAMESPACE", {public = true})

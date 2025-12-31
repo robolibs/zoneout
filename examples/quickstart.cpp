@@ -18,7 +18,7 @@ int main() {
 
     // Step 2: Create a datum (WGS84 coordinates)
     dp::Geo datum{52.0, 5.0, 0.0}; // Lat, Lon, Alt
-    std::cout << "Creating datum at lat=" << datum.lat << ", lon=" << datum.lon << std::endl;
+    std::cout << "Creating datum at lat=" << datum.latitude << ", lon=" << datum.longitude << std::endl;
 
     // Step 3: Create a zone with auto-generated grid (1m resolution)
     std::cout << "Creating zone with 1m resolution..." << std::endl;

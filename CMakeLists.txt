@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.15)
 # Project configuration
 # ==================================================================================================
 set(PROJECT_NAME zoneout)
-set(PROJECT_VERSION "1.4.0")
+set(PROJECT_VERSION "0.0.2")
 
 # Dependencies formats:
 #   Git:    set(LIB_DEPS "name|https://github.com/org/repo.git|tag" ...)
@@ -15,6 +15,9 @@ set(LIB_DEPS
     "optinum|https://github.com/robolibs/optinum.git|0.0.14"
     "graphix|https://github.com/robolibs/graphix.git|0.0.4"
     "concord|https://github.com/robolibs/concord.git|0.0.5"
+    "geoson|https://github.com/robolibs/geoson.git|0.0.2"
+    "geotiv|https://github.com/robolibs/geotiv.git|0.0.2"
+    "entropy|https://github.com/robolibs/entropy.git|0.0.4"
 )
 set(EXAMPLE_DEPS
     "pkg::rerun_sdk"
@@ -89,7 +92,7 @@ if(${PROJECT_NAME_UPPER}_ENABLE_SIMD)
     endif()
 else()
     # Define macro to disable SIMD in the code
-    add_compile_definitions(ZONEOUT_SIMD_DISABLED)
+    add_compile_definitions(GEOSON_SIMD_DISABLED)
     message(STATUS "SIMD optimizations disabled")
 endif()
 option(${PROJECT_NAME_UPPER}_BUILD_EXAMPLES "Build examples" OFF)
@@ -102,7 +105,7 @@ include(FetchContent)
 # ==================================================================================================
 # Helper function: process dependencies
 # ==================================================================================================
-function(zoneout_process_deps dep_list out_targets)
+function(process_deps dep_list out_targets)
     set(targets)
     foreach(dep IN LISTS ${dep_list})
         # Check if it's a git dependency (contains |)
@@ -117,14 +120,11 @@ function(zoneout_process_deps dep_list out_targets)
             list(GET dep_parts 1 dep_url)
             list(GET dep_parts 2 dep_tag)
 
-            # Only declare if not already available
-            if(NOT TARGET ${dep_name}::${dep_name} AND NOT TARGET ${dep_name})
-                FetchContent_Declare(${dep_name}
-                    GIT_REPOSITORY "${dep_url}"
-                    GIT_TAG "${dep_tag}"
-                )
-                FetchContent_MakeAvailable(${dep_name})
-            endif()
+            FetchContent_Declare(${dep_name}
+                GIT_REPOSITORY "${dep_url}"
+                GIT_TAG "${dep_tag}"
+            )
+            FetchContent_MakeAvailable(${dep_name})
             list(APPEND targets ${dep_name})
         elseif(is_pkg EQUAL 0)
             # pkg-config dependency: pkg::name
@@ -144,12 +144,7 @@ endfunction()
 # ==================================================================================================
 # Process library dependencies
 # ==================================================================================================
-zoneout_process_deps(LIB_DEPS LIB_DEP_TARGETS)
-
-# Add local subdirectories for geoson and geotiv
-add_subdirectory(xtra/geoson)
-add_subdirectory(xtra/geotiv)
-list(APPEND LIB_DEP_TARGETS geoson geotiv)
+process_deps(LIB_DEPS LIB_DEP_TARGETS)
 
 # ==================================================================================================
 # Main library
@@ -207,7 +202,7 @@ export(EXPORT ${PROJECT_NAME}Targets
 # Examples
 # ==================================================================================================
 if(${PROJECT_NAME_UPPER}_BUILD_EXAMPLES)
-    zoneout_process_deps(EXAMPLE_DEPS EXAMPLE_DEP_TARGETS)
+    process_deps(EXAMPLE_DEPS EXAMPLE_DEP_TARGETS)
     set(ALL_EXAMPLE_DEPS ${LIB_DEP_TARGETS} ${EXAMPLE_DEP_TARGETS})
 
     file(GLOB example_sources CONFIGURE_DEPENDS examples/*.cpp)
@@ -225,7 +220,7 @@ endif()
 # ==================================================================================================
 if(${PROJECT_NAME_UPPER}_ENABLE_TESTS)
     enable_testing()
-    zoneout_process_deps(TEST_DEPS TEST_DEP_TARGETS)
+    process_deps(TEST_DEPS TEST_DEP_TARGETS)
     set(ALL_TEST_DEPS ${LIB_DEP_TARGETS} ${TEST_DEP_TARGETS})
 
     file(GLOB_RECURSE test_sources CONFIGURE_DEPENDS test/*.cpp)

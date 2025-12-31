@@ -12,8 +12,20 @@ using namespace zoneout;
 TEST_CASE("Test real irregular field from misc/field4.geojson") {
 
     SUBCASE("Real field polygon analysis") {
+        // Try multiple paths to find the GeoJSON file
+        std::string geojson_path;
+        std::vector<std::string> possible_paths = {"../misc/field4.geojson", "misc/field4.geojson",
+                                                   "../../misc/field4.geojson"};
+        for (const auto &path : possible_paths) {
+            if (std::filesystem::exists(path)) {
+                geojson_path = path;
+                break;
+            }
+        }
+        REQUIRE_MESSAGE(!geojson_path.empty(), "Could not find misc/field4.geojson");
+
         // Use geoson library to read the GeoJSON file
-        auto feature_collection = geoson::ReadFeatureCollection("../misc/field4.geojson");
+        auto feature_collection = geoson::ReadFeatureCollection(geojson_path);
 
         REQUIRE(feature_collection.features.size() == 1);
 
