@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.2] - 2025-12-31
+
+### <!-- 1 -->🐛 Bug Fixes
+
+- Update test files for new datapod/concord API
+
+### <!-- 2 -->🚜 Refactor
+
+- Consolidate build system logic and project dependencies
+- Migrate test files from concord to datapod types
+- Migrate all examples to datapod/dp types
+- Migrate zoneout to new robolibs architecture
+- Update to robolibs architecture pattern
+
 ## [1.4.0] - 2025-12-15
 
 ### <!-- 7 -->⚙️ Miscellaneous Tasks
