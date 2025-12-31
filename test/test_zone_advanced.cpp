@@ -8,31 +8,32 @@
 
 #include "zoneout/zoneout.hpp"
 
+namespace dp = datapod;
 using namespace zoneout;
 
 // Wageningen Research Labs coordinates
-const concord::Datum WAGENINGEN_DATUM{51.98776171041831, 5.662378206146002, 0.0};
+const dp::Geo WAGENINGEN_DATUM{51.98776171041831, 5.662378206146002, 0.0};
 
 // Helper function to create a rectangular polygon
-concord::Polygon createRectangle(double x, double y, double width, double height) {
-    std::vector<concord::Point> points;
-    points.emplace_back(x, y, 0.0);
-    points.emplace_back(x + width, y, 0.0);
-    points.emplace_back(x + width, y + height, 0.0);
-    points.emplace_back(x, y + height, 0.0);
-    return concord::Polygon(points);
+dp::Polygon createRectangle(double x, double y, double width, double height) {
+    dp::Polygon poly;
+    poly.vertices.emplace_back(x, y, 0.0);
+    poly.vertices.emplace_back(x + width, y, 0.0);
+    poly.vertices.emplace_back(x + width, y + height, 0.0);
+    poly.vertices.emplace_back(x, y + height, 0.0);
+    return poly;
 }
 
 TEST_CASE("Zone field elements management") {
     // Create simple base grid for Zone constructor
-    concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
-    concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
+    dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
 
     auto boundary = createRectangle(0, 0, 200, 100);
     Zone zone("Field Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
 
     SUBCASE("Add irrigation lines") {
-        std::vector<concord::Point> line_points;
+        std::vector<dp::Point> line_points;
         line_points.emplace_back(10, 50, 0);
         line_points.emplace_back(190, 50, 0);
 
@@ -57,7 +58,7 @@ TEST_CASE("Zone field elements management") {
 
     SUBCASE("Add crop rows") {
         for (int i = 0; i < 5; ++i) {
-            std::vector<concord::Point> row_points;
+            std::vector<dp::Point> row_points;
             double y = 10.0 + i * 15.0;
             row_points.emplace_back(5, y, 0);
             row_points.emplace_back(195, y, 0);
@@ -93,7 +94,7 @@ TEST_CASE("Zone field elements management") {
     }
 
     SUBCASE("Add access paths") {
-        std::vector<concord::Point> path_points;
+        std::vector<dp::Point> path_points;
         path_points.emplace_back(0, 0, 0);
         path_points.emplace_back(50, 25, 0);
         path_points.emplace_back(100, 50, 0);
@@ -112,12 +113,12 @@ TEST_CASE("Zone field elements management") {
 
     SUBCASE("Mixed field elements") {
         // Add multiple types
-        std::vector<concord::Point> line_points;
+        std::vector<dp::Point> line_points;
         line_points.emplace_back(10, 30, 0);
         line_points.emplace_back(190, 30, 0);
         zone.poly().addElement(line_points, "irrigation_line");
 
-        std::vector<concord::Point> row_points;
+        std::vector<dp::Point> row_points;
         row_points.emplace_back(5, 70, 0);
         row_points.emplace_back(195, 70, 0);
         zone.poly().addElement(row_points, "crop_row");
@@ -135,14 +136,14 @@ TEST_CASE("Zone field elements management") {
 
 TEST_CASE("Zone raster layers management") {
     // Create simple base grid for Zone constructor
-    concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
-    concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
+    dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
 
     auto boundary = createRectangle(0, 0, 100, 50);
     Zone zone("Raster Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
 
     SUBCASE("Add elevation layer") {
-        concord::Grid<uint8_t> elevation_grid(10, 20, 5.0, true, concord::Pose{});
+        dp::Grid<uint8_t> elevation_grid(10, 20, 5.0, true, dp::Pose{});
 
         // Create elevation gradient
         for (size_t r = 0; r < 10; ++r) {
@@ -176,7 +177,7 @@ TEST_CASE("Zone raster layers management") {
     }
 
     SUBCASE("Add soil moisture layer") {
-        concord::Grid<uint8_t> moisture_grid(8, 16, 6.25, true, concord::Pose{});
+        dp::Grid<uint8_t> moisture_grid(8, 16, 6.25, true, dp::Pose{});
 
         // Create moisture pattern
         for (size_t r = 0; r < 8; ++r) {
@@ -204,7 +205,7 @@ TEST_CASE("Zone raster layers management") {
     }
 
     SUBCASE("Add crop health layer") {
-        concord::Grid<uint8_t> health_grid(12, 24, 4.16, true, concord::Pose{});
+        dp::Grid<uint8_t> health_grid(12, 24, 4.16, true, dp::Pose{});
 
         // Create NDVI-like pattern
         for (size_t r = 0; r < 12; ++r) {
@@ -233,9 +234,9 @@ TEST_CASE("Zone raster layers management") {
 
     SUBCASE("Multiple raster layers") {
         // Add all three types
-        concord::Grid<uint8_t> grid1(10, 20, 5.0, true, concord::Pose{});
-        concord::Grid<uint8_t> grid2(10, 20, 5.0, true, concord::Pose{});
-        concord::Grid<uint8_t> grid3(10, 20, 5.0, true, concord::Pose{});
+        dp::Grid<uint8_t> grid1(10, 20, 5.0, true, dp::Pose{});
+        dp::Grid<uint8_t> grid2(10, 20, 5.0, true, dp::Pose{});
+        dp::Grid<uint8_t> grid3(10, 20, 5.0, true, dp::Pose{});
 
         // Fill grids with test data
         for (size_t r = 0; r < 10; ++r) {
@@ -273,7 +274,7 @@ TEST_CASE("Zone raster layers management") {
     }
 
     SUBCASE("Custom raster layer") {
-        concord::Grid<uint8_t> custom_grid(5, 10, 10.0, true, concord::Pose{});
+        dp::Grid<uint8_t> custom_grid(5, 10, 10.0, true, dp::Pose{});
 
         // Fill with custom data
         for (size_t r = 0; r < 5; ++r) {
@@ -306,14 +307,14 @@ TEST_CASE("Zone raster layers management") {
 
 TEST_CASE("Zone raster sampling") {
     // Create simple base grid for Zone constructor
-    concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
-    concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
+    dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
 
     auto boundary = createRectangle(0, 0, 100, 50);
     Zone zone("Sampling Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
 
     // Create elevation grid with known pattern
-    concord::Grid<uint8_t> elevation_grid(10, 20, 5.0, true, concord::Pose{});
+    dp::Grid<uint8_t> elevation_grid(10, 20, 5.0, true, dp::Pose{});
     for (size_t r = 0; r < 10; ++r) {
         for (size_t c = 0; c < 20; ++c) {
             uint8_t elevation = static_cast<uint8_t>(100 + r + c);
@@ -361,8 +362,8 @@ TEST_CASE("Zone raster sampling") {
 TEST_CASE("Zone geometric operations") {
     SUBCASE("Area and perimeter calculations") {
         // Create simple base grid for Zone constructor
-        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
-        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
+        dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
 
         // Rectangle: 100m x 50m = 5000 m²
         auto boundary = createRectangle(0, 0, 100, 50);
@@ -374,51 +375,50 @@ TEST_CASE("Zone geometric operations") {
 
     SUBCASE("Point containment") {
         // Create simple base grid for Zone constructor
-        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
-        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
+        dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
 
         auto boundary = createRectangle(10, 10, 80, 60);
         Zone zone("Containment Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
 
         // Points inside
-        CHECK(zone.poly().contains(concord::Point(50, 40, 0)));
-        CHECK(zone.poly().contains(concord::Point(20, 20, 0)));
-        CHECK(zone.poly().contains(concord::Point(80, 60, 0)));
+        CHECK(zone.poly().contains(dp::Point(50, 40, 0)));
+        CHECK(zone.poly().contains(dp::Point(20, 20, 0)));
+        CHECK(zone.poly().contains(dp::Point(80, 60, 0)));
 
         // Points outside
-        CHECK(!zone.poly().contains(concord::Point(5, 5, 0)));
-        CHECK(!zone.poly().contains(concord::Point(100, 100, 0)));
-        CHECK(!zone.poly().contains(concord::Point(50, 5, 0)));
+        CHECK(!zone.poly().contains(dp::Point(5, 5, 0)));
+        CHECK(!zone.poly().contains(dp::Point(100, 100, 0)));
+        CHECK(!zone.poly().contains(dp::Point(50, 5, 0)));
 
         // Points on boundary (behavior may vary)
-        zone.poly().contains(concord::Point(10, 40, 0)); // Left edge
-        zone.poly().contains(concord::Point(90, 40, 0)); // Right edge
+        zone.poly().contains(dp::Point(10, 40, 0)); // Left edge
+        zone.poly().contains(dp::Point(90, 40, 0)); // Right edge
     }
 
     SUBCASE("Complex polygon") {
         // Create L-shaped polygon
-        std::vector<concord::Point> l_points;
-        l_points.emplace_back(0, 0, 0);
-        l_points.emplace_back(60, 0, 0);
-        l_points.emplace_back(60, 30, 0);
-        l_points.emplace_back(30, 30, 0);
-        l_points.emplace_back(30, 60, 0);
-        l_points.emplace_back(0, 60, 0);
+        dp::Polygon l_boundary;
+        l_boundary.vertices.emplace_back(0, 0, 0);
+        l_boundary.vertices.emplace_back(60, 0, 0);
+        l_boundary.vertices.emplace_back(60, 30, 0);
+        l_boundary.vertices.emplace_back(30, 30, 0);
+        l_boundary.vertices.emplace_back(30, 60, 0);
+        l_boundary.vertices.emplace_back(0, 60, 0);
 
         // Create simple base grid for Zone constructor
-        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
-        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
+        dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
 
-        concord::Polygon l_boundary(l_points);
         Zone l_zone("L-Shape Zone", "field", l_boundary, base_grid, WAGENINGEN_DATUM);
 
         // Points in different parts of the L
-        CHECK(l_zone.poly().contains(concord::Point(15, 15, 0))); // Bottom part
-        CHECK(l_zone.poly().contains(concord::Point(15, 45, 0))); // Left part
-        CHECK(l_zone.poly().contains(concord::Point(45, 15, 0))); // Right part
+        CHECK(l_zone.poly().contains(dp::Point(15, 15, 0))); // Bottom part
+        CHECK(l_zone.poly().contains(dp::Point(15, 45, 0))); // Left part
+        CHECK(l_zone.poly().contains(dp::Point(45, 15, 0))); // Right part
 
         // Point in the "notch" of the L
-        CHECK(!l_zone.poly().contains(concord::Point(45, 45, 0)));
+        CHECK(!l_zone.poly().contains(dp::Point(45, 45, 0)));
 
         // Area should be: 60*30 + 30*30 = 1800 + 900 = 2700
         CHECK(l_zone.poly().area() == doctest::Approx(2700.0));
@@ -459,8 +459,8 @@ TEST_CASE("Zone geometric operations") {
 TEST_CASE("Zone validation rules") {
     SUBCASE("Valid zones") {
         // Create simple base grid for Zone constructor
-        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
-        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
+        dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
 
         auto boundary = createRectangle(0, 0, 100, 50);
         Zone valid_zone("Valid Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
@@ -473,11 +473,11 @@ TEST_CASE("Zone validation rules") {
 
     SUBCASE("Invalid zones") {
         // Create simple base grid for Zone constructor
-        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
-        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
+        dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
 
         // No boundary
-        concord::Polygon default_boundary;
+        dp::Polygon default_boundary;
         Zone no_boundary("No Boundary", "field", default_boundary, base_grid, WAGENINGEN_DATUM);
         CHECK(!no_boundary.is_valid());
 
@@ -494,14 +494,14 @@ TEST_CASE("Zone validation rules") {
 
 TEST_CASE("Zone file I/O operations") {
     // Create simple base grid for Zone constructor
-    concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
-    concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
+    dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
 
     auto boundary = createRectangle(0, 0, 100, 50);
     Zone zone("File I/O Zone", "field", boundary, base_grid, WAGENINGEN_DATUM);
 
     // Add some data to make it interesting
-    concord::Grid<uint8_t> elevation_grid(5, 10, 10.0, true, concord::Pose{});
+    dp::Grid<uint8_t> elevation_grid(5, 10, 10.0, true, dp::Pose{});
     for (size_t r = 0; r < 5; ++r) {
         for (size_t c = 0; c < 10; ++c) {
             elevation_grid.set_value(r, c, static_cast<uint8_t>(100 + r + c));
@@ -520,7 +520,7 @@ TEST_CASE("Zone file I/O operations") {
     }
 
     // Add field elements
-    std::vector<concord::Point> row_points;
+    std::vector<dp::Point> row_points;
     row_points.emplace_back(10, 25, 0);
     row_points.emplace_back(90, 25, 0);
     zone.poly().addElement(row_points, "crop_row");
@@ -546,10 +546,10 @@ TEST_CASE("Zone file I/O operations") {
 
 TEST_CASE("Zone property edge cases") {
     // Create simple base grid for Zone constructor
-    concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
-    concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
+    dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
 
-    concord::Polygon default_boundary;
+    dp::Polygon default_boundary;
     Zone zone("Edge Case Zone", "field", default_boundary, base_grid, WAGENINGEN_DATUM);
 
     SUBCASE("Property overwrites") {

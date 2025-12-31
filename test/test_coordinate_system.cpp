@@ -1,70 +1,73 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
-#include "zoneout/zoneout.hpp"
 #include "geoson/geoson.hpp"
+#include "zoneout/zoneout.hpp"
 #include <filesystem>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 
+namespace dp = datapod;
 using namespace zoneout;
 
 TEST_CASE("Test coordinate system ordering") {
-    
+
     SUBCASE("Analyze grid coordinate system vs polygon") {
         // Create a simple test polygon with known coordinates
-        std::vector<concord::Point> test_points = {
-            concord::Point{0.0, 0.0, 0.0},   // Bottom-left
-            concord::Point{10.0, 0.0, 0.0},  // Bottom-right
-            concord::Point{10.0, 10.0, 0.0}, // Top-right
-            concord::Point{0.0, 10.0, 0.0}   // Top-left
+        dp::Polygon test_polygon;
+        test_polygon.vertices = {
+            dp::Point{0.0, 0.0, 0.0},   // Bottom-left
+            dp::Point{10.0, 0.0, 0.0},  // Bottom-right
+            dp::Point{10.0, 10.0, 0.0}, // Top-right
+            dp::Point{0.0, 10.0, 0.0}   // Top-left
         };
-        concord::Polygon test_polygon(test_points);
-        concord::Datum test_datum{0.0, 0.0, 0.0};
-        
+        dp::Geo test_datum{0.0, 0.0, 0.0};
+
         // Create Zone with this simple polygon
         Zone zone("Test", "test", test_polygon, test_datum, 1.0);
-        
+
         // Get the generated grid
-        const auto& grid_data = zone.raster_data();
+        const auto &grid_data = zone.raster_data();
         REQUIRE(grid_data.hasGrids());
-        const auto& first_layer = grid_data.getGrid(0);
-        const auto& grid = first_layer.grid;
-        
+        const auto &first_layer = grid_data.getGrid(0);
+        const auto &grid = first_layer.grid;
+
         std::cout << "\n=== Coordinate System Analysis ===\n";
         std::cout << "Polygon AABB:\n";
-        auto aabb = test_polygon.getAABB();
+        auto aabb = test_polygon.get_aabb();
         std::cout << "  Min: " << aabb.min_point.x << ", " << aabb.min_point.y << std::endl;
         std::cout << "  Max: " << aabb.max_point.x << ", " << aabb.max_point.y << std::endl;
         std::cout << "  Center: " << aabb.center().x << ", " << aabb.center().y << std::endl;
-        
+
         std::cout << "\nGrid info:\n";
         std::cout << "  Dimensions: " << grid.cols() << " x " << grid.rows() << std::endl;
         std::cout << "  Resolution: " << grid.inradius() << std::endl;
-        
+
         // Check grid corner coordinates
         std::cout << "\nGrid corner coordinates:\n";
         auto top_left = grid.get_point(0, 0);
-        auto top_right = grid.get_point(0, grid.cols()-1);
-        auto bottom_left = grid.get_point(grid.rows()-1, 0);
-        auto bottom_right = grid.get_point(grid.rows()-1, grid.cols()-1);
-        
+        auto top_right = grid.get_point(0, grid.cols() - 1);
+        auto bottom_left = grid.get_point(grid.rows() - 1, 0);
+        auto bottom_right = grid.get_point(grid.rows() - 1, grid.cols() - 1);
+
         std::cout << "  Top-left (0,0): " << top_left.x << ", " << top_left.y << std::endl;
         std::cout << "  Top-right (0,cols-1): " << top_right.x << ", " << top_right.y << std::endl;
         std::cout << "  Bottom-left (rows-1,0): " << bottom_left.x << ", " << bottom_left.y << std::endl;
         std::cout << "  Bottom-right (rows-1,cols-1): " << bottom_right.x << ", " << bottom_right.y << std::endl;
-        
+
         // Check center coordinates
         auto center_r = grid.rows() / 2;
         auto center_c = grid.cols() / 2;
         auto grid_center = grid.get_point(center_r, center_c);
-        std::cout << "  Grid center (" << center_r << "," << center_c << "): " << grid_center.x << ", " << grid_center.y << std::endl;
-        
+        std::cout << "  Grid center (" << center_r << "," << center_c << "): " << grid_center.x << ", " << grid_center.y
+                  << std::endl;
+
         // Compare expected vs actual
         std::cout << "\nComparison:\n";
         std::cout << "  Expected polygon center: " << aabb.center().x << ", " << aabb.center().y << std::endl;
         std::cout << "  Actual grid center: " << grid_center.x << ", " << grid_center.y << std::endl;
-        std::cout << "  Difference: " << (grid_center.x - aabb.center().x) << ", " << (grid_center.y - aabb.center().y) << std::endl;
-        
+        std::cout << "  Difference: " << (grid_center.x - aabb.center().x) << ", " << (grid_center.y - aabb.center().y)
+                  << std::endl;
+
         // Check if Y increases upward or downward in grid
         auto row_0 = grid.get_point(0, 0);
         auto row_1 = grid.get_point(1, 0);
@@ -76,18 +79,18 @@ TEST_CASE("Test coordinate system ordering") {
         } else {
             std::cout << "  Y increases upward (row 0 = bottom)" << std::endl;
         }
-        
+
         // Test with reverse_y=true
         std::cout << "\n=== Testing with reverse_y=true ===\n";
-        concord::Pose grid_pose(aabb.center(), concord::Euler{0, 0, 0});
-        concord::Grid<uint8_t> reverse_grid(10, 10, 1.0, true, grid_pose, true);
-        
+        dp::Pose grid_pose(aabb.center(), dp::Euler{0, 0, 0});
+        dp::Grid<uint8_t> reverse_grid(10, 10, 1.0, true, grid_pose, true);
+
         auto rev_top_left = reverse_grid.get_point(0, 0);
         auto rev_bottom_left = reverse_grid.get_point(9, 0);
         std::cout << "Reverse Y grid:\n";
         std::cout << "  Top-left (0,0): " << rev_top_left.x << ", " << rev_top_left.y << std::endl;
         std::cout << "  Bottom-left (9,0): " << rev_bottom_left.x << ", " << rev_bottom_left.y << std::endl;
-        
+
         if (rev_top_left.y > rev_bottom_left.y) {
             std::cout << "  With reverse_y=true: row 0 has higher Y (correct for GIS)" << std::endl;
         } else {

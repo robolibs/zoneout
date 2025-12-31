@@ -8,19 +8,20 @@
 
 #include "zoneout/zoneout.hpp"
 
+namespace dp = datapod;
 using namespace zoneout;
 
 // Wageningen Research Labs coordinates
-const concord::Datum WAGENINGEN_DATUM{51.98776171041831, 5.662378206146002, 0.0};
+const dp::Geo WAGENINGEN_DATUM{51.98776171041831, 5.662378206146002, 0.0};
 
 // Helper function to create a rectangular polygon
-concord::Polygon createRectangle(double x, double y, double width, double height) {
-    std::vector<concord::Point> points;
-    points.emplace_back(x, y, 0.0);
-    points.emplace_back(x + width, y, 0.0);
-    points.emplace_back(x + width, y + height, 0.0);
-    points.emplace_back(x, y + height, 0.0);
-    return concord::Polygon(points);
+dp::Polygon createRectangle(double x, double y, double width, double height) {
+    dp::Polygon poly;
+    poly.vertices.emplace_back(x, y, 0.0);
+    poly.vertices.emplace_back(x + width, y, 0.0);
+    poly.vertices.emplace_back(x + width, y + height, 0.0);
+    poly.vertices.emplace_back(x, y + height, 0.0);
+    return poly;
 }
 
 // Helper function to compare two properties maps
@@ -39,14 +40,14 @@ bool compareProperties(const std::unordered_map<std::string, std::string> &props
 }
 
 // Helper function to compare two points with tolerance
-bool comparePoints(const concord::Point &p1, const concord::Point &p2, double tolerance = 0.01) {
+bool comparePoints(const dp::Point &p1, const dp::Point &p2, double tolerance = 0.01) {
     return std::abs(p1.x - p2.x) < tolerance && std::abs(p1.y - p2.y) < tolerance && std::abs(p1.z - p2.z) < tolerance;
 }
 
 // Helper function to compare two polygons
-bool comparePolygons(const concord::Polygon &poly1, const concord::Polygon &poly2) {
-    auto points1 = poly1.getPoints();
-    auto points2 = poly2.getPoints();
+bool comparePolygons(const dp::Polygon &poly1, const dp::Polygon &poly2) {
+    auto points1 = poly1.vertices;
+    auto points2 = poly2.vertices;
 
     if (points1.size() != points2.size()) {
         std::cout << "Polygon size mismatch: " << points1.size() << " vs " << points2.size() << std::endl;
@@ -67,7 +68,7 @@ bool comparePolygons(const concord::Polygon &poly1, const concord::Polygon &poly
 }
 
 // Helper function to compare two paths
-bool comparePaths(const std::vector<concord::Point> &path1, const std::vector<concord::Point> &path2) {
+bool comparePaths(const std::vector<dp::Point> &path1, const std::vector<dp::Point> &path2) {
     if (path1.size() != path2.size())
         return false;
 
@@ -93,8 +94,8 @@ const geoson::Element *findElementByName(const std::vector<geoson::Element> &ele
 TEST_CASE("Complete file I/O round-trip test") {
     SUBCASE("Zone with mixed element types and raster data") {
         // Create simple base grid for Zone constructor
-        concord::Pose shift{concord::Point{0.0, 0.0, 0.0}, concord::Euler{0, 0, 0}};
-        concord::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+        dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}};
+        dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
 
         // Create a zone with various element types
         auto field_boundary = createRectangle(0, 0, 200, 150);
@@ -137,7 +138,7 @@ TEST_CASE("Complete file I/O round-trip test") {
                                          {"material_type", "fertilizer"}});
 
         // Add access routes (paths/lines)
-        std::vector<concord::Point> main_road = {{-10, 75, 0}, {50, 75, 0}, {150, 75, 0}, {220, 75, 0}, {300, 75, 0}};
+        std::vector<dp::Point> main_road = {{-10, 75, 0}, {50, 75, 0}, {150, 75, 0}, {220, 75, 0}, {300, 75, 0}};
         original_zone.poly().addElement(main_road, "access_route",
                                         {{"name", "main_access_road"},
                                          {"width", "6m"},
@@ -145,27 +146,27 @@ TEST_CASE("Complete file I/O round-trip test") {
                                          {"speed_limit", "25kmh"},
                                          {"weight_limit", "40_tons"}});
 
-        std::vector<concord::Point> service_path = {{100, 0, 0}, {100, 50, 0}, {100, 100, 0}, {100, 150, 0}};
+        std::vector<dp::Point> service_path = {{100, 0, 0}, {100, 50, 0}, {100, 100, 0}, {100, 150, 0}};
         original_zone.poly().addElement(
             service_path, "service_route",
             {{"name", "north_south_service"}, {"width", "3m"}, {"surface", "gravel"}, {"access", "maintenance_only"}});
 
         // Add equipment stations (points)
-        original_zone.poly().addElement(concord::Point(50, 50, 0), "equipment_station",
+        original_zone.poly().addElement(dp::Point(50, 50, 0), "equipment_station",
                                         {{"name", "fuel_station"},
                                          {"fuel_type", "diesel"},
                                          {"capacity", "5000L"},
                                          {"pump_rate", "60L_per_min"},
                                          {"safety_zone", "10m_radius"}});
 
-        original_zone.poly().addElement(concord::Point(150, 100, 0), "monitoring_point",
+        original_zone.poly().addElement(dp::Point(150, 100, 0), "monitoring_point",
                                         {{"name", "weather_station"},
                                          {"sensors", "temp_humidity_wind_rain"},
                                          {"data_interval", "5_minutes"},
                                          {"power_source", "solar"},
                                          {"communication", "4G_cellular"}});
 
-        original_zone.poly().addElement(concord::Point(75, 25, 0), "irrigation_hub",
+        original_zone.poly().addElement(dp::Point(75, 25, 0), "irrigation_hub",
                                         {{"name", "central_irrigation"},
                                          {"water_source", "well"},
                                          {"flow_rate", "200L_per_min"},
@@ -191,9 +192,9 @@ TEST_CASE("Complete file I/O round-trip test") {
 
         // Add raster data layers
         // Elevation layer
-        concord::Pose grid_pose;
-        grid_pose.point = concord::Point(100, 75, 0); // Center over field
-        concord::Grid<uint8_t> elevation_grid(20, 30, 5.0, true, grid_pose);
+        dp::Pose grid_pose;
+        grid_pose.point = dp::Point(100, 75, 0); // Center over field
+        dp::Grid<uint8_t> elevation_grid(20, 30, 5.0, true, grid_pose);
         for (size_t r = 0; r < 20; ++r) {
             for (size_t c = 0; c < 30; ++c) {
                 uint8_t elevation = static_cast<uint8_t>(95 + (r + c) % 25); // 95-120m range
@@ -205,7 +206,7 @@ TEST_CASE("Complete file I/O round-trip test") {
             {{"units", "meters"}, {"datum", "sea_level"}, {"accuracy", "0.5m"}, {"source", "lidar_survey_2024"}});
 
         // Soil moisture layer
-        concord::Grid<uint8_t> moisture_grid(20, 30, 5.0, true, grid_pose);
+        dp::Grid<uint8_t> moisture_grid(20, 30, 5.0, true, grid_pose);
         for (size_t r = 0; r < 20; ++r) {
             for (size_t c = 0; c < 30; ++c) {
                 uint8_t moisture = static_cast<uint8_t>(15 + (r * c + r + c) % 60); // 15-75% range
@@ -219,7 +220,7 @@ TEST_CASE("Complete file I/O round-trip test") {
                                              {"sensor_type", "capacitive"}});
 
         // NDVI (vegetation health) layer
-        concord::Grid<uint8_t> ndvi_grid(20, 30, 5.0, true, grid_pose);
+        dp::Grid<uint8_t> ndvi_grid(20, 30, 5.0, true, grid_pose);
         for (size_t r = 0; r < 20; ++r) {
             for (size_t c = 0; c < 30; ++c) {
                 uint8_t ndvi = static_cast<uint8_t>(100 + (r * 2 + c) % 155); // 0.4-1.0 NDVI (scaled to 100-255)

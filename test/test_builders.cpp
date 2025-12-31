@@ -2,22 +2,23 @@
 #include "doctest/doctest.h"
 #include "zoneout/zoneout.hpp"
 
+namespace dp = datapod;
 using namespace zoneout;
 
 // Helper function to create a simple rectangular boundary
-concord::Polygon create_test_boundary(double width = 100.0, double height = 50.0) {
-    concord::Polygon rect;
-    rect.addPoint(concord::Point{0.0, 0.0, 0.0});
-    rect.addPoint(concord::Point{width, 0.0, 0.0});
-    rect.addPoint(concord::Point{width, height, 0.0});
-    rect.addPoint(concord::Point{0.0, height, 0.0});
+dp::Polygon create_test_boundary(double width = 100.0, double height = 50.0) {
+    dp::Polygon rect;
+    rect.vertices.push_back(dp::Point{0.0, 0.0, 0.0});
+    rect.vertices.push_back(dp::Point{width, 0.0, 0.0});
+    rect.vertices.push_back(dp::Point{width, height, 0.0});
+    rect.vertices.push_back(dp::Point{0.0, height, 0.0});
     return rect;
 }
 
 // ========== ZoneBuilder Tests ==========
 
 TEST_CASE("ZoneBuilder basic construction") {
-    concord::Datum datum{52.0, 5.0, 0.0};
+    dp::Geo datum{52.0, 5.0, 0.0};
     auto boundary = create_test_boundary();
 
     SUBCASE("Build valid zone with required fields only") {
@@ -79,15 +80,15 @@ TEST_CASE("ZoneBuilder basic construction") {
 }
 
 TEST_CASE("ZoneBuilder with features") {
-    concord::Datum datum{52.0, 5.0, 0.0};
+    dp::Geo datum{52.0, 5.0, 0.0};
     auto boundary = create_test_boundary();
 
     SUBCASE("Build zone with polygon feature") {
-        concord::Polygon obstacle;
-        obstacle.addPoint(concord::Point{20.0, 20.0, 0.0});
-        obstacle.addPoint(concord::Point{30.0, 20.0, 0.0});
-        obstacle.addPoint(concord::Point{30.0, 30.0, 0.0});
-        obstacle.addPoint(concord::Point{20.0, 30.0, 0.0});
+        dp::Polygon obstacle;
+        obstacle.vertices.push_back(dp::Point{20.0, 20.0, 0.0});
+        obstacle.vertices.push_back(dp::Point{30.0, 20.0, 0.0});
+        obstacle.vertices.push_back(dp::Point{30.0, 30.0, 0.0});
+        obstacle.vertices.push_back(dp::Point{20.0, 30.0, 0.0});
 
         auto zone = ZoneBuilder()
                         .with_name("test_zone")
@@ -102,17 +103,17 @@ TEST_CASE("ZoneBuilder with features") {
     }
 
     SUBCASE("Build zone with multiple features") {
-        concord::Polygon obstacle1;
-        obstacle1.addPoint(concord::Point{20.0, 20.0, 0.0});
-        obstacle1.addPoint(concord::Point{25.0, 20.0, 0.0});
-        obstacle1.addPoint(concord::Point{25.0, 25.0, 0.0});
-        obstacle1.addPoint(concord::Point{20.0, 25.0, 0.0});
+        dp::Polygon obstacle1;
+        obstacle1.vertices.push_back(dp::Point{20.0, 20.0, 0.0});
+        obstacle1.vertices.push_back(dp::Point{25.0, 20.0, 0.0});
+        obstacle1.vertices.push_back(dp::Point{25.0, 25.0, 0.0});
+        obstacle1.vertices.push_back(dp::Point{20.0, 25.0, 0.0});
 
-        concord::Polygon obstacle2;
-        obstacle2.addPoint(concord::Point{40.0, 30.0, 0.0});
-        obstacle2.addPoint(concord::Point{45.0, 30.0, 0.0});
-        obstacle2.addPoint(concord::Point{45.0, 35.0, 0.0});
-        obstacle2.addPoint(concord::Point{40.0, 35.0, 0.0});
+        dp::Polygon obstacle2;
+        obstacle2.vertices.push_back(dp::Point{40.0, 30.0, 0.0});
+        obstacle2.vertices.push_back(dp::Point{45.0, 30.0, 0.0});
+        obstacle2.vertices.push_back(dp::Point{45.0, 35.0, 0.0});
+        obstacle2.vertices.push_back(dp::Point{40.0, 35.0, 0.0});
 
         auto zone = ZoneBuilder()
                         .with_name("test_zone")
@@ -129,7 +130,7 @@ TEST_CASE("ZoneBuilder with features") {
 }
 
 TEST_CASE("ZoneBuilder validation") {
-    concord::Datum datum{52.0, 5.0, 0.0};
+    dp::Geo datum{52.0, 5.0, 0.0};
     auto boundary = create_test_boundary();
 
     SUBCASE("Missing name fails validation") {
@@ -182,9 +183,9 @@ TEST_CASE("ZoneBuilder validation") {
     }
 
     SUBCASE("Boundary with too few points fails validation") {
-        concord::Polygon invalid_boundary;
-        invalid_boundary.addPoint(concord::Point{0.0, 0.0, 0.0});
-        invalid_boundary.addPoint(concord::Point{10.0, 0.0, 0.0});
+        dp::Polygon invalid_boundary;
+        invalid_boundary.vertices.push_back(dp::Point{0.0, 0.0, 0.0});
+        invalid_boundary.vertices.push_back(dp::Point{10.0, 0.0, 0.0});
 
         ZoneBuilder builder;
         builder.with_name("test").with_type("agricultural").with_boundary(invalid_boundary).with_datum(datum);
@@ -195,7 +196,7 @@ TEST_CASE("ZoneBuilder validation") {
 }
 
 TEST_CASE("ZoneBuilder reset functionality") {
-    concord::Datum datum{52.0, 5.0, 0.0};
+    dp::Geo datum{52.0, 5.0, 0.0};
     auto boundary = create_test_boundary();
 
     ZoneBuilder builder;
@@ -232,7 +233,7 @@ TEST_CASE("ZoneBuilder reset functionality") {
 // ========== PlotBuilder Tests ==========
 
 TEST_CASE("PlotBuilder basic construction") {
-    concord::Datum datum{52.0, 5.0, 0.0};
+    dp::Geo datum{52.0, 5.0, 0.0};
 
     SUBCASE("Build valid plot with required fields only") {
         auto plot = PlotBuilder().with_name("test_plot").with_type("agricultural").with_datum(datum).build();
@@ -258,7 +259,7 @@ TEST_CASE("PlotBuilder basic construction") {
 }
 
 TEST_CASE("PlotBuilder with pre-built zones") {
-    concord::Datum datum{52.0, 5.0, 0.0};
+    dp::Geo datum{52.0, 5.0, 0.0};
     auto boundary = create_test_boundary();
 
     SUBCASE("Add single zone") {
@@ -319,7 +320,7 @@ TEST_CASE("PlotBuilder with pre-built zones") {
 }
 
 TEST_CASE("PlotBuilder with inline zone construction") {
-    concord::Datum datum{52.0, 5.0, 0.0};
+    dp::Geo datum{52.0, 5.0, 0.0};
     auto boundary = create_test_boundary();
 
     SUBCASE("Add zone with lambda configurator") {
@@ -393,7 +394,7 @@ TEST_CASE("PlotBuilder with inline zone construction") {
 }
 
 TEST_CASE("PlotBuilder validation") {
-    concord::Datum datum{52.0, 5.0, 0.0};
+    dp::Geo datum{52.0, 5.0, 0.0};
 
     SUBCASE("Missing name fails validation") {
         PlotBuilder builder;
@@ -424,7 +425,7 @@ TEST_CASE("PlotBuilder validation") {
 }
 
 TEST_CASE("PlotBuilder reset functionality") {
-    concord::Datum datum{52.0, 5.0, 0.0};
+    dp::Geo datum{52.0, 5.0, 0.0};
 
     PlotBuilder builder;
 
@@ -450,7 +451,7 @@ TEST_CASE("PlotBuilder reset functionality") {
 }
 
 TEST_CASE("PlotBuilder zone_count utility") {
-    concord::Datum datum{52.0, 5.0, 0.0};
+    dp::Geo datum{52.0, 5.0, 0.0};
     auto boundary = create_test_boundary();
 
     SUBCASE("Count includes pre-built zones") {

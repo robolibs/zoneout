@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <iostream>
 
+namespace dp = datapod;
 using namespace zoneout;
 
 TEST_CASE("Test real irregular field from misc/field4.geojson") {
@@ -18,7 +19,7 @@ TEST_CASE("Test real irregular field from misc/field4.geojson") {
 
         // Extract the polygon and create a Zone
         auto &feature = feature_collection.features[0];
-        auto *polygon_ptr = std::get_if<concord::Polygon>(&feature.geometry);
+        auto *polygon_ptr = std::get_if<dp::Polygon>(&feature.geometry);
         REQUIRE(polygon_ptr != nullptr);
 
         // Create Zone with the parsed polygon
