@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.3] - 2026-01-01
+
+### <!-- 0 -->⛰️  Features
+
+- Refactor Zoneout to header-only library
+
 ## [0.0.2] - 2025-12-31
 
 ### <!-- 1 -->🐛 Bug Fixes
