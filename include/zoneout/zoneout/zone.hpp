@@ -176,9 +176,8 @@ namespace zoneout {
         inline std::string raster_info() const {
             if (grid_data_.layer_count() > 0) {
                 const auto &first_layer = grid_data_.get_layer(0);
-                return "Raster size: " + std::to_string(first_layer.grid.cols) + "x" +
-                       std::to_string(first_layer.grid.rows) + " (" + std::to_string(grid_data_.layer_count()) +
-                       " layers)";
+                return "Raster size: " + std::to_string(first_layer.width) + "x" + std::to_string(first_layer.height) +
+                       " (" + std::to_string(grid_data_.layer_count()) + " layers)";
             }
             return "No raster layers";
         }
@@ -203,15 +202,23 @@ namespace zoneout {
             uint8_t polygon_color = static_cast<uint8_t>(color_dist(gen));
 
             if (grid_data_.layer_count() > 0) {
-                auto &base_grid = grid_data_.get_layer(0).grid;
-                for (size_t r = 0; r < base_grid.rows; ++r) {
-                    for (size_t c = 0; c < base_grid.cols; ++c) {
-                        auto cell_center = base_grid.get_point(r, c);
-                        if (geometry.contains(cell_center)) {
-                            base_grid(r, c) = polygon_color;
+                auto &grid_variant = grid_data_.get_layer(0).grid;
+                std::visit(
+                    [&](auto &base_grid) {
+                        using GridType = std::decay_t<decltype(base_grid)>;
+                        if constexpr (!std::is_same_v<GridType, dp::Grid<geotiv::RGBA>>) {
+                            for (size_t r = 0; r < base_grid.rows; ++r) {
+                                for (size_t c = 0; c < base_grid.cols; ++c) {
+                                    auto cell_center = base_grid.get_point(r, c);
+                                    if (geometry.contains(cell_center)) {
+                                        using CellType = typename decltype(base_grid.data)::value_type;
+                                        base_grid(r, c) = static_cast<CellType>(polygon_color);
+                                    }
+                                }
+                            }
                         }
-                    }
-                }
+                    },
+                    grid_variant);
             }
 
             UUID feature_id = generateUUID();
@@ -244,7 +251,7 @@ namespace zoneout {
 
             dp::Grid<uint8_t> base_grid;
             if (grid.has_layers()) {
-                base_grid = grid.get_layer(0).grid;
+                base_grid = std::get<dp::Grid<uint8_t>>(grid.get_layer(0).grid);
             } else {
                 dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Euler{0, 0, 0}.to_quaternion()};
                 base_grid.rows = 10;

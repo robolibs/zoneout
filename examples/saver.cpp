@@ -25,7 +25,7 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
 
         if (!polygons.empty()) {
             zoneout::Zone zone(zone_name, "field", polygons.front(), datum, 0.1);
-            const auto &base_grid = zone.grid().get_layer(0).grid;
+            const auto &base_grid = std::get<dp::Grid<uint8_t>>(zone.grid().get_layer(0).grid);
 
             auto temp_grid = base_grid;
             auto moisture_grid = base_grid;

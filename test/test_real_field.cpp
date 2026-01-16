@@ -45,12 +45,11 @@ TEST_CASE("Test real irregular field from misc/field4.geojson") {
         const auto &grid_data = zone.raster_data();
         if (!grid_data.layers.empty()) {
             const auto &first_layer = grid_data.layers[0];
-            const auto &grid = first_layer.grid;
 
             std::cout << "\n=== Real Field Analysis ===\n";
             std::cout << "Zone name: " << zone.name() << std::endl;
-            std::cout << "Grid dimensions: " << grid.cols << " x " << grid.rows << std::endl;
-            std::cout << "Grid resolution: " << grid.resolution << "m" << std::endl;
+            std::cout << "Grid dimensions: " << first_layer.width << " x " << first_layer.height << std::endl;
+            std::cout << "Grid resolution: " << first_layer.resolution << "m" << std::endl;
 
             // Get polygon boundary for analysis
             auto boundary = zone.poly().get_field_boundary();
@@ -70,8 +69,8 @@ TEST_CASE("Test real irregular field from misc/field4.geojson") {
             std::cout << "Grid center (shift): " << shift.point.x << ", " << shift.point.y << std::endl;
 
             // Check grid vs polygon alignment
-            double grid_width = grid.cols * grid.resolution;
-            double grid_height = grid.rows * grid.resolution;
+            double grid_width = first_layer.width * first_layer.resolution;
+            double grid_height = first_layer.height * first_layer.resolution;
             double grid_min_x = shift.point.x - grid_width / 2;
             double grid_max_x = shift.point.x + grid_width / 2;
             double grid_min_y = shift.point.y - grid_height / 2;

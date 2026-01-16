@@ -28,7 +28,7 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
         if (!polygons.empty()) {
             zoneout::Zone zone(zone_name, "field", polygons[0], datum, 0.1);
 
-            const auto &base_grid = zone.grid().get_layer(0).grid;
+            const auto &base_grid = std::get<dp::Grid<uint8_t>>(zone.grid().get_layer(0).grid);
             auto temp_grid = base_grid;
             auto moisture_grid = base_grid;
 
@@ -92,12 +92,32 @@ int main() {
     rec->log("", rerun::Clear::RECURSIVE);
     rec->log_with_static("", true, rerun::Clear::RECURSIVE);
 
-    // auto farm = create_field("Pea_Field", "pea", dp::Geo{51.73019, 4.23883, 0.0});
-    // farm.save("/home/bresilla/farm_plot_2");
-    auto farm = zoneout::Plot::load("/home/bresilla/farm_plot_2", "Pea Farm", "agricultural");
+    // Try to load existing plot, or create a new one if it doesn't exist
+    std::string plot_path = "/home/bresilla/farm_plot_2";
+    zoneout::Plot farm("Pea Farm", "agricultural", dp::Geo{51.73019, 4.23883, 0.0});
+
+    if (std::filesystem::exists(plot_path)) {
+        std::cout << "Loading existing plot from: " << plot_path << std::endl;
+        farm = zoneout::Plot::load(plot_path, "Pea Farm", "agricultural");
+    }
+
+    // If no zones were loaded, create a new field
+    if (farm.get_zone_count() == 0) {
+        std::cout << "No zones found, creating new field..." << std::endl;
+        farm = create_field("Pea_Field", "pea", dp::Geo{51.73019, 4.23883, 0.0});
+        if (farm.get_zone_count() > 0) {
+            std::cout << "Saving farm to: " << plot_path << std::endl;
+            farm.save(plot_path);
+        }
+    }
 
     auto zones = farm.get_zones();
     std::cout << "Num zones: " << zones.size() << std::endl;
+
+    if (zones.empty()) {
+        std::cerr << "No zones available to visualize" << std::endl;
+        return 1;
+    }
 
     auto zone0 = zones.at(0);
     auto boundary = zone0.poly().get_field_boundary();

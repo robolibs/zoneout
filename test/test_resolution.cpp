@@ -37,15 +37,14 @@ TEST_CASE("Test different resolutions with same polygon") {
             const auto &grid_data = zone.raster_data();
             if (!grid_data.layers.empty()) {
                 const auto &first_layer = grid_data.layers[0];
-                const auto &grid = first_layer.grid;
 
                 std::cout << "\n=== Resolution " << res << "m ===" << std::endl;
-                std::cout << "Grid dimensions: " << grid.cols << " x " << grid.rows << std::endl;
-                std::cout << "Grid size in meters: " << (grid.cols * res) << " x " << (grid.rows * res) << std::endl;
+                std::cout << "Grid dimensions: " << first_layer.width << " x " << first_layer.height << std::endl;
+                std::cout << "Grid size in meters: " << (first_layer.width * res) << " x " << (first_layer.height * res) << std::endl;
 
                 // Calculate what the GeoTIFF extent should be
-                double grid_width_meters = grid.cols * res;
-                double grid_height_meters = grid.rows * res;
+                double grid_width_meters = first_layer.width * res;
+                double grid_height_meters = first_layer.height * res;
 
                 // Get the shift (center) of the grid
                 auto shift = grid_data.shift;

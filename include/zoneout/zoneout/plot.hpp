@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <iostream>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -224,7 +225,9 @@ namespace zoneout {
                             auto zone = Zone::from_files(vector_path, raster_path);
                             plot_datum = zone.datum();
                             plot.add_zone(zone);
-                        } catch (const std::exception &) {
+                        } catch (const std::exception &e) {
+                            std::cerr << "Warning: Failed to load zone from " << entry.path() << ": " << e.what()
+                                      << std::endl;
                         }
                     }
                 }

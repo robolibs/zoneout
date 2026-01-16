@@ -9,13 +9,13 @@ local PROJECT_VERSION = "0.0.3"
 --   Local:  {"name", "../path/to/local"}  (optional: uses git if not found)
 --   System: "pkgconfig::libname" or {system = "boost"}
 local LIB_DEPS = {
-    {"datapod", "https://github.com/robolibs/datapod.git", "0.0.16"},
-    {"optinum", "https://github.com/robolibs/optinum.git", "0.0.14"},
-    {"graphix", "https://github.com/robolibs/graphix.git", "0.0.4"},
-    {"concord", "https://github.com/robolibs/concord.git", "0.0.5"},
-    {"geoson", "https://github.com/robolibs/geoson.git", "0.0.2"},
-    {"geotiv", "https://github.com/robolibs/geotiv.git", "0.0.2"},
-    {"entropy", "https://github.com/robolibs/entropy.git", "0.0.4"},
+    {"datapod", "https://github.com/robolibs/datapod.git", "0.0.36"},
+    {"optinum", "https://github.com/robolibs/optinum.git", "0.0.16"},
+    {"graphix", "https://github.com/robolibs/graphix.git", "0.0.6"},
+    {"concord", "https://github.com/robolibs/concord.git", "0.0.7"},
+    {"geoson", "https://github.com/robolibs/geoson.git", "0.0.5"},
+    {"geotiv", "https://github.com/robolibs/geotiv.git", "0.0.5"},
+    {"entropy", "https://github.com/robolibs/entropy.git", "0.0.6"},
 }
 local EXAMPLE_DEPS = {
     {system = "rerun_sdk"},

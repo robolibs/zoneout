@@ -34,17 +34,20 @@ int main() {
     // Get the grid
     auto &raster = zone.raster_data();
     if (!raster.layers.empty()) {
-        auto &grid = raster.layers[0].grid;
+        auto &grid_variant = raster.layers[0].grid;
 
         std::cout << std::fixed << std::setprecision(1);
+
+        // We know this is a uint8_t grid since we created it that way
+        auto &grid = std::get<dp::Grid<uint8_t>>(grid_variant);
 
         // Get center position of cell [5, 6]
         dp::Point center = grid.get_point(5, 6);
         std::cout << "Cell [5,6] center: (" << center.x << ", " << center.y << ")" << std::endl;
 
         // Get value at that cell
-        uint8_t value = grid(5, 6);
-        std::cout << "Cell [5,6] value:  " << (int)value << std::endl;
+        auto value = grid(5, 6);
+        std::cout << "Cell [5,6] value:  " << static_cast<int>(value) << std::endl;
 
         std::cout << std::endl;
 

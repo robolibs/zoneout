@@ -33,10 +33,9 @@ TEST_CASE("Test irregular polygon alignment") {
         const auto &grid_data = zone.raster_data();
         if (!grid_data.layers.empty()) {
             const auto &first_layer = grid_data.layers[0];
-            const auto &grid = first_layer.grid;
 
             std::cout << "\n=== Irregular Polygon Analysis ===" << std::endl;
-            std::cout << "Grid dimensions: " << grid.cols << " x " << grid.rows << std::endl;
+            std::cout << "Grid dimensions: " << first_layer.width << " x " << first_layer.height << std::endl;
 
             // Get polygon AABB
             auto aabb = trapezoid.get_aabb();
@@ -49,11 +48,11 @@ TEST_CASE("Test irregular polygon alignment") {
             auto shift = grid_data.shift;
             std::cout << "Grid center (shift): " << shift.point.x << ", " << shift.point.y << ", " << shift.point.z
                       << std::endl;
-            std::cout << "Grid resolution: " << grid.resolution << std::endl;
+            std::cout << "Grid resolution: " << first_layer.resolution << std::endl;
 
             // Calculate grid bounds
-            double grid_width_meters = grid.cols * 1.0;
-            double grid_height_meters = grid.rows * 1.0;
+            double grid_width_meters = first_layer.width * 1.0;
+            double grid_height_meters = first_layer.height * 1.0;
             double grid_min_x = shift.point.x - grid_width_meters / 2;
             double grid_max_x = shift.point.x + grid_width_meters / 2;
             double grid_min_y = shift.point.y - grid_height_meters / 2;

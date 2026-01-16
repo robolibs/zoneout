@@ -202,34 +202,37 @@ TEST_CASE("Zone raster sampling") {
 
     // Get the layer and fill it with test data
     auto &layer = zone.grid().get_layer(1); // Index 1 is the elevation layer (0 is base)
-    for (size_t r = 0; r < layer.grid.rows; ++r) {
-        for (size_t c = 0; c < layer.grid.cols; ++c) {
-            layer.grid(r, c) = static_cast<uint8_t>(100 + r + c);
+    auto &layer_grid = std::get<dp::Grid<uint8_t>>(layer.grid);
+    for (size_t r = 0; r < layer_grid.rows; ++r) {
+        for (size_t c = 0; c < layer_grid.cols; ++c) {
+            layer_grid(r, c) = static_cast<uint8_t>(100 + r + c);
         }
     }
 
     SUBCASE("Sample at specific points") {
         // Direct access to raster grid for sampling
         const auto &elev_layer = zone.grid().get_layer(1);
+        const auto &elev_grid = std::get<dp::Grid<uint8_t>>(elev_layer.grid);
 
         // Sample at grid cell (2, 2) - should have value 100 + 2 + 2 = 104
-        auto cell = elev_layer.grid(2, 2);
+        auto cell = elev_grid(2, 2);
         CHECK(cell == 104);
 
         // Sample at grid cell (5, 10) - should have value 100 + 5 + 10 = 115
-        auto cell2 = elev_layer.grid(5, 10);
+        auto cell2 = elev_grid(5, 10);
         CHECK(cell2 == 115);
     }
 
     SUBCASE("Sample at grid corners") {
         const auto &elev_layer = zone.grid().get_layer(1);
+        const auto &elev_grid = std::get<dp::Grid<uint8_t>>(elev_layer.grid);
 
         // Sample at corner (0, 0) - should have value 100 + 0 + 0 = 100
-        auto corner = elev_layer.grid(0, 0);
+        auto corner = elev_grid(0, 0);
         CHECK(corner == 100);
 
         // Sample at opposite corner (9, 19) - should have value 100 + 9 + 19 = 128
-        auto far_corner = elev_layer.grid(9, 19);
+        auto far_corner = elev_grid(9, 19);
         CHECK(far_corner == 128);
     }
 }
