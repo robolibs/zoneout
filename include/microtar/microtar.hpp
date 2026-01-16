@@ -164,7 +164,7 @@ inline int header_to_raw(mtar_raw_header_t *rh, const mtar_header_t *h) {
     sprintf(rh->owner, "%o", h->owner);
     sprintf(rh->size, "%o", h->size);
     sprintf(rh->mtime, "%o", h->mtime);
-    rh->type = h->type ? h->type : MTAR_TREG;
+    rh->type = h->type ? h->type : static_cast<char>(MTAR_TREG);
     strcpy(rh->name, h->name);
     strcpy(rh->linkname, h->linkname);
 

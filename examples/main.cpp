@@ -1,16 +1,19 @@
-#include "entropy/generator.hpp"
+#include "zoneout/zoneout.hpp"
+
 #include "geoget/geoget.hpp"
 #include "rerun.hpp"
 #include "rerun/recording_stream.hpp"
-#include "zoneout/zoneout.hpp"
+#include <entropy/generator.hpp>
 #include <iostream>
 #include <random>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+namespace dp = datapod;
+
 zoneout::Plot create_field(const std::string &zone_name, const std::string &crop_type,
-                           const concord::Datum &datum = concord::Datum{51.98776171041831, 5.662378206146002, 0.0}) {
+                           const dp::Geo &datum = dp::Geo{51.98776171041831, 5.662378206146002, 0.0}) {
     zoneout::Plot plot("Wageningen Farm", "agricultural", datum);
     plot.set_property("farm_type", "research");
     plot.set_property("owner", "Wageningen Research Labs");
@@ -25,7 +28,7 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
         if (!polygons.empty()) {
             zoneout::Zone zone(zone_name, "field", polygons[0], datum, 0.1);
 
-            const auto &base_grid = zone.grid().getGrid(0).grid;
+            const auto &base_grid = std::get<dp::Grid<uint8_t>>(zone.grid().get_layer(0).grid);
             auto temp_grid = base_grid;
             auto moisture_grid = base_grid;
 
@@ -38,15 +41,15 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
             moisture_noise.SetFrequency(0.05f);
             moisture_noise.SetSeed(std::random_device{}() + 100);
 
-            for (size_t r = 0; r < temp_grid.rows(); ++r) {
-                for (size_t c = 0; c < temp_grid.cols(); ++c) {
+            for (size_t r = 0; r < temp_grid.rows; ++r) {
+                for (size_t c = 0; c < temp_grid.cols; ++c) {
                     float temp_noise_val = temp_noise.GetNoise(static_cast<float>(r), static_cast<float>(c));
                     uint8_t temp_value = static_cast<uint8_t>(15 + (temp_noise_val + 1.0f) * 0.5f * (35 - 15));
-                    temp_grid.set_value(r, c, temp_value);
+                    temp_grid(r, c) = temp_value;
 
                     float moisture_noise_val = moisture_noise.GetNoise(static_cast<float>(r), static_cast<float>(c));
                     uint8_t moisture_value = static_cast<uint8_t>(20 + (moisture_noise_val + 1.0f) * 0.5f * (80 - 20));
-                    moisture_grid.set_value(r, c, moisture_value);
+                    moisture_grid(r, c) = moisture_value;
                 }
             }
 
@@ -61,14 +64,14 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
             std::cout << "Added zone: " << zone.name() << " (ID: " << zone.id().toString() << ")" << std::endl;
 
             // Add remaining polygons as features to the zone that's now in the plot
-            if (plot.get_zone_count() > 0) {
-                auto &plot_zone = plot.get_zones().back(); // Get the zone we just added
+            if (plot.zone_count() > 0) {
+                auto &plot_zone = plot.zones().back(); // Get the zone we just added
 
                 for (size_t i = 1; i < polygons.size(); ++i) {
                     Props properties = {{"area_m2", std::to_string(static_cast<int>(polygons[i].area()))}};
                     std::string feature_name = zone_name + "_feature_" + std::to_string(i);
                     try {
-                        plot_zone.add_polygon_feature(polygons[i], feature_name, "obstacle", "obstacle", properties);
+                        plot_zone.add_polygon_element(polygons[i], feature_name, "obstacle", "obstacle", properties);
                     } catch (const std::exception &e) {
                         std::cout << "Failed to add feature " << feature_name << ": " << e.what() << std::endl;
                     }
@@ -89,19 +92,39 @@ int main() {
     rec->log("", rerun::Clear::RECURSIVE);
     rec->log_with_static("", true, rerun::Clear::RECURSIVE);
 
-    // auto farm = create_field("Pea_Field", "pea", concord::Datum{51.73019, 4.23883, 0.0});
-    // farm.save("/home/bresilla/farm_plot_2");
-    auto farm = zoneout::Plot::load("/home/bresilla/farm_plot_2", "Pea Farm", "agricultural");
+    // Try to load existing plot, or create a new one if it doesn't exist
+    std::string plot_path = "/home/bresilla/farm_plot_2";
+    zoneout::Plot farm("Pea Farm", "agricultural", dp::Geo{51.73019, 4.23883, 0.0});
 
-    auto zones = farm.get_zones();
+    if (std::filesystem::exists(plot_path)) {
+        std::cout << "Loading existing plot from: " << plot_path << std::endl;
+        farm = zoneout::Plot::load(plot_path, "Pea Farm", "agricultural");
+    }
+
+    // If no zones were loaded, create a new field
+    if (farm.zone_count() == 0) {
+        std::cout << "No zones found, creating new field..." << std::endl;
+        farm = create_field("Pea_Field", "pea", dp::Geo{51.73019, 4.23883, 0.0});
+        if (farm.zone_count() > 0) {
+            std::cout << "Saving farm to: " << plot_path << std::endl;
+            farm.save(plot_path);
+        }
+    }
+
+    auto zones = farm.zones();
     std::cout << "Num zones: " << zones.size() << std::endl;
 
+    if (zones.empty()) {
+        std::cerr << "No zones available to visualize" << std::endl;
+        return 1;
+    }
+
     auto zone0 = zones.at(0);
-    auto boundary = zone0.poly().getFieldBoundary();
-    std::cout << "Zone 0 boundary: " << boundary.getPoints().size() << " points" << std::endl;
+    auto boundary = zone0.poly().field_boundary();
+    std::cout << "Zone 0 boundary: " << boundary.vertices.size() << " points" << std::endl;
 
     for (size_t i = 0; i < zones.size(); ++i) {
-        zoneout::visualize::visualize_zone(zones.at(i), rec, zones.at(i).datum(), zones.at(i).name(), i);
+        zoneout::visualize::show_zone(zones.at(i), rec, zones.at(i).datum(), zones.at(i).name(), i);
     }
 
     return 0;

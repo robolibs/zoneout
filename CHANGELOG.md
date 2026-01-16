@@ -1,5 +1,45 @@
 # Changelog
 
+## [0.0.4] - 2026-01-16
+
+### <!-- 0 -->⛰️  Features
+
+- Refactor Zone and Plot APIs for consistency
+- Improve build system flexibility and plot handling
+
+### <!-- 1 -->🐛 Bug Fixes
+
+- Re-enable and update file I/O round-trip test
+
+## [0.0.3] - 2026-01-01
+
+### <!-- 0 -->⛰️  Features
+
+- Refactor Zoneout to header-only library
+
+## [0.0.2] - 2025-12-31
+
+### <!-- 1 -->🐛 Bug Fixes
+
+- Update test files for new datapod/concord API
+
+### <!-- 2 -->🚜 Refactor
+
+- Consolidate build system logic and project dependencies
+- Migrate test files from concord to datapod types
+- Migrate all examples to datapod/dp types
+- Migrate zoneout to new robolibs architecture
+- Update to robolibs architecture pattern
+
+## [1.4.0] - 2025-12-15
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Update devbox dependencies
+- Refactor: Update devbox dependencies
+- Refactor build system and update dependencies
+- Feat: Add xmake build system support
+
 ## [1.3.0] - 2025-12-15
 
 ### <!-- 0 -->⛰️  Features

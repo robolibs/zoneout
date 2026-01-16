@@ -133,14 +133,14 @@ TEST_CASE("microtar multiple files read") {
     CHECK(mtar_open(&tar, test_filename, "r") == MTAR_ESUCCESS);
     
     // Read first file
-    mtar_header_t header1;
+    mtar_header_t header1{};
     CHECK(mtar_find(&tar, "file1.txt", &header1) == MTAR_ESUCCESS);
     std::string read_data1(header1.size, '\0');
     CHECK(mtar_read_data(&tar, &read_data1[0], header1.size) == MTAR_ESUCCESS);
     CHECK(read_data1 == "First file content");
-    
+
     // Read second file
-    mtar_header_t header2;
+    mtar_header_t header2{};
     CHECK(mtar_find(&tar, "file2.txt", &header2) == MTAR_ESUCCESS);
     std::string read_data2(header2.size, '\0');
     CHECK(mtar_read_data(&tar, &read_data2[0], header2.size) == MTAR_ESUCCESS);
