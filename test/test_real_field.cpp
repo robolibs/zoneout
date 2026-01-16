@@ -1,4 +1,3 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
 #include "geoson/geoson.hpp"
 #include "zoneout/zoneout.hpp"
@@ -52,7 +51,7 @@ TEST_CASE("Test real irregular field from misc/field4.geojson") {
             std::cout << "Grid resolution: " << first_layer.resolution << "m" << std::endl;
 
             // Get polygon boundary for analysis
-            auto boundary = zone.poly().get_field_boundary();
+            auto boundary = zone.poly().field_boundary();
             auto aabb = boundary.get_aabb();
 
             std::cout << "Polygon AABB (ENU coordinates):\n";

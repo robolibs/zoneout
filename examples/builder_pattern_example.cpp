@@ -61,7 +61,7 @@ int main() {
 
         std::cout << "✓ Created zone: " << zone1.name() << " (" << zone1.type() << ")" << std::endl;
         std::cout << "  Resolution: 1.0m" << std::endl;
-        std::cout << "  Crop: " << zone1.get_property("crop") << std::endl;
+        std::cout << "  Crop: " << zone1.property("crop").value_or("") << std::endl;
         std::cout << "  " << zone1.raster_info() << std::endl;
     } catch (const std::exception &e) {
         std::cout << "✗ Failed to build zone: " << e.what() << std::endl;
@@ -83,14 +83,14 @@ int main() {
                          .with_property("crop", "corn")
                          .with_property("irrigation", "drip")
                          .with_property("soil_type", "loamy")
-                         .with_polygon_feature(create_obstacle(20.0, 20.0, 10.0), "tree_1", "obstacle", "vegetation")
-                         .with_polygon_feature(create_obstacle(50.0, 30.0, 8.0), "building", "obstacle", "structure")
+                         .with_polygon_element(create_obstacle(20.0, 20.0, 10.0), "tree_1", "obstacle", "vegetation")
+                         .with_polygon_element(create_obstacle(50.0, 30.0, 8.0), "building", "obstacle", "structure")
                          .build();
 
         std::cout << "✓ Created zone: " << zone2.name() << " (" << zone2.type() << ")" << std::endl;
         std::cout << "  Resolution: 0.5m (high precision)" << std::endl;
         std::cout << "  " << zone2.raster_info() << std::endl;
-        std::cout << "  " << zone2.feature_info() << std::endl;
+        std::cout << "  " << zone2.element_info() << std::endl;
     } catch (const std::exception &e) {
         std::cout << "✗ Failed to build zone: " << e.what() << std::endl;
     }
@@ -131,12 +131,12 @@ int main() {
                          .add_zone(field2)
                          .build();
 
-        std::cout << "✓ Created plot: " << plot1.get_name() << " (" << plot1.get_type() << ")" << std::endl;
-        std::cout << "  Total zones: " << plot1.get_zone_count() << std::endl;
-        std::cout << "  Owner: " << plot1.get_property("farm_owner") << std::endl;
+        std::cout << "✓ Created plot: " << plot1.name() << " (" << plot1.type() << ")" << std::endl;
+        std::cout << "  Total zones: " << plot1.zone_count() << std::endl;
+        std::cout << "  Owner: " << plot1.property("farm_owner").value_or("") << std::endl;
 
-        for (const auto &zone : plot1.get_zones()) {
-            std::cout << "    - " << zone.name() << " (" << zone.type() << ", crop: " << zone.get_property("crop")
+        for (const auto &zone : plot1.zones()) {
+            std::cout << "    - " << zone.name() << " (" << zone.type() << ", crop: " << zone.property("crop").value_or("")
                       << ")" << std::endl;
         }
     } catch (const std::exception &e) {
@@ -164,7 +164,7 @@ int main() {
                                  .with_resolution(0.25) // Very high resolution
                                  .with_property("experiment", "nitrogen_study")
                                  .with_property("plot_id", "A1")
-                                 .with_polygon_feature(create_obstacle(10.0, 10.0, 5.0), "sensor_station", "equipment",
+                                 .with_polygon_element(create_obstacle(10.0, 10.0, 5.0), "sensor_station", "equipment",
                                                        "sensor");
                          })
                          // Zone 2: Medium resolution
@@ -186,11 +186,11 @@ int main() {
                          })
                          .build();
 
-        std::cout << "✓ Created plot: " << plot2.get_name() << " (" << plot2.get_type() << ")" << std::endl;
-        std::cout << "  Total zones: " << plot2.get_zone_count() << std::endl;
-        std::cout << "  Farm type: " << plot2.get_property("farm_type") << std::endl;
+        std::cout << "✓ Created plot: " << plot2.name() << " (" << plot2.type() << ")" << std::endl;
+        std::cout << "  Total zones: " << plot2.zone_count() << std::endl;
+        std::cout << "  Farm type: " << plot2.property("farm_type").value_or("") << std::endl;
 
-        for (const auto &zone : plot2.get_zones()) {
+        for (const auto &zone : plot2.zones()) {
             std::cout << "    - " << zone.name() << " (" << zone.type() << ") - " << zone.raster_info() << std::endl;
         }
     } catch (const std::exception &e) {
@@ -236,8 +236,8 @@ int main() {
                         .with_resolution(2.0) // Coarse resolution for large area
                         .with_property("grass_type", "mixed")
                         .with_property("animals", "cattle")
-                        .with_polygon_feature(create_obstacle(50.0, 50.0, 15.0), "water_trough", "utility", "water")
-                        .with_polygon_feature(create_obstacle(100.0, 60.0, 10.0), "shade_structure", "shelter",
+                        .with_polygon_element(create_obstacle(50.0, 50.0, 15.0), "water_trough", "utility", "water")
+                        .with_polygon_element(create_obstacle(100.0, 60.0, 10.0), "shade_structure", "shelter",
                                               "building");
                 })
                 // Add crop trial zone with high precision
@@ -248,22 +248,22 @@ int main() {
                         .with_resolution(0.2) // Very high resolution for trials
                         .with_property("experiment_id", "EXP-2024-001")
                         .with_property("crop_varieties", "12")
-                        .with_polygon_feature(create_obstacle(170.0, 40.0, 3.0), "weather_station", "sensor",
+                        .with_polygon_element(create_obstacle(170.0, 40.0, 3.0), "weather_station", "sensor",
                                               "meteorological");
                 })
                 .build();
 
-        std::cout << "✓ Created complex plot: " << complex_plot.get_name() << " (" << complex_plot.get_type() << ")"
+        std::cout << "✓ Created complex plot: " << complex_plot.name() << " (" << complex_plot.type() << ")"
                   << std::endl;
-        std::cout << "  Total zones: " << complex_plot.get_zone_count() << std::endl;
-        std::cout << "  Owner: " << complex_plot.get_property("owner") << std::endl;
-        std::cout << "  Location: " << complex_plot.get_property("location") << std::endl;
+        std::cout << "  Total zones: " << complex_plot.zone_count() << std::endl;
+        std::cout << "  Owner: " << complex_plot.property("owner").value_or("") << std::endl;
+        std::cout << "  Location: " << complex_plot.property("location").value_or("") << std::endl;
 
         std::cout << std::endl << "  Zone details:" << std::endl;
-        for (const auto &zone : complex_plot.get_zones()) {
+        for (const auto &zone : complex_plot.zones()) {
             std::cout << "    - " << zone.name() << " (" << zone.type() << ")" << std::endl;
             std::cout << "      " << zone.raster_info() << std::endl;
-            std::cout << "      " << zone.feature_info() << std::endl;
+            std::cout << "      " << zone.element_info() << std::endl;
         }
 
         // Save the complex plot

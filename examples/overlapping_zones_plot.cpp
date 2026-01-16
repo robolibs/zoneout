@@ -53,7 +53,7 @@ int main() {
     plot.set_property("farm_name", "Demo Farm");
     plot.set_property("location", "Netherlands");
     plot.set_property("year", "2024");
-    std::cout << "Created plot: " << plot.get_name() << " (" << plot.get_type() << ")" << std::endl;
+    std::cout << "Created plot: " << plot.name() << " (" << plot.type() << ")" << std::endl;
 
     // ========== Zone 1: High Resolution (0.5m) - Exact Boundary ==========
     std::cout << std::endl << "--- Creating Zone 1: High Resolution (0.5m) ---" << std::endl;
@@ -64,7 +64,7 @@ int main() {
 
     std::cout << "Zone 1 - Name: " << zone_high_res.name() << std::endl;
     std::cout << "Zone 1 - Type: " << zone_high_res.type() << std::endl;
-    std::cout << "Zone 1 - Resolution: " << zone_high_res.get_property("resolution") << std::endl;
+    std::cout << "Zone 1 - Resolution: " << zone_high_res.property("resolution").value_or("") << std::endl;
     std::cout << "Zone 1 - " << zone_high_res.raster_info() << std::endl;
     std::cout << "Zone 1 - Boundary area: " << zone_high_res.poly().area() << " m²" << std::endl;
 
@@ -74,8 +74,8 @@ int main() {
     obstacle_high.vertices.push_back(dp::Point{30.0, 20.0, 0.0});
     obstacle_high.vertices.push_back(dp::Point{30.0, 30.0, 0.0});
     obstacle_high.vertices.push_back(dp::Point{20.0, 30.0, 0.0});
-    zone_high_res.add_polygon_feature(obstacle_high, "tree_cluster", "obstacle", "vegetation");
-    std::cout << "Zone 1 - " << zone_high_res.feature_info() << std::endl;
+    zone_high_res.add_polygon_element(obstacle_high, "tree_cluster", "obstacle", "vegetation");
+    std::cout << "Zone 1 - " << zone_high_res.element_info() << std::endl;
 
     plot.add_zone(zone_high_res);
     std::cout << "Added Zone 1 to plot" << std::endl;
@@ -89,13 +89,13 @@ int main() {
 
     std::cout << "Zone 2 - Name: " << zone_medium_res.name() << std::endl;
     std::cout << "Zone 2 - Type: " << zone_medium_res.type() << std::endl;
-    std::cout << "Zone 2 - Resolution: " << zone_medium_res.get_property("resolution") << std::endl;
+    std::cout << "Zone 2 - Resolution: " << zone_medium_res.property("resolution").value_or("") << std::endl;
     std::cout << "Zone 2 - " << zone_medium_res.raster_info() << std::endl;
     std::cout << "Zone 2 - Boundary area: " << zone_medium_res.poly().area() << " m²" << std::endl;
 
     // Add same obstacle to medium-res zone for comparison
-    zone_medium_res.add_polygon_feature(obstacle_high, "tree_cluster", "obstacle", "vegetation");
-    std::cout << "Zone 2 - " << zone_medium_res.feature_info() << std::endl;
+    zone_medium_res.add_polygon_element(obstacle_high, "tree_cluster", "obstacle", "vegetation");
+    std::cout << "Zone 2 - " << zone_medium_res.element_info() << std::endl;
 
     plot.add_zone(zone_medium_res);
     std::cout << "Added Zone 2 to plot" << std::endl;
@@ -109,7 +109,7 @@ int main() {
 
     std::cout << "Zone 3 - Name: " << zone_low_res.name() << std::endl;
     std::cout << "Zone 3 - Type: " << zone_low_res.type() << std::endl;
-    std::cout << "Zone 3 - Resolution: " << zone_low_res.get_property("resolution") << std::endl;
+    std::cout << "Zone 3 - Resolution: " << zone_low_res.property("resolution").value_or("") << std::endl;
     std::cout << "Zone 3 - " << zone_low_res.raster_info() << std::endl;
     std::cout << "Zone 3 - Boundary area: " << zone_low_res.poly().area() << " m²" << std::endl;
 
@@ -119,8 +119,8 @@ int main() {
     obstacle_low.vertices.push_back(dp::Point{70.0, 25.0, 0.0});
     obstacle_low.vertices.push_back(dp::Point{70.0, 35.0, 0.0});
     obstacle_low.vertices.push_back(dp::Point{60.0, 35.0, 0.0});
-    zone_low_res.add_polygon_feature(obstacle_low, "building", "obstacle", "structure");
-    std::cout << "Zone 3 - " << zone_low_res.feature_info() << std::endl;
+    zone_low_res.add_polygon_element(obstacle_low, "building", "obstacle", "structure");
+    std::cout << "Zone 3 - " << zone_low_res.element_info() << std::endl;
 
     plot.add_zone(zone_low_res);
     std::cout << "Added Zone 3 to plot" << std::endl;
@@ -132,7 +132,7 @@ int main() {
 
     plot.save(save_dir);
     std::cout << "Plot saved to: " << save_dir.string() << std::endl;
-    std::cout << "Total zones in plot: " << plot.get_zone_count() << std::endl;
+    std::cout << "Total zones in plot: " << plot.zone_count() << std::endl;
 
     // List the saved files
     std::cout << std::endl << "Saved files structure:" << std::endl;
@@ -156,24 +156,24 @@ int main() {
     std::cout << std::endl << "--- Loading Plot from Directory ---" << std::endl;
     auto loaded_plot = zoneout::Plot::load(save_dir, "Multi-Resolution Farm", "agricultural", datum);
 
-    std::cout << "Loaded plot: " << loaded_plot.get_name() << " (" << loaded_plot.get_type() << ")" << std::endl;
-    std::cout << "Total zones loaded: " << loaded_plot.get_zone_count() << std::endl;
-    std::cout << "Farm name property: " << loaded_plot.get_property("farm_name") << std::endl;
+    std::cout << "Loaded plot: " << loaded_plot.name() << " (" << loaded_plot.type() << ")" << std::endl;
+    std::cout << "Total zones loaded: " << loaded_plot.zone_count() << std::endl;
+    std::cout << "Farm name property: " << loaded_plot.property("farm_name").value_or("") << std::endl;
 
     // Verify loaded zones
     std::cout << std::endl << "--- Verifying Loaded Zones ---" << std::endl;
-    const auto &loaded_zones = loaded_plot.get_zones();
+    const auto &loaded_zones = loaded_plot.zones();
 
     for (size_t i = 0; i < loaded_zones.size(); ++i) {
         const auto &zone = loaded_zones[i];
         std::cout << std::endl << "Loaded Zone " << i << ":" << std::endl;
         std::cout << "  Name: " << zone.name() << std::endl;
         std::cout << "  Type: " << zone.type() << std::endl;
-        std::cout << "  Resolution: " << zone.get_property("resolution") << std::endl;
-        std::cout << "  Use case: " << zone.get_property("use_case") << std::endl;
-        std::cout << "  Crop: " << zone.get_property("crop") << std::endl;
+        std::cout << "  Resolution: " << zone.property("resolution").value_or("") << std::endl;
+        std::cout << "  Use case: " << zone.property("use_case").value_or("") << std::endl;
+        std::cout << "  Crop: " << zone.property("crop").value_or("") << std::endl;
         std::cout << "  Raster: " << zone.raster_info() << std::endl;
-        std::cout << "  Features: " << zone.feature_info() << std::endl;
+        std::cout << "  Features: " << zone.element_info() << std::endl;
         std::cout << "  Boundary area: " << zone.poly().area() << " m²" << std::endl;
         std::cout << "  Has field boundary: " << (zone.poly().has_field_boundary() ? "true" : "false") << std::endl;
     }
@@ -182,13 +182,13 @@ int main() {
     std::cout << std::endl << "--- Loading Plot from TAR Archive ---" << std::endl;
     auto loaded_plot_tar = zoneout::Plot::load_tar(tar_file, "Multi-Resolution Farm", "agricultural", datum);
 
-    std::cout << "Loaded plot from TAR: " << loaded_plot_tar.get_name() << " (" << loaded_plot_tar.get_type() << ")"
+    std::cout << "Loaded plot from TAR: " << loaded_plot_tar.name() << " (" << loaded_plot_tar.type() << ")"
               << std::endl;
-    std::cout << "Total zones loaded from TAR: " << loaded_plot_tar.get_zone_count() << std::endl;
+    std::cout << "Total zones loaded from TAR: " << loaded_plot_tar.zone_count() << std::endl;
 
     // ========== Compare Zone Resolutions ==========
     std::cout << std::endl << "--- Zone Resolution Comparison ---" << std::endl;
-    const auto &zones = loaded_plot.get_zones();
+    const auto &zones = loaded_plot.zones();
 
     if (zones.size() >= 3) {
         std::cout << "Demonstrating multi-resolution analysis:" << std::endl;

@@ -1,4 +1,3 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 
 #include <algorithm>
@@ -46,16 +45,16 @@ TEST_CASE("Zone field elements management") {
 
         zone.poly().add_line_element(line, "irrigation_line", props);
 
-        auto irrigation_lines = zone.poly().get_lines_by_type("irrigation_line");
+        auto irrigation_lines = zone.poly().lines_by_type("irrigation_line");
         CHECK(irrigation_lines.size() == 1);
 
         auto all_elements = zone.poly().feature_count();
         CHECK(all_elements == 1);
 
-        auto irrigation_only = zone.poly().get_lines_by_type("irrigation_line");
+        auto irrigation_only = zone.poly().lines_by_type("irrigation_line");
         CHECK(irrigation_only.size() == 1);
 
-        auto crop_rows = zone.poly().get_lines_by_type("crop_row");
+        auto crop_rows = zone.poly().lines_by_type("crop_row");
         CHECK(crop_rows.size() == 0);
     }
 
@@ -72,7 +71,7 @@ TEST_CASE("Zone field elements management") {
             zone.poly().add_line_element(row_line, "crop_row", props);
         }
 
-        auto crop_rows = zone.poly().get_lines_by_type("crop_row");
+        auto crop_rows = zone.poly().lines_by_type("crop_row");
         CHECK(crop_rows.size() == 5);
 
         auto all_elements = zone.poly().feature_count();
@@ -90,7 +89,7 @@ TEST_CASE("Zone field elements management") {
 
         zone.poly().add_polygon_element(obstacle_boundary, "obstacle", props);
 
-        auto obstacles = zone.poly().get_polygons_by_type("obstacle");
+        auto obstacles = zone.poly().polygons_by_type("obstacle");
         CHECK(obstacles.size() == 1);
     }
 
@@ -106,7 +105,7 @@ TEST_CASE("Zone field elements management") {
 
         zone.poly().add_line_element(path_line, "access_path", props);
 
-        auto access_paths = zone.poly().get_lines_by_type("access_path");
+        auto access_paths = zone.poly().lines_by_type("access_path");
         CHECK(access_paths.size() == 1);
     }
 
@@ -122,9 +121,9 @@ TEST_CASE("Zone field elements management") {
         zone.poly().add_polygon_element(obstacle, "obstacle");
 
         // Check totals
-        CHECK(zone.poly().get_lines_by_type("irrigation_line").size() == 1);
-        CHECK(zone.poly().get_lines_by_type("crop_row").size() == 1);
-        CHECK(zone.poly().get_polygons_by_type("obstacle").size() == 1);
+        CHECK(zone.poly().lines_by_type("irrigation_line").size() == 1);
+        CHECK(zone.poly().lines_by_type("crop_row").size() == 1);
+        CHECK(zone.poly().polygons_by_type("obstacle").size() == 1);
         CHECK(zone.poly().feature_count() == 3);
     }
 }
@@ -418,24 +417,24 @@ TEST_CASE("Zone property edge cases") {
 
     SUBCASE("Property overwrites") {
         zone.set_property("test_key", "value1");
-        CHECK(zone.get_property("test_key") == "value1");
+        CHECK(zone.property("test_key").value_or("") == "value1");
 
         zone.set_property("test_key", "value2");
-        CHECK(zone.get_property("test_key") == "value2");
+        CHECK(zone.property("test_key").value_or("") == "value2");
     }
 
     SUBCASE("Empty property values") {
         zone.set_property("empty_key", "");
-        CHECK(zone.get_property("empty_key") == "");
-        CHECK(zone.get_property("empty_key", "default") == "");
+        CHECK(zone.property("empty_key").value_or("missing") == "");
+        CHECK(zone.property("empty_key").has_value());
     }
 
     SUBCASE("Special characters in properties") {
         zone.set_property("special", "value with spaces and symbols!@#$%");
-        CHECK(zone.get_property("special") == "value with spaces and symbols!@#$%");
+        CHECK(zone.property("special").value_or("") == "value with spaces and symbols!@#$%");
 
         zone.set_property("unicode", "café naïve résumé");
-        CHECK(zone.get_property("unicode") == "café naïve résumé");
+        CHECK(zone.property("unicode").value_or("") == "café naïve résumé");
     }
 
     SUBCASE("Large number of properties") {
@@ -451,7 +450,7 @@ TEST_CASE("Zone property edge cases") {
         CHECK(properties.size() == 1000);
 
         // Check specific values
-        CHECK(zone.get_property("key_42") == "value_84");
-        CHECK(zone.get_property("key_999") == "value_1998");
+        CHECK(zone.property("key_42").value_or("") == "value_84");
+        CHECK(zone.property("key_999").value_or("") == "value_1998");
     }
 }

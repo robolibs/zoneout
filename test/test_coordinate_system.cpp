@@ -1,4 +1,3 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
 #include "geoson/geoson.hpp"
 #include "zoneout/zoneout.hpp"

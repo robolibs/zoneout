@@ -1,4 +1,3 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
 #include "zoneout/zoneout.hpp"
 
@@ -59,8 +58,8 @@ TEST_CASE("ZoneBuilder basic construction") {
                         .with_property("season", "2024")
                         .build();
 
-        CHECK(zone.get_property("crop") == "wheat");
-        CHECK(zone.get_property("season") == "2024");
+        CHECK(zone.property("crop").value_or("") == "wheat");
+        CHECK(zone.property("season").value_or("") == "2024");
     }
 
     SUBCASE("Build zone with multiple properties at once") {
@@ -74,8 +73,8 @@ TEST_CASE("ZoneBuilder basic construction") {
                         .with_properties(props)
                         .build();
 
-        CHECK(zone.get_property("crop") == "corn");
-        CHECK(zone.get_property("irrigation") == "drip");
+        CHECK(zone.property("crop").value_or("") == "corn");
+        CHECK(zone.property("irrigation").value_or("") == "drip");
     }
 }
 
@@ -95,11 +94,11 @@ TEST_CASE("ZoneBuilder with features") {
                         .with_type("agricultural")
                         .with_boundary(boundary)
                         .with_datum(datum)
-                        .with_polygon_feature(obstacle, "tree", "obstacle")
+                        .with_polygon_element(obstacle, "tree", "obstacle")
                         .build();
 
-        auto feature_info = zone.feature_info();
-        CHECK(feature_info.find("1 polygons") != std::string::npos);
+        auto element_info = zone.element_info();
+        CHECK(element_info.find("1 polygons") != std::string::npos);
     }
 
     SUBCASE("Build zone with multiple features") {
@@ -120,12 +119,12 @@ TEST_CASE("ZoneBuilder with features") {
                         .with_type("agricultural")
                         .with_boundary(boundary)
                         .with_datum(datum)
-                        .with_polygon_feature(obstacle1, "tree1", "obstacle")
-                        .with_polygon_feature(obstacle2, "tree2", "obstacle")
+                        .with_polygon_element(obstacle1, "tree1", "obstacle")
+                        .with_polygon_element(obstacle2, "tree2", "obstacle")
                         .build();
 
-        auto feature_info = zone.feature_info();
-        CHECK(feature_info.find("2 polygons") != std::string::npos);
+        auto element_info = zone.element_info();
+        CHECK(element_info.find("2 polygons") != std::string::npos);
     }
 }
 
@@ -238,8 +237,8 @@ TEST_CASE("PlotBuilder basic construction") {
     SUBCASE("Build valid plot with required fields only") {
         auto plot = PlotBuilder().with_name("test_plot").with_type("agricultural").with_datum(datum).build();
 
-        CHECK(plot.get_name() == "test_plot");
-        CHECK(plot.get_type() == "agricultural");
+        CHECK(plot.name() == "test_plot");
+        CHECK(plot.type() == "agricultural");
         CHECK(plot.is_valid());
         CHECK(plot.empty());
     }
@@ -253,8 +252,8 @@ TEST_CASE("PlotBuilder basic construction") {
                         .with_property("location", "Netherlands")
                         .build();
 
-        CHECK(plot.get_property("owner") == "Test Farm");
-        CHECK(plot.get_property("location") == "Netherlands");
+        CHECK(plot.property("owner").value_or("") == "Test Farm");
+        CHECK(plot.property("location").value_or("") == "Netherlands");
     }
 }
 
@@ -273,7 +272,7 @@ TEST_CASE("PlotBuilder with pre-built zones") {
         auto plot =
             PlotBuilder().with_name("test_plot").with_type("agricultural").with_datum(datum).add_zone(zone).build();
 
-        CHECK(plot.get_zone_count() == 1);
+        CHECK(plot.zone_count() == 1);
         CHECK_FALSE(plot.empty());
     }
 
@@ -296,7 +295,7 @@ TEST_CASE("PlotBuilder with pre-built zones") {
                         .add_zone(zone2)
                         .build();
 
-        CHECK(plot.get_zone_count() == 2);
+        CHECK(plot.zone_count() == 2);
     }
 
     SUBCASE("Add zones in bulk") {
@@ -315,7 +314,7 @@ TEST_CASE("PlotBuilder with pre-built zones") {
         auto plot =
             PlotBuilder().with_name("test_plot").with_type("agricultural").with_datum(datum).add_zones(zones).build();
 
-        CHECK(plot.get_zone_count() == 2);
+        CHECK(plot.zone_count() == 2);
     }
 }
 
@@ -336,10 +335,10 @@ TEST_CASE("PlotBuilder with inline zone construction") {
                         })
                         .build();
 
-        CHECK(plot.get_zone_count() == 1);
-        const auto &zones = plot.get_zones();
+        CHECK(plot.zone_count() == 1);
+        const auto &zones = plot.zones();
         CHECK(zones[0].name() == "inline_zone");
-        CHECK(zones[0].get_property("inline") == "true");
+        CHECK(zones[0].property("inline").value_or("") == "true");
     }
 
     SUBCASE("Add multiple zones with different configurations") {
@@ -362,8 +361,8 @@ TEST_CASE("PlotBuilder with inline zone construction") {
                 })
                 .build();
 
-        CHECK(plot.get_zone_count() == 2);
-        const auto &zones = plot.get_zones();
+        CHECK(plot.zone_count() == 2);
+        const auto &zones = plot.zones();
         CHECK(zones[0].name() == "high_res");
         CHECK(zones[1].name() == "low_res");
     }
@@ -386,8 +385,8 @@ TEST_CASE("PlotBuilder with inline zone construction") {
                         })
                         .build();
 
-        CHECK(plot.get_zone_count() == 2);
-        const auto &zones = plot.get_zones();
+        CHECK(plot.zone_count() == 2);
+        const auto &zones = plot.zones();
         CHECK(zones[0].name() == "prebuilt");
         CHECK(zones[1].name() == "inline");
     }
@@ -440,13 +439,13 @@ TEST_CASE("PlotBuilder reset functionality") {
     SUBCASE("Builder can be reused after reset") {
         auto plot1 = builder.with_name("plot1").with_type("agricultural").with_datum(datum).build();
 
-        CHECK(plot1.get_name() == "plot1");
+        CHECK(plot1.name() == "plot1");
 
         builder.reset();
         auto plot2 = builder.with_name("plot2").with_type("research").with_datum(datum).build();
 
-        CHECK(plot2.get_name() == "plot2");
-        CHECK(plot2.get_type() == "research");
+        CHECK(plot2.name() == "plot2");
+        CHECK(plot2.type() == "research");
     }
 }
 

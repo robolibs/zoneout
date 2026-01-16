@@ -14,7 +14,7 @@ local LIB_DEPS = {
     {"graphix", "https://github.com/robolibs/graphix.git", "0.0.6"},
     {"concord", "https://github.com/robolibs/concord.git", "0.0.7"},
     {"geoson", "https://github.com/robolibs/geoson.git", "0.0.5"},
-    {"geotiv", "https://github.com/robolibs/geotiv.git", "0.0.5"},
+    {"geotiv", "https://github.com/robolibs/geotiv.git", "0.0.6"},
     {"entropy", "https://github.com/robolibs/entropy.git", "0.0.6"},
 }
 local EXAMPLE_DEPS = {

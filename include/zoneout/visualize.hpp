@@ -41,7 +41,7 @@ namespace zoneout {
                 return;
             }
 
-            const auto &boundary = zone.poly().get_field_boundary();
+            const auto &boundary = zone.poly().field_boundary();
             const auto &vertices = boundary.vertices;
             if (vertices.empty()) {
                 std::cerr << "Zone " << zone_name << " has no points" << std::endl;
@@ -104,7 +104,7 @@ namespace zoneout {
                 return;
             }
 
-            const auto &boundary = zone.poly().get_field_boundary();
+            const auto &boundary = zone.poly().field_boundary();
             const auto &vertices = boundary.vertices;
             if (vertices.empty()) {
                 std::cerr << "Zone " << zone_name << " has no points" << std::endl;
@@ -154,7 +154,7 @@ namespace zoneout {
         inline void show_polygon_elements(const Zone &zone, std::shared_ptr<rerun::RecordingStream> rec,
                                           const datapod::Geo &datum, const std::string &zone_name,
                                           float height = 0.1f) {
-            const auto &elements = zone.poly().get_polygon_elements();
+            const auto &elements = zone.poly().polygon_elements();
 
             for (size_t i = 0; i < elements.size(); ++i) {
                 const auto &element = elements[i];
@@ -194,7 +194,7 @@ namespace zoneout {
          */
         inline void show_polygon_elements(const Zone &zone, std::shared_ptr<rerun::RecordingStream> rec,
                                           const std::string &zone_name, float height = 0.1f) {
-            const auto &elements = zone.poly().get_polygon_elements();
+            const auto &elements = zone.poly().polygon_elements();
 
             for (size_t i = 0; i < elements.size(); ++i) {
                 const auto &element = elements[i];

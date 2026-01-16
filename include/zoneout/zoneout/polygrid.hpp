@@ -19,14 +19,14 @@ namespace zoneout {
 
         if (std::filesystem::exists(vector_path)) {
             poly = Poly::from_file(vector_path);
-            vector_name = poly.get_name();
-            vector_uuid = poly.get_id().toString();
+            vector_name = poly.name();
+            vector_uuid = poly.id().toString();
         }
 
         if (std::filesystem::exists(raster_path)) {
             grid = Grid::from_file(raster_path);
-            raster_name = grid.get_name();
-            raster_uuid = grid.get_id().toString();
+            raster_name = grid.name();
+            raster_uuid = grid.id().toString();
         }
 
         if (!vector_uuid.empty() && !raster_uuid.empty()) {

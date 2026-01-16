@@ -30,8 +30,8 @@ int main() {
     std::cout << "Adding properties to zone..." << std::endl;
     zone.set_property("crop", "wheat");
     zone.set_property("season", "2024");
-    std::cout << "   Crop: " << zone.get_property("crop") << std::endl;
-    std::cout << "   Season: " << zone.get_property("season") << std::endl;
+    std::cout << "   Crop: " << zone.property("crop").value_or("") << std::endl;
+    std::cout << "   Season: " << zone.property("season").value_or("") << std::endl;
 
     // Step 5: Test point containment
     std::cout << "Testing point containment..." << std::endl;
@@ -53,7 +53,7 @@ int main() {
     std::cout << "Loading zone..." << std::endl;
     auto loaded_zone = zoneout::Zone::load("quickstart_zone");
     std::cout << "   Loaded zone: " << loaded_zone.name() << " (" << loaded_zone.type() << ")" << std::endl;
-    std::cout << "   Crop: " << loaded_zone.get_property("crop") << std::endl;
+    std::cout << "   Crop: " << loaded_zone.property("crop").value_or("") << std::endl;
 
     std::cout << "=== Quickstart Complete ===" << std::endl;
     return 0;

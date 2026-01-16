@@ -51,10 +51,10 @@ namespace zoneout {
             raster_.resolution = resolution;
         }
 
-        inline const UUID &get_id() const { return meta_.id; }
-        inline const std::string &get_name() const { return meta_.name; }
-        inline const std::string &get_type() const { return meta_.type; }
-        inline const std::string &get_subtype() const { return meta_.subtype; }
+        inline const UUID &id() const { return meta_.id; }
+        inline const std::string &name() const { return meta_.name; }
+        inline const std::string &type() const { return meta_.type; }
+        inline const std::string &subtype() const { return meta_.subtype; }
 
         inline void set_name(const std::string &name) {
             meta_.name = name;
@@ -188,6 +188,63 @@ namespace zoneout {
         inline const dp::Pose &shift() const { return raster_.shift; }
         inline double &resolution() { return raster_.resolution; }
         inline double resolution() const { return raster_.resolution; }
+
+        // ============ Layer Removal ============
+
+        /// Remove a layer by index. Returns true if index was valid and layer was removed.
+        inline bool remove_layer(size_t index) {
+            if (index < raster_.layers.size()) {
+                raster_.layers.erase(raster_.layers.begin() + static_cast<std::ptrdiff_t>(index));
+                return true;
+            }
+            return false;
+        }
+
+        /// Remove a layer by name. Returns true if found and removed.
+        inline bool remove_layer_by_name(const std::string &layer_name) {
+            for (size_t i = 0; i < raster_.layers.size(); ++i) {
+                auto props = raster_.layers[i].getGlobalProperties();
+                auto it = props.find("name");
+                if (it != props.end() && it->second == layer_name) {
+                    raster_.layers.erase(raster_.layers.begin() + static_cast<std::ptrdiff_t>(i));
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// Clear all layers
+        inline void clear_layers() { raster_.layers.clear(); }
+
+        /// Find layer index by name. Returns dp::Optional containing index if found.
+        inline dp::Optional<size_t> layer_index_by_name(const std::string &layer_name) const {
+            for (size_t i = 0; i < raster_.layers.size(); ++i) {
+                auto props = raster_.layers[i].getGlobalProperties();
+                auto it = props.find("name");
+                if (it != props.end() && it->second == layer_name) {
+                    return i;
+                }
+            }
+            return dp::nullopt;
+        }
+
+        /// Get layer by name. Returns dp::Optional with reference to layer if found.
+        inline dp::Optional<std::reference_wrapper<geotiv::Layer>> layer_by_name(const std::string &layer_name) {
+            auto idx = layer_index_by_name(layer_name);
+            if (idx.has_value()) {
+                return std::ref(raster_.layers[*idx]);
+            }
+            return dp::nullopt;
+        }
+
+        inline dp::Optional<std::reference_wrapper<const geotiv::Layer>>
+        layer_by_name(const std::string &layer_name) const {
+            auto idx = layer_index_by_name(layer_name);
+            if (idx.has_value()) {
+                return std::cref(raster_.layers[*idx]);
+            }
+            return dp::nullopt;
+        }
     };
 
 } // namespace zoneout

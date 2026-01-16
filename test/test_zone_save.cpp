@@ -1,4 +1,3 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
 #include "zoneout/zoneout.hpp"
 #include <filesystem>
@@ -36,8 +35,8 @@ TEST_CASE("Zone directory save/load functionality") {
         // Verify data integrity
         CHECK(zone.name() == loaded_zone.name());
         CHECK(zone.id().toString() == loaded_zone.id().toString());
-        CHECK(zone.get_property("crop_type") == loaded_zone.get_property("crop_type"));
-        CHECK(zone.get_property("test_prop") == loaded_zone.get_property("test_prop"));
+        CHECK(zone.property("crop_type").value_or("") == loaded_zone.property("crop_type").value_or(""));
+        CHECK(zone.property("test_prop").value_or("") == loaded_zone.property("test_prop").value_or(""));
 
         // Cleanup
         std::filesystem::remove_all(test_dir);

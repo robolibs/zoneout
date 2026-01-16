@@ -8,33 +8,33 @@ namespace dp = datapod;
 TEST_CASE("PolyGrid Basic Construction") {
     SUBCASE("Poly basic construction") {
         zoneout::Poly poly;
-        CHECK(!poly.get_id().isNull());
-        CHECK(poly.get_name() == "");
-        CHECK(poly.get_type() == "other");
+        CHECK(!poly.id().isNull());
+        CHECK(poly.name() == "");
+        CHECK(poly.type() == "other");
         CHECK(!poly.is_valid()); // No name or boundary
     }
 
     SUBCASE("Poly construction with name and type") {
         zoneout::Poly poly("Test Field", "agricultural", "crop");
-        CHECK(!poly.get_id().isNull());
-        CHECK(poly.get_name() == "Test Field");
-        CHECK(poly.get_type() == "agricultural");
+        CHECK(!poly.id().isNull());
+        CHECK(poly.name() == "Test Field");
+        CHECK(poly.type() == "agricultural");
         CHECK(!poly.is_valid()); // No boundary yet
     }
 
     SUBCASE("Grid basic construction") {
         zoneout::Grid grid;
-        CHECK(!grid.get_id().isNull());
-        CHECK(grid.get_name() == "");
-        CHECK(grid.get_type() == "other");
+        CHECK(!grid.id().isNull());
+        CHECK(grid.name() == "");
+        CHECK(grid.type() == "other");
         CHECK(!grid.is_valid()); // No name or grids
     }
 
     SUBCASE("Grid construction with name and type") {
         zoneout::Grid grid("Test Raster", "elevation", "dem");
-        CHECK(!grid.get_id().isNull());
-        CHECK(grid.get_name() == "Test Raster");
-        CHECK(grid.get_type() == "elevation");
+        CHECK(!grid.id().isNull());
+        CHECK(grid.name() == "Test Raster");
+        CHECK(grid.type() == "elevation");
         CHECK(!grid.is_valid()); // No grids yet
     }
 }
@@ -72,16 +72,16 @@ TEST_CASE("PolyGrid Global Properties Sync") {
         zoneout::Poly poly("Test Field", "agricultural", "crop");
 
         // Check that global properties are synced
-        CHECK(poly.get_global_property("name") == "Test Field");
-        CHECK(poly.get_global_property("type") == "agricultural");
-        CHECK(poly.get_global_property("uuid") == poly.get_id().toString());
+        CHECK(poly.global_property("name").value_or("") == "Test Field");
+        CHECK(poly.global_property("type").value_or("") == "agricultural");
+        CHECK(poly.global_property("uuid").value_or("") == poly.id().toString());
 
         // Test property updates
         poly.set_name("Updated Field");
-        CHECK(poly.get_global_property("name") == "Updated Field");
+        CHECK(poly.global_property("name").value_or("") == "Updated Field");
 
         poly.set_type("pasture");
-        CHECK(poly.get_global_property("type") == "pasture");
+        CHECK(poly.global_property("type").value_or("") == "pasture");
     }
 
     SUBCASE("Grid global properties") {
@@ -91,16 +91,16 @@ TEST_CASE("PolyGrid Global Properties Sync") {
         grid.add_grid(5, 5, "test_layer", "elevation");
 
         // Check that global properties are synced
-        CHECK(grid.get_name() == "Test Grid");
-        CHECK(grid.get_type() == "elevation");
-        CHECK(grid.get_id().toString() == grid.get_id().toString());
+        CHECK(grid.name() == "Test Grid");
+        CHECK(grid.type() == "elevation");
+        CHECK(grid.id().toString() == grid.id().toString());
 
         // Test property updates
         grid.set_name("Updated Grid");
-        CHECK(grid.get_name() == "Updated Grid");
+        CHECK(grid.name() == "Updated Grid");
 
         grid.set_type("terrain");
-        CHECK(grid.get_type() == "terrain");
+        CHECK(grid.type() == "terrain");
     }
 }
 
@@ -122,9 +122,9 @@ TEST_CASE("PolyGrid File I/O") {
         zoneout::Poly loaded_poly = zoneout::Poly::from_file(poly_file);
 
         // Verify properties
-        CHECK(loaded_poly.get_name() == "Test Field");
-        CHECK(loaded_poly.get_type() == "agricultural");
-        CHECK(loaded_poly.get_id() == original_poly.get_id());
+        CHECK(loaded_poly.name() == "Test Field");
+        CHECK(loaded_poly.type() == "agricultural");
+        CHECK(loaded_poly.id() == original_poly.id());
         CHECK(loaded_poly.has_field_boundary());
         CHECK(loaded_poly.is_valid());
 
@@ -147,9 +147,9 @@ TEST_CASE("PolyGrid File I/O") {
         zoneout::Grid loaded_grid = zoneout::Grid::from_file(grid_file);
 
         // Verify properties
-        CHECK(loaded_grid.get_name() == "Test Grid");
-        CHECK(loaded_grid.get_type() == "elevation");
-        CHECK(loaded_grid.get_id() == original_grid.get_id());
+        CHECK(loaded_grid.name() == "Test Grid");
+        CHECK(loaded_grid.type() == "elevation");
+        CHECK(loaded_grid.id() == original_grid.id());
         CHECK(loaded_grid.has_layers());
         CHECK(loaded_grid.is_valid());
 
@@ -174,8 +174,8 @@ TEST_CASE("PolyGrid Combined Operations") {
         grid.add_grid(10, 10, "elevation", "elevation");
 
         // Make them match
-        grid.set_name(poly.get_name());
-        grid.set_type(poly.get_type());
+        grid.set_name(poly.name());
+        grid.set_type(poly.type());
         // Note: IDs are auto-generated and different, so we need to manually sync one
         // In a real scenario, you'd load from existing files or create with same ID
 
@@ -192,10 +192,10 @@ TEST_CASE("PolyGrid Combined Operations") {
         // Load using combined function
         auto [loaded_poly, loaded_grid] = zoneout::loadPolyGrid(poly_file, grid_file);
 
-        CHECK(loaded_poly.get_name() == "Test Zone");
-        CHECK(loaded_grid.get_name() == "Test Zone");
-        CHECK(loaded_poly.get_type() == "agricultural");
-        CHECK(loaded_grid.get_type() == "agricultural");
+        CHECK(loaded_poly.name() == "Test Zone");
+        CHECK(loaded_grid.name() == "Test Zone");
+        CHECK(loaded_poly.type() == "agricultural");
+        CHECK(loaded_grid.type() == "agricultural");
 
         // Cleanup
         std::filesystem::remove(poly_file);

@@ -27,7 +27,7 @@ int main() {
 
     // Create simple base grid for Zone constructor
     dp::Pose shift{dp::Point{0.0, 0.0, 0.0}, dp::Quaternion{1.0, 0.0, 0.0, 0.0}};
-    dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift);
+    dp::Grid<uint8_t> base_grid(10, 10, 1.0, true, shift, {});
 
     // Create a realistic agricultural zone (wheat field)
     dp::Polygon default_boundary;

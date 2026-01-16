@@ -129,14 +129,25 @@ namespace zoneout {
 
         inline void set_property(const std::string &key, const std::string &value) { properties_[key] = value; }
 
-        inline std::string get_property(const std::string &key, const std::string &default_value = "") const {
+        inline dp::Optional<std::string> property(const std::string &key) const {
             auto it = properties_.find(key);
-            return (it != properties_.end()) ? it->second : default_value;
+            if (it != properties_.end())
+                return it->second;
+            return dp::nullopt;
         }
 
         inline const std::unordered_map<std::string, std::string> &properties() const { return properties_; }
 
-        inline const dp::Geo &datum() const { return poly_data_.get_datum(); }
+        /// Remove a property by key. Returns true if the property was found and removed.
+        inline bool remove_property(const std::string &key) { return properties_.erase(key) > 0; }
+
+        /// Clear all properties
+        inline void clear_properties() { properties_.clear(); }
+
+        /// Check if a property exists
+        inline bool has_property(const std::string &key) const { return properties_.find(key) != properties_.end(); }
+
+        inline const dp::Geo &datum() const { return poly_data_.datum(); }
 
         inline void set_datum(const dp::Geo &datum) {
             poly_data_.set_datum(datum);
@@ -150,7 +161,7 @@ namespace zoneout {
             if (poly_cut && poly_data_.has_field_boundary()) {
                 auto modified_grid = grid;
 
-                auto boundary = poly_data_.get_field_boundary();
+                auto boundary = poly_data_.field_boundary();
 
                 size_t cells_inside = 0;
                 size_t total_cells = modified_grid.rows * modified_grid.cols;
@@ -182,15 +193,15 @@ namespace zoneout {
             return "No raster layers";
         }
 
-        inline void add_polygon_feature(const dp::Polygon &geometry, const std::string &name,
+        inline void add_polygon_element(const dp::Polygon &geometry, const std::string &name,
                                         const std::string &type = "", const std::string &subtype = "default",
                                         const std::unordered_map<std::string, std::string> &properties = {}) {
             if (poly_data_.has_field_boundary()) {
-                auto boundary = poly_data_.get_field_boundary();
+                auto boundary = poly_data_.field_boundary();
 
                 for (const auto &point : geometry.vertices) {
                     if (!boundary.contains(point)) {
-                        throw std::runtime_error("Polygon feature '" + name +
+                        throw std::runtime_error("Polygon element '" + name +
                                                  "' is not valid: points must be inside field boundary");
                     }
                 }
@@ -221,24 +232,84 @@ namespace zoneout {
                     grid_variant);
             }
 
-            UUID feature_id = generateUUID();
+            UUID element_id = generateUUID();
 
-            poly_data_.add_polygon_element(feature_id, name, type, subtype, geometry, properties);
+            poly_data_.add_polygon_element(element_id, name, type, subtype, geometry, properties);
         }
 
-        inline std::string feature_info() const {
-            const auto &polygon_elements = poly_data_.get_polygon_elements();
-            const auto &line_elements = poly_data_.get_line_elements();
-            const auto &point_elements = poly_data_.get_point_elements();
+        inline std::string element_info() const {
+            const auto &polygon_elements = poly_data_.polygon_elements();
+            const auto &line_elements = poly_data_.line_elements();
+            const auto &point_elements = poly_data_.point_elements();
 
-            size_t total_features = polygon_elements.size() + line_elements.size() + point_elements.size();
+            size_t total_elements = polygon_elements.size() + line_elements.size() + point_elements.size();
 
-            if (total_features > 0) {
-                return "Features: " + std::to_string(polygon_elements.size()) + " polygons, " +
+            if (total_elements > 0) {
+                return "Elements: " + std::to_string(polygon_elements.size()) + " polygons, " +
                        std::to_string(line_elements.size()) + " lines, " + std::to_string(point_elements.size()) +
-                       " points (" + std::to_string(total_features) + " total)";
+                       " points (" + std::to_string(total_elements) + " total)";
             }
-            return "No features";
+            return "No elements";
+        }
+
+        // ============ Spatial Queries ============
+
+        /// Check if a point is inside this zone's boundary
+        inline bool contains(const dp::Point &point) const { return poly_data_.contains(point); }
+
+        /// Get all polygon elements that intersect with the given bounding box
+        inline std::vector<PolygonElement> polygon_elements_in_area(const dp::AABB &bbox) const {
+            std::vector<PolygonElement> result;
+            for (const auto &elem : poly_data_.polygon_elements()) {
+                auto elem_aabb = elem.geometry.get_aabb();
+                // Use AABB's built-in intersects method
+                if (elem_aabb.intersects(bbox)) {
+                    result.push_back(elem);
+                }
+            }
+            return result;
+        }
+
+        /// Get all point elements within the given bounding box
+        inline std::vector<PointElement> point_elements_in_area(const dp::AABB &bbox) const {
+            std::vector<PointElement> result;
+            for (const auto &elem : poly_data_.point_elements()) {
+                if (bbox.contains(elem.geometry)) {
+                    result.push_back(elem);
+                }
+            }
+            return result;
+        }
+
+        /// Get all line elements that intersect with the given bounding box
+        inline std::vector<LineElement> line_elements_in_area(const dp::AABB &bbox) const {
+            std::vector<LineElement> result;
+            for (const auto &elem : poly_data_.line_elements()) {
+                // Check if either endpoint is in the bbox
+                if (bbox.contains(elem.geometry.start) || bbox.contains(elem.geometry.end)) {
+                    result.push_back(elem);
+                }
+            }
+            return result;
+        }
+
+        /// Get all point elements that are inside the given polygon
+        inline std::vector<PointElement> points_in_polygon(const dp::Polygon &area) const {
+            std::vector<PointElement> result;
+            for (const auto &elem : poly_data_.point_elements()) {
+                if (area.contains(elem.geometry)) {
+                    result.push_back(elem);
+                }
+            }
+            return result;
+        }
+
+        /// Get the zone's bounding box
+        inline dp::AABB bounding_box() const {
+            if (poly_data_.has_field_boundary()) {
+                return poly_data_.field_boundary().get_aabb();
+            }
+            return dp::AABB{};
         }
 
         inline bool is_valid() const { return poly_data_.is_valid() && grid_data_.is_valid(); }
@@ -247,7 +318,7 @@ namespace zoneout {
                                       const std::filesystem::path &raster_path) {
             auto [poly, grid] = loadPolyGrid(vector_path, raster_path);
 
-            auto datum = poly.get_datum();
+            auto datum = poly.datum();
 
             dp::Grid<uint8_t> base_grid;
             if (grid.has_layers()) {
@@ -267,26 +338,26 @@ namespace zoneout {
             zone.poly_data_ = poly;
             zone.grid_data_ = grid;
 
-            if (poly.get_name().empty() && !grid.get_name().empty()) {
-                zone.name_ = grid.get_name();
+            if (poly.name().empty() && !grid.name().empty()) {
+                zone.name_ = grid.name();
             } else {
-                zone.name_ = poly.get_name();
+                zone.name_ = poly.name();
             }
 
-            if (poly.get_type().empty() && !grid.get_type().empty()) {
-                zone.type_ = grid.get_type();
+            if (poly.type().empty() && !grid.type().empty()) {
+                zone.type_ = grid.type();
             } else {
-                zone.type_ = poly.get_type();
+                zone.type_ = poly.type();
             }
 
-            if (!poly.get_id().isNull()) {
-                zone.id_ = poly.get_id();
-            } else if (!grid.get_id().isNull()) {
-                zone.id_ = grid.get_id();
+            if (!poly.id().isNull()) {
+                zone.id_ = poly.id();
+            } else if (!grid.id().isNull()) {
+                zone.id_ = grid.id();
             }
 
             if (std::filesystem::exists(vector_path)) {
-                auto field_props = poly.get_global_properties();
+                auto field_props = poly.global_properties();
                 for (const auto &[key, value] : field_props) {
                     if (key.substr(0, 5) == "prop_") {
                         zone.set_property(key.substr(5), value);
@@ -334,7 +405,7 @@ namespace zoneout {
         inline geotiv::RasterCollection &raster_data() { return grid_data_.raster(); }
 
         inline std::string global_property(const char *global_name) const {
-            auto field_props = poly_data_.get_global_properties();
+            auto field_props = poly_data_.global_properties();
             auto it = field_props.find(global_name);
             if (it != field_props.end()) {
                 return it->second;
@@ -373,6 +444,59 @@ namespace zoneout {
 
         inline Grid &grid() { return grid_data_; }
         inline const Grid &grid() const { return grid_data_; }
+
+        // ============ Raster Layer Convenience Helpers ============
+
+        /// Get number of raster layers
+        inline size_t layer_count() const { return grid_data_.layer_count(); }
+
+        /// Check if zone has any raster layers
+        inline bool has_layers() const { return grid_data_.has_layers(); }
+
+        /// Get layer by index
+        inline geotiv::Layer &layer(size_t index) { return grid_data_.get_layer(index); }
+        inline const geotiv::Layer &layer(size_t index) const { return grid_data_.get_layer(index); }
+
+        /// Visit a raster layer's grid with a callable (handles all grid types)
+        template <typename F> auto visit_raster(size_t layer_index, F &&func) {
+            return std::visit(std::forward<F>(func), grid_data_.get_layer(layer_index).grid);
+        }
+
+        template <typename F> auto visit_raster(size_t layer_index, F &&func) const {
+            return std::visit(std::forward<F>(func), grid_data_.get_layer(layer_index).grid);
+        }
+
+        /// Get raster layer rows
+        inline size_t layer_rows(size_t layer_index) const {
+            return geotiv::get_grid_dimensions(grid_data_.get_layer(layer_index).grid).first;
+        }
+
+        /// Get raster layer cols
+        inline size_t layer_cols(size_t layer_index) const {
+            return geotiv::get_grid_dimensions(grid_data_.get_layer(layer_index).grid).second;
+        }
+
+        /// Get world point for cell in a raster layer
+        inline dp::Point layer_point(size_t layer_index, size_t r, size_t c) const {
+            return std::visit([r, c](const auto &g) { return g.get_point(r, c); },
+                              grid_data_.get_layer(layer_index).grid);
+        }
+
+        /// Type-safe raster access - returns dp::Optional if wrong type
+        template <typename T> inline dp::Optional<std::reference_wrapper<dp::Grid<T>>> raster_as(size_t layer_index) {
+            auto *ptr = grid_data_.get_layer(layer_index).template gridIf<T>();
+            if (ptr)
+                return std::ref(*ptr);
+            return dp::nullopt;
+        }
+
+        template <typename T>
+        inline dp::Optional<std::reference_wrapper<const dp::Grid<T>>> raster_as(size_t layer_index) const {
+            const auto *ptr = grid_data_.get_layer(layer_index).template gridIf<T>();
+            if (ptr)
+                return std::cref(*ptr);
+            return dp::nullopt;
+        }
     };
 
     // Factory helper for creating zones with validation
@@ -424,14 +548,14 @@ namespace zoneout {
         };
         std::vector<RasterLayerConfig> raster_layers_;
 
-        struct PolygonFeatureConfig {
+        struct PolygonElementConfig {
             dp::Polygon geometry;
             std::string name;
             std::string type;
             std::string subtype;
             std::unordered_map<std::string, std::string> properties;
         };
-        std::vector<PolygonFeatureConfig> polygon_features_;
+        std::vector<PolygonElementConfig> polygon_elements_;
 
       public:
         ZoneBuilder() = default;
@@ -480,7 +604,7 @@ namespace zoneout {
             return *this;
         }
 
-        // Feature configuration methods
+        // Element configuration methods
         inline ZoneBuilder &with_raster_layer(const dp::Grid<uint8_t> &grid, const std::string &name,
                                               const std::string &type = "",
                                               const std::unordered_map<std::string, std::string> &properties = {},
@@ -496,16 +620,16 @@ namespace zoneout {
             return *this;
         }
 
-        inline ZoneBuilder &with_polygon_feature(const dp::Polygon &geometry, const std::string &name,
+        inline ZoneBuilder &with_polygon_element(const dp::Polygon &geometry, const std::string &name,
                                                  const std::string &type = "", const std::string &subtype = "default",
                                                  const std::unordered_map<std::string, std::string> &properties = {}) {
-            PolygonFeatureConfig config;
+            PolygonElementConfig config;
             config.geometry = geometry;
             config.name = name;
             config.type = type;
             config.subtype = subtype;
             config.properties = properties;
-            polygon_features_.push_back(config);
+            polygon_elements_.push_back(config);
             return *this;
         }
 
@@ -565,10 +689,9 @@ namespace zoneout {
                                       layer.layer_index);
             }
 
-            // Add polygon features
-            for (const auto &feature : polygon_features_) {
-                zone.add_polygon_feature(feature.geometry, feature.name, feature.type, feature.subtype,
-                                         feature.properties);
+            // Add polygon elements
+            for (const auto &elem : polygon_elements_) {
+                zone.add_polygon_element(elem.geometry, elem.name, elem.type, elem.subtype, elem.properties);
             }
 
             return zone;
@@ -584,7 +707,7 @@ namespace zoneout {
             initial_grid_.reset();
             properties_.clear();
             raster_layers_.clear();
-            polygon_features_.clear();
+            polygon_elements_.clear();
         }
     };
 

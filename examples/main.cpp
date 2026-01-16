@@ -64,14 +64,14 @@ zoneout::Plot create_field(const std::string &zone_name, const std::string &crop
             std::cout << "Added zone: " << zone.name() << " (ID: " << zone.id().toString() << ")" << std::endl;
 
             // Add remaining polygons as features to the zone that's now in the plot
-            if (plot.get_zone_count() > 0) {
-                auto &plot_zone = plot.get_zones().back(); // Get the zone we just added
+            if (plot.zone_count() > 0) {
+                auto &plot_zone = plot.zones().back(); // Get the zone we just added
 
                 for (size_t i = 1; i < polygons.size(); ++i) {
                     Props properties = {{"area_m2", std::to_string(static_cast<int>(polygons[i].area()))}};
                     std::string feature_name = zone_name + "_feature_" + std::to_string(i);
                     try {
-                        plot_zone.add_polygon_feature(polygons[i], feature_name, "obstacle", "obstacle", properties);
+                        plot_zone.add_polygon_element(polygons[i], feature_name, "obstacle", "obstacle", properties);
                     } catch (const std::exception &e) {
                         std::cout << "Failed to add feature " << feature_name << ": " << e.what() << std::endl;
                     }
@@ -102,16 +102,16 @@ int main() {
     }
 
     // If no zones were loaded, create a new field
-    if (farm.get_zone_count() == 0) {
+    if (farm.zone_count() == 0) {
         std::cout << "No zones found, creating new field..." << std::endl;
         farm = create_field("Pea_Field", "pea", dp::Geo{51.73019, 4.23883, 0.0});
-        if (farm.get_zone_count() > 0) {
+        if (farm.zone_count() > 0) {
             std::cout << "Saving farm to: " << plot_path << std::endl;
             farm.save(plot_path);
         }
     }
 
-    auto zones = farm.get_zones();
+    auto zones = farm.zones();
     std::cout << "Num zones: " << zones.size() << std::endl;
 
     if (zones.empty()) {
@@ -120,7 +120,7 @@ int main() {
     }
 
     auto zone0 = zones.at(0);
-    auto boundary = zone0.poly().get_field_boundary();
+    auto boundary = zone0.poly().field_boundary();
     std::cout << "Zone 0 boundary: " << boundary.vertices.size() << " points" << std::endl;
 
     for (size_t i = 0; i < zones.size(); ++i) {

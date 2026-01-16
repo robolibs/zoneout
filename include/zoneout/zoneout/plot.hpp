@@ -38,15 +38,15 @@ namespace zoneout {
         inline Plot(const UUID &id, const std::string &name, const std::string &type, const dp::Geo &datum)
             : id_(id), name_(name), type_(type), datum_(datum) {}
 
-        inline const UUID &get_id() const { return id_; }
+        inline const UUID &id() const { return id_; }
 
-        inline const std::string &get_name() const { return name_; }
+        inline const std::string &name() const { return name_; }
         inline void set_name(const std::string &name) { name_ = name; }
 
-        inline const std::string &get_type() const { return type_; }
+        inline const std::string &type() const { return type_; }
         inline void set_type(const std::string &type) { type_ = type; }
 
-        inline const dp::Geo &get_datum() const { return datum_; }
+        inline const dp::Geo &datum() const { return datum_; }
         inline void set_datum(const dp::Geo &datum) { datum_ = datum; }
 
         inline void add_zone(const Zone &zone) { zones_.push_back(zone); }
@@ -61,35 +61,153 @@ namespace zoneout {
             return false;
         }
 
-        inline Zone *get_zone(const UUID &zone_id) {
+        inline dp::Optional<std::reference_wrapper<Zone>> zone(const UUID &zone_id) {
             auto it = std::find_if(zones_.begin(), zones_.end(),
                                    [&zone_id](const Zone &zone) { return zone.id() == zone_id; });
-            return (it != zones_.end()) ? &(*it) : nullptr;
+            if (it != zones_.end())
+                return std::ref(*it);
+            return dp::nullopt;
         }
 
-        inline const Zone *get_zone(const UUID &zone_id) const {
+        inline dp::Optional<std::reference_wrapper<const Zone>> zone(const UUID &zone_id) const {
             auto it = std::find_if(zones_.begin(), zones_.end(),
                                    [&zone_id](const Zone &zone) { return zone.id() == zone_id; });
-            return (it != zones_.end()) ? &(*it) : nullptr;
+            if (it != zones_.end())
+                return std::cref(*it);
+            return dp::nullopt;
         }
 
-        inline const std::vector<Zone> &get_zones() const { return zones_; }
-        inline std::vector<Zone> &get_zones() { return zones_; }
+        inline const std::vector<Zone> &zones() const { return zones_; }
+        inline std::vector<Zone> &zones() { return zones_; }
 
-        inline size_t get_zone_count() const { return zones_.size(); }
+        inline size_t zone_count() const { return zones_.size(); }
 
         inline bool empty() const { return zones_.empty(); }
 
         inline void clear() { zones_.clear(); }
 
-        inline void set_property(const std::string &key, const std::string &value) { properties_[key] = value; }
+        // ============ Convenience Queries ============
 
-        inline std::string get_property(const std::string &key) const {
-            auto it = properties_.find(key);
-            return (it != properties_.end()) ? it->second : "";
+        /// Find a zone by name. Returns dp::Optional with reference if found.
+        inline dp::Optional<std::reference_wrapper<Zone>> zone_by_name(const std::string &zone_name) {
+            auto it = std::find_if(zones_.begin(), zones_.end(),
+                                   [&zone_name](const Zone &z) { return z.name() == zone_name; });
+            if (it != zones_.end())
+                return std::ref(*it);
+            return dp::nullopt;
         }
 
-        inline const std::unordered_map<std::string, std::string> &get_properties() const { return properties_; }
+        inline dp::Optional<std::reference_wrapper<const Zone>> zone_by_name(const std::string &zone_name) const {
+            auto it = std::find_if(zones_.begin(), zones_.end(),
+                                   [&zone_name](const Zone &z) { return z.name() == zone_name; });
+            if (it != zones_.end())
+                return std::cref(*it);
+            return dp::nullopt;
+        }
+
+        /// Find all zones of a given type
+        inline std::vector<std::reference_wrapper<Zone>> zones_by_type(const std::string &zone_type) {
+            std::vector<std::reference_wrapper<Zone>> result;
+            for (auto &z : zones_) {
+                if (z.type() == zone_type) {
+                    result.push_back(std::ref(z));
+                }
+            }
+            return result;
+        }
+
+        inline std::vector<std::reference_wrapper<const Zone>> zones_by_type(const std::string &zone_type) const {
+            std::vector<std::reference_wrapper<const Zone>> result;
+            for (const auto &z : zones_) {
+                if (z.type() == zone_type) {
+                    result.push_back(std::cref(z));
+                }
+            }
+            return result;
+        }
+
+        /// Check if plot contains a zone with the given name
+        inline bool has_zone(const std::string &zone_name) const {
+            return std::any_of(zones_.begin(), zones_.end(),
+                               [&zone_name](const Zone &z) { return z.name() == zone_name; });
+        }
+
+        /// Check if plot contains a zone with the given ID
+        inline bool has_zone(const UUID &zone_id) const {
+            return std::any_of(zones_.begin(), zones_.end(), [&zone_id](const Zone &z) { return z.id() == zone_id; });
+        }
+
+        // ============ Spatial Queries ============
+
+        /// Get all zones that contain the given point
+        inline std::vector<std::reference_wrapper<Zone>> zones_containing(const dp::Point &point) {
+            std::vector<std::reference_wrapper<Zone>> result;
+            for (auto &z : zones_) {
+                if (z.contains(point)) {
+                    result.push_back(std::ref(z));
+                }
+            }
+            return result;
+        }
+
+        inline std::vector<std::reference_wrapper<const Zone>> zones_containing(const dp::Point &point) const {
+            std::vector<std::reference_wrapper<const Zone>> result;
+            for (const auto &z : zones_) {
+                if (z.contains(point)) {
+                    result.push_back(std::cref(z));
+                }
+            }
+            return result;
+        }
+
+        /// Get pairs of zones whose bounding boxes overlap
+        inline std::vector<std::pair<size_t, size_t>> overlapping_zone_indices() const {
+            std::vector<std::pair<size_t, size_t>> result;
+            for (size_t i = 0; i < zones_.size(); ++i) {
+                for (size_t j = i + 1; j < zones_.size(); ++j) {
+                    auto bbox_i = zones_[i].bounding_box();
+                    auto bbox_j = zones_[j].bounding_box();
+                    // Check AABB overlap
+                    if (!(bbox_i.max_point.x < bbox_j.min_point.x || bbox_i.min_point.x > bbox_j.max_point.x ||
+                          bbox_i.max_point.y < bbox_j.min_point.y || bbox_i.min_point.y > bbox_j.max_point.y)) {
+                        result.emplace_back(i, j);
+                    }
+                }
+            }
+            return result;
+        }
+
+        /// Get the combined bounding box of all zones
+        inline dp::AABB bounding_box() const {
+            if (zones_.empty()) {
+                return dp::AABB{};
+            }
+            auto bbox = zones_[0].bounding_box();
+            for (size_t i = 1; i < zones_.size(); ++i) {
+                bbox.expand(zones_[i].bounding_box());
+            }
+            return bbox;
+        }
+
+        inline void set_property(const std::string &key, const std::string &value) { properties_[key] = value; }
+
+        inline dp::Optional<std::string> property(const std::string &key) const {
+            auto it = properties_.find(key);
+            if (it != properties_.end())
+                return it->second;
+            return dp::nullopt;
+        }
+
+        inline const std::unordered_map<std::string, std::string> &properties() const { return properties_; }
+
+        /// Remove a property by key. Returns true if the property was found and removed.
+        inline bool remove_property(const std::string &key) { return properties_.erase(key) > 0; }
+
+        /// Clear all properties
+        inline void clear_properties() { properties_.clear(); }
+
+        /// Check if a property exists
+        inline bool has_property(const std::string &key) const { return properties_.find(key) != properties_.end(); }
 
         inline bool is_valid() const { return !name_.empty() && !type_.empty(); }
 

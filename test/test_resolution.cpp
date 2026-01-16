@@ -1,4 +1,3 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
 #include "zoneout/zoneout.hpp"
 #include <concord/concord.hpp>
@@ -86,7 +85,7 @@ TEST_CASE("Test different resolutions with same polygon") {
             // Load back and check
             Zone loaded = Zone::load(output_dir);
             CHECK(loaded.name() == "Test Field");
-            CHECK(loaded.get_property("resolution") == std::to_string(res));
+            CHECK(loaded.property("resolution").value_or("") == std::to_string(res));
 
             INFO("Files saved to: " << output_dir);
         }

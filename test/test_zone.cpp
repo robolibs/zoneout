@@ -1,4 +1,3 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 
 #include <chrono>
@@ -288,9 +287,10 @@ TEST_CASE("Zone properties") {
         zone.set_property("crop_type", "wheat");
         zone.set_property("planted_date", "2024-03-15");
 
-        CHECK(zone.get_property("crop_type") == "wheat");
-        CHECK(zone.get_property("planted_date") == "2024-03-15");
-        CHECK(zone.get_property("non_existent", "default") == "default");
+        CHECK(zone.property("crop_type").value_or("") == "wheat");
+        CHECK(zone.property("planted_date").value_or("") == "2024-03-15");
+        CHECK(!zone.property("non_existent").has_value());
+        CHECK(zone.property("non_existent").value_or("default") == "default");
     }
 }
 
@@ -316,7 +316,7 @@ TEST_CASE("Zone field elements") {
 
         zone.poly().add_line_element(row_line, "crop_row", props);
 
-        auto crop_rows = zone.poly().get_lines_by_type("crop_row");
+        auto crop_rows = zone.poly().lines_by_type("crop_row");
         CHECK(crop_rows.size() == 1);
     }
 }

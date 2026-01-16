@@ -21,7 +21,7 @@ int main() {
     zoneout::Zone zone("my_field", "crop_field", boundary, datum, resolution);
 
     // Add a 10x10 grid layer
-    dp::Grid<uint8_t> elevation(10, 10, resolution, true, dp::Pose{});
+    dp::Grid<uint8_t> elevation(10, 10, resolution, true, dp::Pose{}, {});
 
     for (size_t r = 0; r < 10; r++) {
         for (size_t c = 0; c < 10; c++) {
