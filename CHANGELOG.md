@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.4] - 2026-01-16
+
+### <!-- 0 -->⛰️  Features
+
+- Refactor Zone and Plot APIs for consistency
+- Improve build system flexibility and plot handling
+
+### <!-- 1 -->🐛 Bug Fixes
+
+- Re-enable and update file I/O round-trip test
+
 ## [0.0.3] - 2026-01-01
 
 ### <!-- 0 -->⛰️  Features
