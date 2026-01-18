@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.5] - 2026-01-18
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Refactor: Migrate build system from xmake to cmake
+- Migrate project metadata to PROJECT file
+- Refactor build system and update project metadata
+
 ## [0.0.4] - 2026-01-16
 
 ### <!-- 0 -->⛰️  Features
