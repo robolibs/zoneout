@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.6] - 2026-02-20
+
+### <!-- 2 -->🚜 Refactor
+
+- Replace geoson/geotiv with vectkit/rastkit
+
 ## [0.0.5] - 2026-01-18
 
 ### <!-- 7 -->⚙️ Miscellaneous Tasks
