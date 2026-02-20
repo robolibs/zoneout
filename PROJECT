@@ -19,14 +19,14 @@
 # ==============================================================================
 
 zoneout
-0.0.5
+0.0.6
 
 [lib]
 datapod|https://github.com/robolibs/datapod.git|0.0.41
 optinum|https://github.com/robolibs/optinum.git|0.0.18
 concord|https://github.com/robolibs/concord.git|0.0.10
-geoson|https://github.com/robolibs/geoson.git|0.0.6
-geotiv|https://github.com/robolibs/geotiv.git|0.0.7
+vectkit|https://github.com/robolibs/vectkit.git|0.0.8
+rastkit|https://github.com/robolibs/rastkit.git|0.0.8
 entropy|https://github.com/robolibs/entropy.git|0.0.7
 
 [example]

@@ -9,7 +9,7 @@
 
 #include <concord/concord.hpp>
 #include <datapod/datapod.hpp>
-#include <geoson/geoson.hpp>
+#include <vectkit/vectkit.hpp>
 
 #include "utils/meta.hpp"
 #include "utils/uuid.hpp"
@@ -29,13 +29,13 @@ namespace zoneout {
                                  const std::unordered_map<std::string, std::string> &props = {})
             : uuid(id), name(n), type(t), subtype(st), properties(props) {}
 
-        inline static bool isValid(const geoson::Feature &feature) {
+        inline static bool isValid(const vectkit::Feature &feature) {
             const auto &props = feature.properties;
             return props.find("uuid") != props.end() && props.find("name") != props.end() &&
                    props.find("type") != props.end() && props.find("subtype") != props.end();
         }
 
-        inline static std::optional<StructuredElement> fromFeature(const geoson::Feature &feature) {
+        inline static std::optional<StructuredElement> fromFeature(const vectkit::Feature &feature) {
             if (!isValid(feature))
                 return std::nullopt;
 
@@ -83,7 +83,7 @@ namespace zoneout {
 
     class Poly {
       private:
-        geoson::FeatureCollection collection_;
+        vectkit::FeatureCollection collection_;
         dp::Polygon field_boundary_;
         Meta meta_;
 
@@ -147,7 +147,7 @@ namespace zoneout {
         }
 
         inline Poly(const std::string &name, const std::string &type, const std::string &subtype,
-                    const dp::Polygon &boundary, const dp::Geo &datum, const dp::Euler &heading, geoson::CRS crs)
+                    const dp::Polygon &boundary, const dp::Geo &datum, const dp::Euler &heading, vectkit::CRS crs)
             : collection_(), field_boundary_(boundary), meta_(name, type, subtype) {
             collection_.datum = datum;
             collection_.heading = heading;
@@ -156,8 +156,8 @@ namespace zoneout {
         }
 
         // Access to the underlying FeatureCollection
-        inline geoson::FeatureCollection &collection() { return collection_; }
-        inline const geoson::FeatureCollection &collection() const { return collection_; }
+        inline vectkit::FeatureCollection &collection() { return collection_; }
+        inline const vectkit::FeatureCollection &collection() const { return collection_; }
 
         // Field boundary access
         inline const dp::Polygon &field_boundary() const { return field_boundary_; }
@@ -200,9 +200,9 @@ namespace zoneout {
         }
 
         // Feature management
-        inline void add_feature(const geoson::Feature &feature) { collection_.features.push_back(feature); }
+        inline void add_feature(const vectkit::Feature &feature) { collection_.features.push_back(feature); }
         inline size_t feature_count() const { return collection_.features.size(); }
-        inline const geoson::Feature &get_feature(size_t index) const { return collection_.features.at(index); }
+        inline const vectkit::Feature &get_feature(size_t index) const { return collection_.features.at(index); }
 
         // Field boundary properties
         inline void set_field_property(const std::string &key, const std::string &value) {
@@ -244,7 +244,7 @@ namespace zoneout {
                                         const std::string &subtype, const dp::Polygon &geometry,
                                         const std::unordered_map<std::string, std::string> &props = {}) {
             polygon_elements_.emplace_back(id, name, type, subtype, geometry, props);
-            geoson::Feature feature;
+            vectkit::Feature feature;
             feature.geometry = geometry;
             feature.properties = polygon_elements_.back().toProperties();
             collection_.features.push_back(feature);
@@ -260,7 +260,7 @@ namespace zoneout {
                                      const std::string &subtype, const dp::Segment &geometry,
                                      const std::unordered_map<std::string, std::string> &props = {}) {
             line_elements_.emplace_back(id, name, type, subtype, geometry, props);
-            geoson::Feature feature;
+            vectkit::Feature feature;
             feature.geometry = geometry;
             feature.properties = line_elements_.back().toProperties();
             collection_.features.push_back(feature);
@@ -276,7 +276,7 @@ namespace zoneout {
                                       const std::string &subtype, const dp::Point &geometry,
                                       const std::unordered_map<std::string, std::string> &props = {}) {
             point_elements_.emplace_back(id, name, type, subtype, geometry, props);
-            geoson::Feature feature;
+            vectkit::Feature feature;
             feature.geometry = geometry;
             feature.properties = point_elements_.back().toProperties();
             collection_.features.push_back(feature);
@@ -482,7 +482,7 @@ namespace zoneout {
                 throw std::runtime_error("File does not exist: " + file_path.string());
             }
 
-            geoson::FeatureCollection fc = geoson::read(file_path);
+            vectkit::FeatureCollection fc = vectkit::read(file_path);
 
             Poly poly;
             poly.collection_ = fc;
@@ -526,7 +526,7 @@ namespace zoneout {
             return poly;
         }
 
-        inline void to_file(const std::filesystem::path &file_path, geoson::CRS crs = geoson::CRS::WGS) const {
+        inline void to_file(const std::filesystem::path &file_path, vectkit::CRS crs = vectkit::CRS::WGS) const {
             const_cast<Poly *>(this)->sync_to_global_properties();
 
             // Add field boundary as a feature if it exists
@@ -546,7 +546,7 @@ namespace zoneout {
 
                 // Add boundary feature if it doesn't exist
                 if (!boundary_exists) {
-                    geoson::Feature boundary_feature;
+                    vectkit::Feature boundary_feature;
                     boundary_feature.geometry = field_boundary_;
                     boundary_feature.properties["border"] = "true";
                     boundary_feature.properties["uuid"] = meta_.id.toString();
@@ -556,7 +556,7 @@ namespace zoneout {
                 }
             }
 
-            geoson::write(collection_, file_path, crs);
+            vectkit::write(collection_, file_path, crs);
         }
     };
 

@@ -1,7 +1,7 @@
 #include <doctest/doctest.h>
 #include <filesystem>
 
-#include "geotiv/raster.hpp"
+#include "rastkit/raster.hpp"
 
 namespace dp = datapod;
 
@@ -9,7 +9,7 @@ TEST_CASE("Raster Global Properties - Save and Load") {
     // Create a raster with multiple layers
     dp::Geo datum{52.0, 4.0, 10.0};
     dp::Pose pose{dp::Point{0, 0, 0}, dp::Quaternion{}};
-    geotiv::Raster raster(datum, pose, 1.0);
+    rastkit::Raster raster(datum, pose, 1.0);
 
     // Add three different layers
     raster.addElevationGrid(100, 100, "elevation");
@@ -34,7 +34,7 @@ TEST_CASE("Raster Global Properties - Save and Load") {
         CHECK(std::filesystem::exists(test_file));
 
         // Load back and verify global properties are preserved
-        geotiv::Raster loaded_raster = geotiv::Raster::fromFile(test_file);
+        rastkit::Raster loaded_raster = rastkit::Raster::fromFile(test_file);
 
         // Check global properties
         CHECK(loaded_raster.getGlobalProperty("uuid") == "987fcdeb-51a2-43d1-9c47-123456789abc");
@@ -83,7 +83,7 @@ TEST_CASE("Raster Global Properties - Save and Load") {
         raster.toFile(test_file);
 
         // Load and modify
-        geotiv::Raster loaded_raster = geotiv::Raster::fromFile(test_file);
+        rastkit::Raster loaded_raster = rastkit::Raster::fromFile(test_file);
         loaded_raster.setGlobalProperty("modified", "true");
         loaded_raster.setGlobalProperty("name", "Modified Farm Raster");
         loaded_raster.removeGlobalProperty("created_by");
@@ -93,7 +93,7 @@ TEST_CASE("Raster Global Properties - Save and Load") {
         loaded_raster.toFile(modified_file);
 
         // Load modified version and verify changes
-        geotiv::Raster final_raster = geotiv::Raster::fromFile(modified_file);
+        rastkit::Raster final_raster = rastkit::Raster::fromFile(modified_file);
 
         CHECK(final_raster.getGlobalProperty("modified") == "true");
         CHECK(final_raster.getGlobalProperty("name") == "Modified Farm Raster");
@@ -132,7 +132,7 @@ TEST_CASE("Raster Global Properties - Save and Load") {
 
         // Save and load to verify persistence
         raster.toFile(test_file);
-        geotiv::Raster loaded_raster = geotiv::Raster::fromFile(test_file);
+        rastkit::Raster loaded_raster = rastkit::Raster::fromFile(test_file);
 
         CHECK(loaded_raster.gridCount() == 4); // Original 3 + 1 new
         CHECK(loaded_raster.getGlobalProperty("test_key") == "test_value");
@@ -146,14 +146,14 @@ TEST_CASE("Raster Global Properties - Empty Properties") {
     // Test raster with no global properties
     dp::Geo datum{52.0, 4.0, 10.0};
     dp::Pose pose{dp::Point{0, 0, 0}, dp::Quaternion{}};
-    geotiv::Raster raster(datum, pose);
+    rastkit::Raster raster(datum, pose);
     raster.addGrid(50, 50, "single_layer");
 
     const std::filesystem::path test_file = "/tmp/test_raster_empty_props.tiff";
 
     // Save and load
     raster.toFile(test_file);
-    geotiv::Raster loaded_raster = geotiv::Raster::fromFile(test_file);
+    rastkit::Raster loaded_raster = rastkit::Raster::fromFile(test_file);
 
     // Check empty global properties
     auto global_props = loaded_raster.getGlobalProperties();
@@ -169,21 +169,21 @@ TEST_CASE("Raster Global Properties - ASCII Tag Encoding/Decoding") {
     std::string test_string = "uuid=123-456-789";
 
     // Encode to ASCII tag
-    auto encoded = geotiv::stringToAsciiTag(test_string);
+    auto encoded = rastkit::stringToAsciiTag(test_string);
     CHECK(!encoded.empty());
 
     // Decode back
-    std::string decoded = geotiv::asciiTagToString(encoded);
+    std::string decoded = rastkit::asciiTagToString(encoded);
     CHECK(decoded == test_string);
 
     // Test with special characters
     std::string special_string = "name=Test Field #1 (v2.0)";
-    auto encoded_special = geotiv::stringToAsciiTag(special_string);
-    std::string decoded_special = geotiv::asciiTagToString(encoded_special);
+    auto encoded_special = rastkit::stringToAsciiTag(special_string);
+    std::string decoded_special = rastkit::asciiTagToString(encoded_special);
     CHECK(decoded_special == special_string);
 
     // Test with empty string
-    auto encoded_empty = geotiv::stringToAsciiTag("");
-    std::string decoded_empty = geotiv::asciiTagToString(encoded_empty);
+    auto encoded_empty = rastkit::stringToAsciiTag("");
+    std::string decoded_empty = rastkit::asciiTagToString(encoded_empty);
     CHECK(decoded_empty == "");
 }

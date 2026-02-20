@@ -1,8 +1,8 @@
 #pragma once
 
-#include "geoson/vector.hpp"
 #include "grid.hpp"
 #include "poly.hpp"
+#include "vectkit/vector.hpp"
 #include <filesystem>
 #include <stdexcept>
 #include <string>
@@ -47,7 +47,7 @@ namespace zoneout {
     }
 
     inline void savePolyGrid(const Poly &poly, const Grid &grid, const std::filesystem::path &vector_path,
-                             const std::filesystem::path &raster_path, geoson::CRS crs = geoson::CRS::WGS) {
+                             const std::filesystem::path &raster_path, vectkit::CRS crs = vectkit::CRS::WGS) {
         poly.to_file(vector_path, crs);
         if (grid.has_layers()) {
             grid.to_file(raster_path);
