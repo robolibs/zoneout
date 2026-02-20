@@ -1,5 +1,5 @@
 #include "doctest/doctest.h"
-#include "geoson/geoson.hpp"
+#include "vectkit/vectkit.hpp"
 #include "zoneout/zoneout.hpp"
 #include <filesystem>
 #include <iomanip>
@@ -23,8 +23,8 @@ TEST_CASE("Test real irregular field from misc/field4.geojson") {
         }
         REQUIRE_MESSAGE(!geojson_path.empty(), "Could not find misc/field4.geojson");
 
-        // Use geoson library to read the GeoJSON file
-        auto feature_collection = geoson::ReadFeatureCollection(geojson_path);
+        // Use vectkit library to read the GeoJSON file
+        auto feature_collection = vectkit::ReadFeatureCollection(geojson_path);
 
         REQUIRE(feature_collection.features.size() == 1);
 

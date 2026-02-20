@@ -16,8 +16,8 @@
 #include <concord/concord.hpp>
 #include <datapod/datapod.hpp>
 #include <entropy/generator.hpp>
-#include <geoson/geoson.hpp>
-#include <geotiv/geotiv.hpp>
+#include <rastkit/rastkit.hpp>
+#include <vectkit/vectkit.hpp>
 
 #include "constants.hpp"
 #include "polygrid.hpp"
@@ -217,7 +217,7 @@ namespace zoneout {
                 std::visit(
                     [&](auto &base_grid) {
                         using GridType = std::decay_t<decltype(base_grid)>;
-                        if constexpr (!std::is_same_v<GridType, dp::Grid<geotiv::RGBA>>) {
+                        if constexpr (!std::is_same_v<GridType, dp::Grid<rastkit::RGBA>>) {
                             for (size_t r = 0; r < base_grid.rows; ++r) {
                                 for (size_t c = 0; c < base_grid.cols; ++c) {
                                     auto cell_center = base_grid.get_point(r, c);
@@ -398,11 +398,11 @@ namespace zoneout {
             return from_files(vector_path, raster_path);
         }
 
-        inline const geoson::FeatureCollection &vector_data() const { return poly_data_.collection(); }
-        inline const geotiv::RasterCollection &raster_data() const { return grid_data_.raster(); }
+        inline const vectkit::FeatureCollection &vector_data() const { return poly_data_.collection(); }
+        inline const rastkit::RasterCollection &raster_data() const { return grid_data_.raster(); }
 
-        inline geoson::FeatureCollection &vector_data() { return poly_data_.collection(); }
-        inline geotiv::RasterCollection &raster_data() { return grid_data_.raster(); }
+        inline vectkit::FeatureCollection &vector_data() { return poly_data_.collection(); }
+        inline rastkit::RasterCollection &raster_data() { return grid_data_.raster(); }
 
         inline std::string global_property(const char *global_name) const {
             auto field_props = poly_data_.global_properties();
@@ -454,8 +454,8 @@ namespace zoneout {
         inline bool has_layers() const { return grid_data_.has_layers(); }
 
         /// Get layer by index
-        inline geotiv::Layer &layer(size_t index) { return grid_data_.get_layer(index); }
-        inline const geotiv::Layer &layer(size_t index) const { return grid_data_.get_layer(index); }
+        inline rastkit::Layer &layer(size_t index) { return grid_data_.get_layer(index); }
+        inline const rastkit::Layer &layer(size_t index) const { return grid_data_.get_layer(index); }
 
         /// Visit a raster layer's grid with a callable (handles all grid types)
         template <typename F> auto visit_raster(size_t layer_index, F &&func) {
@@ -468,12 +468,12 @@ namespace zoneout {
 
         /// Get raster layer rows
         inline size_t layer_rows(size_t layer_index) const {
-            return geotiv::get_grid_dimensions(grid_data_.get_layer(layer_index).grid).first;
+            return rastkit::get_grid_dimensions(grid_data_.get_layer(layer_index).grid).first;
         }
 
         /// Get raster layer cols
         inline size_t layer_cols(size_t layer_index) const {
-            return geotiv::get_grid_dimensions(grid_data_.get_layer(layer_index).grid).second;
+            return rastkit::get_grid_dimensions(grid_data_.get_layer(layer_index).grid).second;
         }
 
         /// Get world point for cell in a raster layer

@@ -397,7 +397,7 @@ TEST_CASE("Zone file I/O operations") {
         CHECK(loaded_zone.name() == "File I/O Zone");
         CHECK(loaded_zone.type() == "field");
 
-        // Note: Detailed validation depends on actual geoson/geotiv implementation
+        // Note: Detailed validation depends on actual vectkit/rastkit implementation
         // This test mainly ensures the methods don't crash
     }
 }

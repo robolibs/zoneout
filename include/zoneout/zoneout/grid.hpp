@@ -7,7 +7,7 @@
 
 #include <concord/concord.hpp>
 #include <datapod/datapod.hpp>
-#include <geotiv/geotiv.hpp>
+#include <rastkit/rastkit.hpp>
 
 #include "utils/meta.hpp"
 #include "utils/uuid.hpp"
@@ -19,7 +19,7 @@ namespace zoneout {
     class Grid {
       private:
         Meta meta_;
-        geotiv::RasterCollection raster_;
+        rastkit::RasterCollection raster_;
 
         inline void sync_to_global_properties() {
             if (has_layers()) {
@@ -83,7 +83,7 @@ namespace zoneout {
                 throw std::runtime_error("File does not exist: " + file_path.string());
             }
 
-            geotiv::RasterCollection raster_data = geotiv::ReadRasterCollection(file_path);
+            rastkit::RasterCollection raster_data = rastkit::ReadRasterCollection(file_path);
 
             Grid grid;
             grid.raster_ = std::move(raster_data);
@@ -115,12 +115,12 @@ namespace zoneout {
 
         inline void to_file(const std::filesystem::path &file_path) const {
             const_cast<Grid *>(this)->sync_to_global_properties();
-            geotiv::WriteRasterCollection(raster_, file_path);
+            rastkit::WriteRasterCollection(raster_, file_path);
         }
 
         inline void add_grid(uint32_t width, uint32_t height, const std::string &name, const std::string &type = "",
                              const std::unordered_map<std::string, std::string> &properties = {}) {
-            geotiv::Layer layer;
+            rastkit::Layer layer;
             layer.width = width;
             layer.height = height;
             layer.samplesPerPixel = 1;
@@ -128,7 +128,7 @@ namespace zoneout {
             layer.datum = raster_.datum;
             layer.shift = raster_.shift;
             layer.resolution = raster_.resolution;
-            // Note: Do NOT set layer.imageDescription here - let geotiv generate the geospatial metadata
+            // Note: Do NOT set layer.imageDescription here - let rastkit generate the geospatial metadata
 
             // Create grid with proper dimensions
             layer.grid = dp::make_grid<uint8_t>(height, width, raster_.resolution, true, raster_.shift, uint8_t{0});
@@ -148,7 +148,7 @@ namespace zoneout {
 
         inline void add_grid(const dp::Grid<uint8_t> &grid, const std::string &name, const std::string &type = "",
                              const std::unordered_map<std::string, std::string> &properties = {}) {
-            geotiv::Layer layer;
+            rastkit::Layer layer;
             layer.width = static_cast<uint32_t>(grid.cols);
             layer.height = static_cast<uint32_t>(grid.rows);
             layer.samplesPerPixel = 1;
@@ -156,7 +156,7 @@ namespace zoneout {
             layer.datum = raster_.datum;
             layer.shift = raster_.shift;
             layer.resolution = raster_.resolution;
-            // Note: Do NOT set layer.imageDescription here - let geotiv generate the geospatial metadata
+            // Note: Do NOT set layer.imageDescription here - let rastkit generate the geospatial metadata
             layer.grid = grid;
 
             // Store properties as custom tags (including name)
@@ -173,14 +173,14 @@ namespace zoneout {
         }
 
         // Accessors for the underlying raster collection
-        inline geotiv::RasterCollection &raster() { return raster_; }
-        inline const geotiv::RasterCollection &raster() const { return raster_; }
+        inline rastkit::RasterCollection &raster() { return raster_; }
+        inline const rastkit::RasterCollection &raster() const { return raster_; }
 
         // Delegation methods for common RasterCollection operations
         inline bool has_layers() const { return !raster_.layers.empty(); }
         inline size_t layer_count() const { return raster_.layers.size(); }
-        inline geotiv::Layer &get_layer(size_t index) { return raster_.layers.at(index); }
-        inline const geotiv::Layer &get_layer(size_t index) const { return raster_.layers.at(index); }
+        inline rastkit::Layer &get_layer(size_t index) { return raster_.layers.at(index); }
+        inline const rastkit::Layer &get_layer(size_t index) const { return raster_.layers.at(index); }
 
         inline dp::Geo &datum() { return raster_.datum; }
         inline const dp::Geo &datum() const { return raster_.datum; }
@@ -229,7 +229,7 @@ namespace zoneout {
         }
 
         /// Get layer by name. Returns dp::Optional with reference to layer if found.
-        inline dp::Optional<std::reference_wrapper<geotiv::Layer>> layer_by_name(const std::string &layer_name) {
+        inline dp::Optional<std::reference_wrapper<rastkit::Layer>> layer_by_name(const std::string &layer_name) {
             auto idx = layer_index_by_name(layer_name);
             if (idx.has_value()) {
                 return std::ref(raster_.layers[*idx]);
@@ -237,7 +237,7 @@ namespace zoneout {
             return dp::nullopt;
         }
 
-        inline dp::Optional<std::reference_wrapper<const geotiv::Layer>>
+        inline dp::Optional<std::reference_wrapper<const rastkit::Layer>>
         layer_by_name(const std::string &layer_name) const {
             auto idx = layer_index_by_name(layer_name);
             if (idx.has_value()) {

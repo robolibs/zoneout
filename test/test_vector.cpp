@@ -2,7 +2,7 @@
 #include <filesystem>
 #include <fstream>
 
-#include "geoson/vector.hpp"
+#include "vectkit/vector.hpp"
 
 namespace dp = datapod;
 
@@ -14,7 +14,7 @@ TEST_CASE("Vector Global Properties - Save and Load") {
     dp::Geo datum{52.0, 4.0, 10.0};
     dp::Euler heading{0.0, 0.0, 1.5};
 
-    geoson::Vector vector(boundary, datum, heading, geoson::CRS::ENU);
+    vectkit::Vector vector(boundary, datum, heading, vectkit::CRS::ENU);
 
     // Set global properties
     vector.setGlobalProperty("uuid", "123e4567-e89b-12d3-a456-426614174000");
@@ -45,13 +45,13 @@ TEST_CASE("Vector Global Properties - Save and Load") {
 
     SUBCASE("Save vector with global properties") {
         // Save to file
-        vector.toFile(test_file, geoson::CRS::ENU);
+        vector.toFile(test_file, vectkit::CRS::ENU);
 
         // Verify file exists
         CHECK(std::filesystem::exists(test_file));
 
         // Load back and verify global properties are preserved
-        geoson::Vector loaded_vector = geoson::Vector::fromFile(test_file);
+        vectkit::Vector loaded_vector = vectkit::Vector::fromFile(test_file);
 
         // Check global properties
         CHECK(loaded_vector.getGlobalProperty("uuid") == "123e4567-e89b-12d3-a456-426614174000");
@@ -88,20 +88,20 @@ TEST_CASE("Vector Global Properties - Save and Load") {
 
     SUBCASE("Modify global properties after loading") {
         // Save original
-        vector.toFile(test_file, geoson::CRS::ENU);
+        vector.toFile(test_file, vectkit::CRS::ENU);
 
         // Load and modify
-        geoson::Vector loaded_vector = geoson::Vector::fromFile(test_file);
+        vectkit::Vector loaded_vector = vectkit::Vector::fromFile(test_file);
         loaded_vector.setGlobalProperty("modified", "true");
         loaded_vector.setGlobalProperty("name", "Modified Test Field");
         loaded_vector.removeGlobalProperty("owner");
 
         // Save modified version
         const std::filesystem::path modified_file = "/tmp/test_vector_modified.geojson";
-        loaded_vector.toFile(modified_file, geoson::CRS::ENU);
+        loaded_vector.toFile(modified_file, vectkit::CRS::ENU);
 
         // Load modified version and verify changes
-        geoson::Vector final_vector = geoson::Vector::fromFile(modified_file);
+        vectkit::Vector final_vector = vectkit::Vector::fromFile(modified_file);
 
         CHECK(final_vector.getGlobalProperty("modified") == "true");
         CHECK(final_vector.getGlobalProperty("name") == "Modified Test Field");
@@ -121,13 +121,13 @@ TEST_CASE("Vector Global Properties - Empty Properties") {
     // Test vector with no global properties
     dp::Polygon boundary;
     boundary.vertices = {{0.0, 0.0, 0.0}, {10.0, 0.0, 0.0}, {10.0, 10.0, 0.0}, {0.0, 10.0, 0.0}, {0.0, 0.0, 0.0}};
-    geoson::Vector vector(boundary, dp::Geo{0.001, 0.001, 1.0}, dp::Euler{0, 0, 0}, geoson::CRS::ENU);
+    vectkit::Vector vector(boundary, dp::Geo{0.001, 0.001, 1.0}, dp::Euler{0, 0, 0}, vectkit::CRS::ENU);
 
     const std::filesystem::path test_file = "/tmp/test_vector_empty_props.geojson";
 
     // Save and load
-    vector.toFile(test_file, geoson::CRS::ENU);
-    geoson::Vector loaded_vector = geoson::Vector::fromFile(test_file);
+    vector.toFile(test_file, vectkit::CRS::ENU);
+    vectkit::Vector loaded_vector = vectkit::Vector::fromFile(test_file);
 
     // Check empty global properties
     auto global_props = loaded_vector.getGlobalProperties();
