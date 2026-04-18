@@ -928,6 +928,7 @@ dependencies = [
 [[package]]
 name = "datapod"
 version = "0.0.1"
+source = "git+https://codeberg.org/robolibs/datapod.git#5ec5db3ef3c220becf35c9fda09a5d15205f1487"
 
 [[package]]
 name = "digest"

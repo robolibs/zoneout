@@ -41,9 +41,3 @@ tar = "0.4"
 
 [dev-dependencies]
 rerun = { version = "0.31.2", default-features = false, features = ["sdk", "server"] }
-
-# Until the datapod changes (OMap / OSet) are pushed to codeberg, point
-# every transitive use of the datapod git dep at the local checkout.
-# Remove this section once the changes are upstream.
-[patch."https://codeberg.org/robolibs/datapod.git"]
-datapod = { path = "../datapod_rs" }
