@@ -1,10 +1,12 @@
 //! `Zone` — hierarchical region with a Plot, properties, child zones, and
 //! per-zone node-ID attachments. Ported from `include/zoneout/zoneout/zone.hpp`.
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
-use datapod::{Aabb, Geo, OMap, Point, Polygon};
+
+use datapod::{Aabb, Geo, Point, Polygon};
 use rastera::{GridData, Layer};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -25,7 +27,7 @@ pub struct Zone {
     id: Uuid,
     name: String,
     kind: String,
-    properties: OMap<String, String>,
+    properties: BTreeMap<String, String>,
     node_ids: Vec<Uuid>,
     children: Vec<Zone>,
 }
@@ -40,7 +42,7 @@ impl Zone {
     ) -> Result<Self> {
         let name = name.into();
         let kind = kind.into();
-        let plot = if resolution > 0.0 && !boundary.vertices.is_empty() {
+        let plot = if resolution > 0.0 && !boundary.empty() {
             Plot::with_boundary_and_grid(&name, &kind, boundary, datum, resolution)?
         } else {
             Plot::with_boundary(&name, &kind, boundary, datum)
@@ -78,7 +80,7 @@ impl Zone {
             name,
             kind,
             plot_data: plot,
-            properties: OMap::new(),
+            properties: BTreeMap::new(),
             node_ids: Vec::new(),
             children: Vec::new(),
         }
@@ -118,8 +120,8 @@ impl Zone {
         self.properties.insert(key.into(), value.into());
     }
     pub fn property(&self, key: &str) -> Option<&String> { self.properties.get(key) }
-    pub fn properties(&self) -> &OMap<String, String> { &self.properties }
-    pub fn properties_mut(&mut self) -> &mut OMap<String, String> { &mut self.properties }
+    pub fn properties(&self) -> &BTreeMap<String, String> { &self.properties }
+    pub fn properties_mut(&mut self) -> &mut BTreeMap<String, String> { &mut self.properties }
     pub fn has_property(&self, key: &str) -> bool { self.properties.contains_key(key) }
     pub fn remove_property(&mut self, key: &str) -> bool {
         self.properties.remove(key).is_some()
@@ -335,7 +337,7 @@ impl Zone {
         name: impl Into<String>,
         kind: impl Into<String>,
         subtype: impl Into<String>,
-        properties: OMap<String, String>,
+        properties: BTreeMap<String, String>,
     ) -> Result<Uuid> {
         if !self.plot_data.poly().has_field_boundary() {
             return Err(Error::InvalidZone(
@@ -343,7 +345,7 @@ impl Zone {
             ));
         }
         // verify every vertex is inside the boundary
-        for v in geometry.vertices.iter() {
+        for v in geometry.iter() {
             if !self.plot_data.poly().contains(*v) {
                 return Err(Error::BoundaryViolation);
             }
@@ -452,7 +454,7 @@ impl Zone {
         if !parent_poly.has_field_boundary() { return Ok(()); }
         let child_poly = child.plot_data.poly();
         if !child_poly.has_field_boundary() { return Ok(()); }
-        for v in child_poly.field_boundary().vertices.iter() {
+        for v in child_poly.field_boundary().iter() {
             if !parent_poly.contains(*v) {
                 return Err(Error::BoundaryViolation);
             }
@@ -475,15 +477,23 @@ pub fn make_zone(
 
 fn rasterise_polygon_onto_layer(geometry: &Polygon, color: u8, layer: &mut Layer) {
     macro_rules! paint_numeric {
-        ($grid:expr, $cast:ty) => {{
-            let g = $grid;
-            let rows = g.rows;
-            let cols = g.cols;
+        ($g:expr, $cast:ty) => {{
+            let g: &mut datapod::Grid = $g;
+            let rows = g.rows as usize;
+            let cols = g.cols as usize;
+            // Precompute world-space cell centers before taking the mut
+            // borrow of `g.data` (avoids overlapping borrows).
+            let mut points: Vec<datapod::Point> = Vec::with_capacity(rows * cols);
             for r in 0..rows {
                 for c in 0..cols {
-                    let p = g.get_point(r, c);
-                    if geometry.contains(p) {
-                        g.data[r * cols + c] = color as $cast;
+                    points.push(g.get_point(r, c));
+                }
+            }
+            let typed: &mut [$cast] = bytemuck::cast_slice_mut(&mut g.data);
+            for r in 0..rows {
+                for c in 0..cols {
+                    if geometry.contains(points[r * cols + c]) {
+                        typed[r * cols + c] = color as $cast;
                     }
                 }
             }
@@ -491,8 +501,8 @@ fn rasterise_polygon_onto_layer(geometry: &Polygon, color: u8, layer: &mut Layer
     }
 
     match &mut layer.grid {
-        GridData::U8(g)  => paint_numeric!(g, u8),
-        GridData::I8(g)  => paint_numeric!(g, i8),
+        GridData::U8(g) => paint_numeric!(g, u8),
+        GridData::I8(g) => paint_numeric!(g, i8),
         GridData::U16(g) => paint_numeric!(g, u16),
         GridData::I16(g) => paint_numeric!(g, i16),
         GridData::U32(g) => paint_numeric!(g, u32),
@@ -512,7 +522,7 @@ struct ZoneMetaOnDisk {
     #[serde(rename = "type")]
     kind: String,
     #[serde(default)]
-    properties: OMap<String, String>,
+    properties: BTreeMap<String, String>,
     #[serde(default)]
     node_ids: Vec<Uuid>,
 }
@@ -533,7 +543,7 @@ impl ZoneMetaOnDisk {
             id: plot.id(),
             name: plot.name().to_string(),
             kind: plot.kind().to_string(),
-            properties: OMap::new(),
+            properties: BTreeMap::new(),
             node_ids: Vec::new(),
         }
     }
@@ -549,9 +559,9 @@ pub struct ZoneBuilder {
     datum: Option<Geo>,
     resolution: f64,
     initial_grid: Option<Grid>,
-    properties: OMap<String, String>,
+    properties: BTreeMap<String, String>,
     raster_layers: Vec<(GridData, String, String, std::collections::HashMap<String, String>)>,
-    polygon_elements: Vec<(Polygon, String, String, String, OMap<String, String>)>,
+    polygon_elements: Vec<(Polygon, String, String, String, BTreeMap<String, String>)>,
 }
 
 impl ZoneBuilder {
@@ -584,7 +594,7 @@ impl ZoneBuilder {
         name: impl Into<String>,
         kind: impl Into<String>,
         subtype: impl Into<String>,
-        props: OMap<String, String>,
+        props: BTreeMap<String, String>,
     ) -> Self {
         self.polygon_elements.push((geom, name.into(), kind.into(), subtype.into(), props));
         self
@@ -738,7 +748,7 @@ mod tests {
         // Add a small polygon inside the boundary — the grid's base layer
         // should gain a non-zero painted region.
         let inner = square(4.0, (2.0, 2.0));
-        z.add_polygon_element(inner, "rock", "obstacle", "default", OMap::new())
+        z.add_polygon_element(inner, "rock", "obstacle", "default", BTreeMap::new())
             .unwrap();
 
         // The first layer should now contain at least one cell with the

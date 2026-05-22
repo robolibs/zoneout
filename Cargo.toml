@@ -26,11 +26,12 @@ python = ["dep:pyo3", "pyo3/abi3-py39", "pyo3/auto-initialize"]
 python-extension = ["python", "pyo3/extension-module"]
 
 [dependencies]
-concord = { git = "https://codeberg.org/robolibs/concord.git" }
-datapod = { git = "https://codeberg.org/robolibs/datapod.git" }
-graphix = { git = "https://codeberg.org/robolibs/graphix.git" }
-vectory = { git = "https://codeberg.org/robolibs/vectory.git" }
-rastera = { git = "https://codeberg.org/robolibs/rastera.git" }
+bytemuck = { version = "1", features = ["derive"] }
+concord = { git = "https://codeberg.org/robolibs/concord.git", rev = "34062145237c2f2e19cb62e50eba127b4bc848b5" }
+datapod = { git = "https://codeberg.org/robolibs/datapod.git", rev = "4547e328826fb4fd788b7acac29c2f70efc62746" }
+graphix = { git = "https://codeberg.org/robolibs/graphix.git", rev = "63b38d1b71b621cddf6d6a3070d9646bea83e7c4" }
+vectory = { git = "https://codeberg.org/robolibs/vectory.git", rev = "85213e562f066ab4ae903e913c36e408eeae5152" }
+rastera = { git = "https://codeberg.org/robolibs/rastera.git", rev = "c64ebd0e6759566eeeae5f21d66759721ef4c626" }
 pyo3 = { version = "0.23", optional = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -40,4 +41,5 @@ chrono = { version = "0.4", features = ["serde"] }
 tar = "0.4"
 
 [dev-dependencies]
-rerun = { version = "0.31.2", default-features = false, features = ["sdk", "server"] }
+# rerun temporarily disabled — requires newer rustc via zmij transitive
+# rerun = { version = "0.31.2", default-features = false, features = ["sdk", "server"] }

@@ -6,7 +6,7 @@
 
 use std::path::Path;
 
-use datapod::{Aabb, Geo, Point, Polygon, Pose};
+use datapod::{Aabb, Encoding, Geo, Point, Polygon, Pose};
 use rastera::GridData;
 use vectory::Crs;
 
@@ -24,7 +24,7 @@ pub fn make_base_grid(
     name: impl Into<String>,
     kind: impl Into<String>,
 ) -> Result<Grid> {
-    if boundary.vertices.is_empty() {
+    if boundary.empty() {
         return Err(Error::InvalidZone("make_base_grid: empty boundary".into()));
     }
     if resolution <= 0.0 {
@@ -49,13 +49,14 @@ pub fn make_base_grid(
         }
     }
 
-    let grid_data = datapod::Grid::<u8> {
-        rows: height,
-        cols: width,
+    let grid = datapod::Grid {
+        rows: height as u32,
+        cols: width as u32,
+        encoding: Encoding::U8,
+        centered: 0,
         resolution,
-        centered: false,
         pose: Pose::default(),
-        data: cells.into(),
+        data: cells,
     };
 
     let shift = Pose {
@@ -65,7 +66,7 @@ pub fn make_base_grid(
 
     let mut g = Grid::with_spatial(name, kind, "default", datum, shift, resolution);
     g.add_layer(
-        GridData::U8(grid_data),
+        GridData::U8(grid),
         "base_layer",
         "terrain",
         Default::default(),

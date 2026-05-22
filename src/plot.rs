@@ -3,11 +3,13 @@
 //!
 //! Ported from `include/zoneout/zoneout/plot.hpp`.
 
+use std::collections::BTreeMap;
 use std::fs::{self, File};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
-use datapod::{Geo, OMap, Polygon};
+
+use datapod::{Geo, Point, Polygon};
 use uuid::Uuid;
 use vectory::Crs;
 
@@ -63,9 +65,9 @@ impl Plot {
     ) -> Result<Self> {
         let name = name.into();
         let kind = kind.into();
-        let mut poly = Poly::with_boundary(&name, &kind, "default", boundary.clone());
-        poly.set_datum(datum);
         let mut grid = make_base_grid(&boundary, resolution, datum, &name, &kind)?;
+        let mut poly = Poly::with_boundary(&name, &kind, "default", boundary);
+        poly.set_datum(datum);
         grid.set_id(poly.id());
         Ok(Self::with_grid(poly, grid))
     }
@@ -122,7 +124,7 @@ impl Plot {
     pub fn remove_property(&mut self, key: &str) -> bool {
         self.poly.remove_global_property(&format!("{PROP_PREFIX}{key}"))
     }
-    pub fn properties(&self) -> OMap<String, String> {
+    pub fn properties(&self) -> BTreeMap<String, String> {
         self.poly
             .global_properties()
             .iter()
@@ -230,7 +232,7 @@ pub struct PlotBuilder {
     boundary: Option<Polygon>,
     datum: Option<Geo>,
     resolution: Option<f64>,
-    properties: OMap<String, String>,
+    properties: BTreeMap<String, String>,
 }
 
 impl PlotBuilder {
@@ -268,7 +270,7 @@ impl PlotBuilder {
         let datum = self.datum.unwrap_or_else(|| Geo::new(0.0, 0.0, 0.0));
 
         let mut plot = match self.resolution {
-            Some(r) if !boundary.vertices.is_empty() => {
+            Some(r) if !boundary.empty() => {
                 Plot::with_boundary_and_grid(&name, &kind, boundary, datum, r)?
             }
             _ => Plot::with_boundary(&name, &kind, boundary, datum),

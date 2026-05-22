@@ -158,13 +158,14 @@ impl Grid {
         kind: impl Into<String>,
         properties: HashMap<String, String>,
     ) -> &mut Layer {
-        let grid = datapod::Grid::<u8> {
-            rows: height,
-            cols: width,
+        let grid = datapod::Grid {
+            rows: height as u32,
+            cols: width as u32,
+            encoding: datapod::Encoding::U8,
+            centered: 0,
             resolution: self.raster.resolution,
-            centered: false,
             pose: datapod::Pose::default(),
-            data: vec![0u8; width * height].into(),
+            data: vec![0u8; width * height],
         };
         self.add_layer(GridData::U8(grid), name, kind, properties)
     }

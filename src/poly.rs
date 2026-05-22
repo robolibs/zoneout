@@ -7,10 +7,10 @@
 //! the same, rebuilding the typed vectors from the collection on load and
 //! keeping them in lock-step on mutation.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 
-use datapod::{Aabb, Euler, Geo, OMap, Point, Polygon, Segment};
+use datapod::{Aabb, Euler, Geo, Point, Polygon, Segment};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use vectory::{Crs, Feature, FeatureCollection, Geometry};
@@ -34,7 +34,7 @@ pub struct StructuredElement {
     #[serde(default)]
     pub subtype: String,
     #[serde(default)]
-    pub properties: OMap<String, String>,
+    pub properties: BTreeMap<String, String>,
 }
 
 impl StructuredElement {
@@ -43,7 +43,7 @@ impl StructuredElement {
         name: impl Into<String>,
         kind: impl Into<String>,
         subtype: impl Into<String>,
-        properties: OMap<String, String>,
+        properties: BTreeMap<String, String>,
     ) -> Self {
         Self {
             id,
@@ -60,7 +60,7 @@ impl StructuredElement {
         let name = props.get(KEY_NAME).cloned()?;
         let kind = props.get(KEY_TYPE).cloned()?;
         let subtype = props.get(KEY_SUBTYPE).cloned().unwrap_or_default();
-        let mut extras = OMap::new();
+        let mut extras = BTreeMap::new();
         for (k, v) in props {
             if matches!(
                 k.as_str(),
@@ -194,7 +194,7 @@ impl Poly {
 
     pub fn field_boundary(&self) -> &Polygon { &self.field_boundary }
     pub fn set_field_boundary(&mut self, boundary: Polygon) { self.field_boundary = boundary; }
-    pub fn has_field_boundary(&self) -> bool { !self.field_boundary.vertices.is_empty() }
+    pub fn has_field_boundary(&self) -> bool { !self.field_boundary.empty() }
 
     pub fn area(&self) -> f64 { self.field_boundary.area() }
     pub fn perimeter(&self) -> f64 { self.field_boundary.perimeter() }
@@ -271,7 +271,7 @@ impl Poly {
         kind: impl Into<String>,
         subtype: impl Into<String>,
         geometry: Polygon,
-        properties: OMap<String, String>,
+        properties: BTreeMap<String, String>,
     ) {
         let meta = StructuredElement::new(id, name, kind, subtype, properties);
         let feature = Self::build_feature(&meta, Geometry::Polygon(geometry.clone()));
@@ -280,7 +280,7 @@ impl Poly {
     }
 
     pub fn add_polygon(&mut self, geometry: Polygon, kind: impl Into<String>) -> Uuid {
-        self.add_polygon_typed(geometry, kind, OMap::new())
+        self.add_polygon_typed(geometry, kind, BTreeMap::new())
     }
 
     /// Short-form with properties. Auto-generates a UUID and uses `kind`
@@ -290,7 +290,7 @@ impl Poly {
         &mut self,
         geometry: Polygon,
         kind: impl Into<String>,
-        properties: OMap<String, String>,
+        properties: BTreeMap<String, String>,
     ) -> Uuid {
         let id = Uuid::new_v4();
         let kind = kind.into();
@@ -305,7 +305,7 @@ impl Poly {
         kind: impl Into<String>,
         subtype: impl Into<String>,
         geometry: Segment,
-        properties: OMap<String, String>,
+        properties: BTreeMap<String, String>,
     ) {
         let meta = StructuredElement::new(id, name, kind, subtype, properties);
         let feature = Self::build_feature(&meta, Geometry::Segment(geometry));
@@ -314,14 +314,14 @@ impl Poly {
     }
 
     pub fn add_line(&mut self, geometry: Segment, kind: impl Into<String>) -> Uuid {
-        self.add_line_typed(geometry, kind, OMap::new())
+        self.add_line_typed(geometry, kind, BTreeMap::new())
     }
 
     pub fn add_line_typed(
         &mut self,
         geometry: Segment,
         kind: impl Into<String>,
-        properties: OMap<String, String>,
+        properties: BTreeMap<String, String>,
     ) -> Uuid {
         let id = Uuid::new_v4();
         let kind = kind.into();
@@ -336,7 +336,7 @@ impl Poly {
         kind: impl Into<String>,
         subtype: impl Into<String>,
         geometry: Point,
-        properties: OMap<String, String>,
+        properties: BTreeMap<String, String>,
     ) {
         let meta = StructuredElement::new(id, name, kind, subtype, properties);
         let feature = Self::build_feature(&meta, Geometry::Point(geometry));
@@ -345,14 +345,14 @@ impl Poly {
     }
 
     pub fn add_point(&mut self, geometry: Point, kind: impl Into<String>) -> Uuid {
-        self.add_point_typed(geometry, kind, OMap::new())
+        self.add_point_typed(geometry, kind, BTreeMap::new())
     }
 
     pub fn add_point_typed(
         &mut self,
         geometry: Point,
         kind: impl Into<String>,
-        properties: OMap<String, String>,
+        properties: BTreeMap<String, String>,
     ) -> Uuid {
         let id = Uuid::new_v4();
         let kind = kind.into();
@@ -514,12 +514,12 @@ impl Poly {
         for feat in &self.collection.features {
             let is_border = feat.properties.get(KEY_BORDER).map(|s| s == "true").unwrap_or(false);
             match &feat.geometry {
-                Geometry::Polygon(p) if is_border => {
-                    self.field_boundary = p.clone();
+                Geometry::Polygon(poly) if is_border => {
+                    self.field_boundary = poly.clone();
                 }
-                Geometry::Polygon(p) => {
+                Geometry::Polygon(poly) => {
                     if let Some(meta) = StructuredElement::from_feature(feat) {
-                        self.polygon_elements.push(PolygonElement { meta, geometry: p.clone() });
+                        self.polygon_elements.push(PolygonElement { meta, geometry: poly.clone() });
                     }
                 }
                 Geometry::Segment(s) => {

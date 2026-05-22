@@ -1,10 +1,12 @@
 //! `Workspace` — a root `Zone` plus a `graphix::vertex::Graph` of waypoints
 //! and navigation edges. Ported from `include/zoneout/zoneout/workspace.hpp`.
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
-use datapod::{Geo, OMap, Point};
+
+use datapod::{Geo, Point, Polygon};
 use graphix::vertex::{EdgeId, EdgeType, Graph, VertexId};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -31,7 +33,7 @@ pub struct NodeData {
     #[serde(default)]
     pub zone_ids: Vec<Uuid>,
     #[serde(default)]
-    pub properties: OMap<String, String>,
+    pub properties: BTreeMap<String, String>,
 }
 
 fn default_node_name() -> String { "Node".into() }
@@ -43,7 +45,7 @@ impl Default for NodeData {
             name: default_node_name(),
             position: NodePosition::default(),
             zone_ids: Vec::new(),
-            properties: OMap::new(),
+            properties: BTreeMap::new(),
         }
     }
 }
@@ -82,7 +84,7 @@ pub struct EdgeData {
     #[serde(default)]
     pub zone_ids: Vec<Uuid>,
     #[serde(default)]
-    pub properties: OMap<String, String>,
+    pub properties: BTreeMap<String, String>,
 }
 
 impl Default for EdgeData {
@@ -90,7 +92,7 @@ impl Default for EdgeData {
         Self {
             id: Uuid::new_v4(),
             zone_ids: Vec::new(),
-            properties: OMap::new(),
+            properties: BTreeMap::new(),
         }
     }
 }
@@ -181,7 +183,7 @@ impl Workspace {
     pub fn add_node(
         &mut self,
         position: Point,
-        properties: OMap<String, String>,
+        properties: BTreeMap<String, String>,
     ) -> VertexId<NodeData> {
         let zone_ids = self.zone_ids_containing(position);
         let mut node = NodeData::new(position);
@@ -208,7 +210,7 @@ impl Workspace {
         target: VertexId<NodeData>,
         weight: f64,
         edge_type: EdgeType,
-        properties: OMap<String, String>,
+        properties: BTreeMap<String, String>,
     ) -> EdgeId {
         let edge = EdgeData { id: Uuid::new_v4(), zone_ids: Vec::new(), properties };
         self.graph.add_edge(source, target, weight, edge_type, edge)
@@ -570,9 +572,9 @@ impl Workspace {
                 .datum
                 .map(|d| JsonPoint::new(d.latitude, d.longitude)),
             datum: Some(JsonGeo::from(datum)),
-            zones: OMap::new(),
-            nodes: OMap::new(),
-            edges: OMap::new(),
+            zones: BTreeMap::new(),
+            nodes: BTreeMap::new(),
+            edges: BTreeMap::new(),
             name: "Workspace".to_string(),
         };
         append_zone_to_wire(&mut ws_json, &self.root_zone, None, datum);
@@ -794,7 +796,7 @@ struct GraphNodeJson {
     #[serde(default)]
     zone_ids: Vec<Uuid>,
     #[serde(default)]
-    properties: OMap<String, String>,
+    properties: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -809,7 +811,7 @@ struct GraphEdgeJson {
     #[serde(default)]
     zone_ids: Vec<Uuid>,
     #[serde(default)]
-    properties: OMap<String, String>,
+    properties: BTreeMap<String, String>,
 }
 
 fn default_edge_weight() -> f64 { 1.0 }
@@ -819,7 +821,7 @@ fn default_edge_weight() -> f64 { 1.0 }
 #[cfg(test)]
 mod tests {
     use super::*;
-    use datapod::Polygon;
+    
 
     fn square(size: f64, offset: (f64, f64)) -> Polygon {
         Polygon {
@@ -854,7 +856,7 @@ mod tests {
     fn ws_add_node_attaches_to_zone() {
         let mut ws = Workspace::new(farm());
         let root_id = ws.root_zone.id();
-        ws.add_node(Point::new(5.0, 5.0, 0.0), OMap::new());
+        ws.add_node(Point::new(5.0, 5.0, 0.0), BTreeMap::new());
         let z = ws.find_zone(root_id).unwrap();
         assert_eq!(z.node_ids().len(), 1);
     }
@@ -862,9 +864,9 @@ mod tests {
     #[test]
     fn ws_add_edge_counts() {
         let mut ws = Workspace::new(farm());
-        let a = ws.add_node(Point::new(1.0, 1.0, 0.0), OMap::new());
-        let b = ws.add_node(Point::new(2.0, 2.0, 0.0), OMap::new());
-        ws.add_edge(a, b, 1.0, EdgeType::Undirected, OMap::new());
+        let a = ws.add_node(Point::new(1.0, 1.0, 0.0), BTreeMap::new());
+        let b = ws.add_node(Point::new(2.0, 2.0, 0.0), BTreeMap::new());
+        ws.add_edge(a, b, 1.0, EdgeType::Undirected, BTreeMap::new());
         assert_eq!(ws.graph().vertex_count(), 2);
         assert_eq!(ws.graph().edge_count(), 1);
     }
@@ -872,9 +874,9 @@ mod tests {
     #[test]
     fn ws_find_node_and_edge_by_uuid() {
         let mut ws = Workspace::new(farm());
-        let a = ws.add_node(Point::new(1.0, 1.0, 0.0), OMap::new());
+        let a = ws.add_node(Point::new(1.0, 1.0, 0.0), BTreeMap::new());
         let node_uuid = ws.graph().get_vertex(a).unwrap().id;
-        let eid = ws.add_edge(a, a, 1.0, EdgeType::Directed, OMap::new());
+        let eid = ws.add_edge(a, a, 1.0, EdgeType::Directed, BTreeMap::new());
         let edge_uuid = ws.graph().edge_property(eid).unwrap().id;
 
         assert_eq!(ws.find_node(node_uuid), Some(a));
@@ -887,8 +889,8 @@ mod tests {
     fn ws_refresh_zone_node_membership_repopulates() {
         let mut ws = Workspace::new(farm());
         let root_id = ws.root_zone.id();
-        ws.add_node(Point::new(5.0, 5.0, 0.0), OMap::new());
-        ws.add_node(Point::new(10.0, 10.0, 0.0), OMap::new());
+        ws.add_node(Point::new(5.0, 5.0, 0.0), BTreeMap::new());
+        ws.add_node(Point::new(10.0, 10.0, 0.0), BTreeMap::new());
         ws.find_zone_mut(root_id).unwrap().clear_node_ids();
         assert_eq!(ws.find_zone(root_id).unwrap().node_ids().len(), 0);
         ws.refresh_zone_node_membership();
@@ -947,8 +949,8 @@ mod tests {
 
         let mut ws = Workspace::new(farm);
         ws.set_datum(datum);
-        ws.add_node(Point::new(15.0, 15.0, 0.0), OMap::new());
-        ws.add_node(Point::new(70.0, 70.0, 0.0), OMap::new());
+        ws.add_node(Point::new(15.0, 15.0, 0.0), BTreeMap::new());
+        ws.add_node(Point::new(70.0, 70.0, 0.0), BTreeMap::new());
 
         // Save to a tmpdir.
         let mut dir = std::env::temp_dir();
@@ -987,12 +989,12 @@ mod tests {
     #[test]
     fn ws_save_and_load_full_graph_roundtrip() {
         let mut ws = Workspace::new(farm());
-        let a = ws.add_node(Point::new(5.0, 5.0, 0.0), OMap::new());
-        let b = ws.add_node(Point::new(50.0, 50.0, 0.0), OMap::new());
-        let c = ws.add_node(Point::new(10.0, 10.0, 0.0), OMap::new());
-        ws.add_edge(a, b, 2.5, EdgeType::Undirected, OMap::new());
+        let a = ws.add_node(Point::new(5.0, 5.0, 0.0), BTreeMap::new());
+        let b = ws.add_node(Point::new(50.0, 50.0, 0.0), BTreeMap::new());
+        let c = ws.add_node(Point::new(10.0, 10.0, 0.0), BTreeMap::new());
+        ws.add_edge(a, b, 2.5, EdgeType::Undirected, BTreeMap::new());
         ws.add_edge(b, c, 7.5, EdgeType::Directed, {
-            let mut p = OMap::new();
+            let mut p = BTreeMap::new();
             p.insert("kind".into(), "path".into());
             p
         });
@@ -1017,9 +1019,9 @@ mod tests {
     fn ws_wire_roundtrip_preserves_structure() {
         let mut ws = Workspace::new(farm());
         ws.set_datum(Geo::new(52.0, 5.0, 0.0));
-        let a = ws.add_node(Point::new(5.0, 5.0, 0.0), OMap::new());
-        let b = ws.add_node(Point::new(20.0, 20.0, 0.0), OMap::new());
-        ws.add_edge(a, b, 3.0, EdgeType::Undirected, OMap::new());
+        let a = ws.add_node(Point::new(5.0, 5.0, 0.0), BTreeMap::new());
+        let b = ws.add_node(Point::new(20.0, 20.0, 0.0), BTreeMap::new());
+        ws.add_edge(a, b, 3.0, EdgeType::Undirected, BTreeMap::new());
 
         let wire_json = ws.to_wire();
         let errs = wire::validate_workspace_json(&wire_json);
@@ -1067,7 +1069,7 @@ mod tests {
     fn ws_single_file_json_roundtrip() {
         let mut ws = Workspace::new(farm());
         ws.set_datum(Geo::new(52.0, 5.0, 0.0));
-        ws.add_node(Point::new(5.0, 5.0, 0.0), OMap::new());
+        ws.add_node(Point::new(5.0, 5.0, 0.0), BTreeMap::new());
 
         let mut path = std::env::temp_dir();
         path.push(format!("zoneout-wire-{}.json", Uuid::new_v4().simple()));
@@ -1101,9 +1103,9 @@ mod tests {
     fn ws_refresh_edge_zone_membership_writes_back() {
         let mut ws = Workspace::new(farm());
         let root_id = ws.root_zone().id();
-        let a = ws.add_node(Point::new(5.0, 5.0, 0.0), OMap::new());
-        let b = ws.add_node(Point::new(10.0, 10.0, 0.0), OMap::new());
-        let e = ws.add_edge(a, b, 1.0, EdgeType::Undirected, OMap::new());
+        let a = ws.add_node(Point::new(5.0, 5.0, 0.0), BTreeMap::new());
+        let b = ws.add_node(Point::new(10.0, 10.0, 0.0), BTreeMap::new());
+        let e = ws.add_edge(a, b, 1.0, EdgeType::Undirected, BTreeMap::new());
         ws.refresh_edge_zone_membership(e);
         let zones = &ws.graph().edge_property(e).unwrap().zone_ids;
         assert!(zones.contains(&root_id));

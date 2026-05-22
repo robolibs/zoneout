@@ -4,8 +4,11 @@
 //! the C++ serialisation so that workspaces written by either side can be
 //! loaded by the other.
 
+use std::collections::BTreeMap;
+
+
 use concord::{Enu, to_enu, to_wgs_from_enu};
-use datapod::{Geo, OMap, Point, Polygon};
+use datapod::{Geo, Point, Polygon};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -71,7 +74,7 @@ pub struct ZoneJson {
     #[serde(default)]
     pub node_ids: Vec<Uuid>,
     #[serde(default)]
-    pub properties: OMap<String, String>,
+    pub properties: BTreeMap<String, String>,
     #[serde(default)]
     pub polygon_latlon: Vec<JsonPoint>,
     #[serde(default)]
@@ -89,7 +92,7 @@ impl Default for ZoneJson {
             parent_id: None,
             child_ids: Vec::new(),
             node_ids: Vec::new(),
-            properties: OMap::new(),
+            properties: BTreeMap::new(),
             polygon_latlon: Vec::new(),
             grid_enabled: false,
             grid_resolution: 1.0,
@@ -111,7 +114,7 @@ pub struct NodeJson {
     #[serde(default)]
     pub zone_ids: Vec<Uuid>,
     #[serde(default)]
-    pub properties: OMap<String, String>,
+    pub properties: BTreeMap<String, String>,
 }
 
 impl Default for NodeJson {
@@ -121,7 +124,7 @@ impl Default for NodeJson {
             name: default_node_name(),
             latlon: JsonPoint::default(),
             zone_ids: Vec::new(),
-            properties: OMap::new(),
+            properties: BTreeMap::new(),
         }
     }
 }
@@ -140,7 +143,7 @@ pub struct EdgeJson {
     #[serde(default)]
     pub zone_ids: Vec<Uuid>,
     #[serde(default)]
-    pub properties: OMap<String, String>,
+    pub properties: BTreeMap<String, String>,
 }
 
 fn default_weight() -> f64 { 1.0 }
@@ -151,9 +154,9 @@ pub struct WorkspaceJson {
     pub coord_mode: CoordMode,
     pub ref_: Option<JsonPoint>,
     pub datum: Option<JsonGeo>,
-    pub zones: OMap<Uuid, ZoneJson>,
-    pub nodes: OMap<Uuid, NodeJson>,
-    pub edges: OMap<Uuid, EdgeJson>,
+    pub zones: BTreeMap<Uuid, ZoneJson>,
+    pub nodes: BTreeMap<Uuid, NodeJson>,
+    pub edges: BTreeMap<Uuid, EdgeJson>,
     pub name: String,
 }
 
@@ -166,9 +169,9 @@ impl Default for WorkspaceJson {
             coord_mode: CoordMode::default(),
             ref_: None,
             datum: None,
-            zones: OMap::new(),
-            nodes: OMap::new(),
-            edges: OMap::new(),
+            zones: BTreeMap::new(),
+            nodes: BTreeMap::new(),
+            edges: BTreeMap::new(),
             name: default_workspace_name(),
         }
     }
@@ -207,11 +210,11 @@ mod serde_rename {
         #[serde(default)]
         datum: Option<super::JsonGeo>,
         #[serde(default)]
-        zones: datapod::OMap<super::Uuid, super::ZoneJson>,
+        zones: std::collections::BTreeMap<super::Uuid, super::ZoneJson>,
         #[serde(default)]
-        nodes: datapod::OMap<super::Uuid, super::NodeJson>,
+        nodes: std::collections::BTreeMap<super::Uuid, super::NodeJson>,
         #[serde(default)]
-        edges: datapod::OMap<super::Uuid, super::EdgeJson>,
+        edges: std::collections::BTreeMap<super::Uuid, super::EdgeJson>,
         #[serde(default = "super::default_workspace_name")]
         name: String,
     }
@@ -268,9 +271,8 @@ pub fn to_json_point(p: Point, datum: Geo, mode: CoordMode) -> JsonPoint {
 }
 
 pub fn to_local_polygon(poly: &[JsonPoint], datum: Geo, mode: CoordMode) -> Polygon {
-    Polygon {
-        vertices: poly.iter().map(|p| to_local_point(*p, datum, mode)).collect::<Vec<_>>().into(),
-    }
+    let vertices: Vec<Point> = poly.iter().map(|p| to_local_point(*p, datum, mode)).collect();
+    Polygon::new(vertices)
 }
 
 pub fn to_json_polygon(poly: &Polygon, datum: Geo, mode: CoordMode) -> Vec<JsonPoint> {
