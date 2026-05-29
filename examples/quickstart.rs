@@ -3,7 +3,9 @@
 //!
 //! Ports `examples/quickstart.cpp` from the C++ zoneout library.
 
-use datapod::{Geo, OMap, Point, Polygon};
+use std::collections::BTreeMap;
+
+use datapod::{Geo, Point, Polygon};
 use graphix::vertex::EdgeType;
 use zoneout::{CoordMode, Workspace, ZoneBuilder};
 
@@ -57,13 +59,13 @@ fn main() -> zoneout::Result<()> {
     ws.set_coord_mode(CoordMode::Local);
 
     // Drop three waypoints — two inside field_a, one outside.
-    let a = ws.add_node(Point::new(15.0, 15.0, 0.0), OMap::new());
-    let b = ws.add_node(Point::new(25.0, 25.0, 0.0), OMap::new());
-    let c = ws.add_node(Point::new(70.0, 70.0, 0.0), OMap::new());
+    let a = ws.add_node(Point::new(15.0, 15.0, 0.0), BTreeMap::new());
+    let b = ws.add_node(Point::new(25.0, 25.0, 0.0), BTreeMap::new());
+    let c = ws.add_node(Point::new(70.0, 70.0, 0.0), BTreeMap::new());
 
     // Connect them.
-    ws.add_edge(a, b, 10.0, EdgeType::Undirected, OMap::new());
-    ws.add_edge(b, c, 50.0, EdgeType::Directed, OMap::new());
+    ws.add_edge(a, b, 10.0, EdgeType::Undirected, BTreeMap::new());
+    ws.add_edge(b, c, 50.0, EdgeType::Directed, BTreeMap::new());
 
     println!("workspace: {ws:?}");
     println!("root: {} ({} children)", ws.root_zone().name(), ws.root_zone().child_count());

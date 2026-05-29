@@ -6,7 +6,7 @@ use std::fs;
 use std::path::Path;
 
 
-use datapod::{Aabb, Geo, Point, Polygon};
+use datapod::{bytemuck, Aabb, Geo, Point, Polygon};
 use rastera::{GridData, Layer};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

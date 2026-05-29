@@ -9,7 +9,7 @@ use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 
-use datapod::{Geo, Point, Polygon};
+use datapod::{Geo, Polygon};
 use uuid::Uuid;
 use vectory::Crs;
 

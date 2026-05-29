@@ -6,7 +6,7 @@ use std::fs;
 use std::path::Path;
 
 
-use datapod::{Geo, Point, Polygon};
+use datapod::{Geo, Point};
 use graphix::vertex::{EdgeId, EdgeType, Graph, VertexId};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -821,7 +821,7 @@ fn default_edge_weight() -> f64 { 1.0 }
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+    use datapod::Polygon;
 
     fn square(size: f64, offset: (f64, f64)) -> Polygon {
         Polygon {
