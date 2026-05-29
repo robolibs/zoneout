@@ -1,6 +1,6 @@
 [package]
 name = "zoneout"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2024"
 description = "Rust hierarchical agricultural zone / workspace library for robotics"
 license = "MIT"
