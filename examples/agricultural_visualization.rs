@@ -18,8 +18,7 @@ fn square(size: f64, offset: (f64, f64)) -> Polygon {
             Point::new(offset.0 + size, offset.1, 0.0),
             Point::new(offset.0 + size, offset.1 + size, 0.0),
             Point::new(offset.0, offset.1 + size, 0.0),
-        ]
-        .into(),
+        ],
     }
 }
 
@@ -55,13 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // attach a small obstacle polygon inside field_a
     let obstacle = square(5.0, (20.0, 20.0));
     if let Some(fa) = farm.find_mut(field_a_id) {
-        fa.add_polygon_element(
-            obstacle,
-            "rock",
-            "obstacle",
-            "default",
-            Default::default(),
-        )?;
+        fa.add_polygon_element(obstacle, "rock", "obstacle", "default", Default::default())?;
     }
 
     // connect to rerun

@@ -27,10 +27,7 @@ pub fn load_workspace_json_file(path: impl AsRef<Path>) -> Result<Workspace> {
 
 /// Write a Workspace to a single `.json` file. Mirrors the C++
 /// `zoneout::write_workspace_json_file`.
-pub fn write_workspace_json_file(
-    path: impl AsRef<Path>,
-    workspace: &Workspace,
-) -> Result<()> {
+pub fn write_workspace_json_file(path: impl AsRef<Path>, workspace: &Workspace) -> Result<()> {
     let ws_json = workspace.to_wire();
     write_workspace_json(path, &ws_json)
 }

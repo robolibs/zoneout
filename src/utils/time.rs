@@ -20,7 +20,9 @@ pub struct LamportClock {
 
 impl LamportClock {
     pub const fn new() -> Self {
-        Self { counter: AtomicU64::new(0) }
+        Self {
+            counter: AtomicU64::new(0),
+        }
     }
 
     /// Increment and return the new value (local event).
@@ -33,12 +35,10 @@ impl LamportClock {
         let mut cur = self.counter.load(Ordering::Acquire);
         loop {
             let next = cur.max(remote) + 1;
-            match self.counter.compare_exchange_weak(
-                cur,
-                next,
-                Ordering::AcqRel,
-                Ordering::Acquire,
-            ) {
+            match self
+                .counter
+                .compare_exchange_weak(cur, next, Ordering::AcqRel, Ordering::Acquire)
+            {
                 Ok(_) => return next,
                 Err(v) => cur = v,
             }
@@ -71,16 +71,24 @@ impl Timestamp {
     }
 
     pub fn parse_iso8601(s: &str) -> Option<Self> {
-        DateTime::parse_from_rfc3339(s).ok().map(|dt| Self(dt.with_timezone(&Utc)))
+        DateTime::parse_from_rfc3339(s)
+            .ok()
+            .map(|dt| Self(dt.with_timezone(&Utc)))
     }
 
     pub fn elapsed_ms(&self) -> i64 {
         Utc::now().signed_duration_since(self.0).num_milliseconds()
     }
 
-    pub fn to_millis(&self) -> i64 { self.0.timestamp_millis() }
-    pub fn is_future(&self) -> bool { self.0 > Utc::now() }
-    pub fn is_past(&self) -> bool { self.0 < Utc::now() }
+    pub fn to_millis(&self) -> i64 {
+        self.0.timestamp_millis()
+    }
+    pub fn is_future(&self) -> bool {
+        self.0 > Utc::now()
+    }
+    pub fn is_past(&self) -> bool {
+        self.0 < Utc::now()
+    }
 }
 
 // -- duration helpers ------------------------------------------------------
@@ -91,33 +99,62 @@ impl Timestamp {
 pub struct Duration(pub ChronoDuration);
 
 impl Duration {
-    pub fn zero() -> Self { Self(ChronoDuration::zero()) }
+    pub fn zero() -> Self {
+        Self(ChronoDuration::zero())
+    }
 
-    pub fn from_millis(ms: i64) -> Self { Self(ChronoDuration::milliseconds(ms)) }
+    pub fn from_millis(ms: i64) -> Self {
+        Self(ChronoDuration::milliseconds(ms))
+    }
     pub fn from_seconds(seconds: f64) -> Self {
         Self(ChronoDuration::milliseconds((seconds * 1000.0) as i64))
     }
-    pub fn from_minutes(minutes: f64) -> Self { Self::from_seconds(minutes * 60.0) }
-    pub fn from_hours(hours: f64)     -> Self { Self::from_seconds(hours   * 3600.0) }
+    pub fn from_minutes(minutes: f64) -> Self {
+        Self::from_seconds(minutes * 60.0)
+    }
+    pub fn from_hours(hours: f64) -> Self {
+        Self::from_seconds(hours * 3600.0)
+    }
 
-    pub fn as_millis(self) -> i64 { self.0.num_milliseconds() }
-    pub fn as_seconds(self) -> f64 { self.0.num_milliseconds() as f64 / 1000.0 }
+    pub fn as_millis(self) -> i64 {
+        self.0.num_milliseconds()
+    }
+    pub fn as_seconds(self) -> f64 {
+        self.0.num_milliseconds() as f64 / 1000.0
+    }
 
     pub fn to_string_hms(self) -> String {
         let mut ms = self.0.num_milliseconds();
-        let sign = if ms < 0 { ms = -ms; "-" } else { "" };
-        let h =  ms / 3_600_000; ms %= 3_600_000;
-        let m =  ms /    60_000; ms %=    60_000;
-        let s =  ms /     1_000; ms %=     1_000;
-        if h > 0 { format!("{sign}{h}h {m}m {s}s") }
-        else if m > 0 { format!("{sign}{m}m {s}s") }
-        else if s > 0 { format!("{sign}{s}s {ms}ms") }
-        else { format!("{sign}{ms}ms") }
+        let sign = if ms < 0 {
+            ms = -ms;
+            "-"
+        } else {
+            ""
+        };
+        let h = ms / 3_600_000;
+        ms %= 3_600_000;
+        let m = ms / 60_000;
+        ms %= 60_000;
+        let s = ms / 1_000;
+        ms %= 1_000;
+        if h > 0 {
+            format!("{sign}{h}h {m}m {s}s")
+        } else if m > 0 {
+            format!("{sign}{m}m {s}s")
+        } else if s > 0 {
+            format!("{sign}{s}s {ms}ms")
+        } else {
+            format!("{sign}{ms}ms")
+        }
     }
 }
 
-pub fn add(t: Timestamp, d: Duration) -> Timestamp { Timestamp(t.0 + d.0) }
-pub fn sub(t: Timestamp, d: Duration) -> Timestamp { Timestamp(t.0 - d.0) }
+pub fn add(t: Timestamp, d: Duration) -> Timestamp {
+    Timestamp(t.0 + d.0)
+}
+pub fn sub(t: Timestamp, d: Duration) -> Timestamp {
+    Timestamp(t.0 - d.0)
+}
 
 pub fn time_since(t: Timestamp) -> Duration {
     Duration(Utc::now().signed_duration_since(t.0))
@@ -208,4 +245,3 @@ mod tests {
         assert!(!sync::timestamps_close(a, c));
     }
 }
-

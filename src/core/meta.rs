@@ -65,4 +65,3 @@ mod tests {
         assert_ne!(a.id, b.id);
     }
 }
-

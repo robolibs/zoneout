@@ -31,7 +31,11 @@ impl Default for Grid {
 }
 
 impl Grid {
-    pub fn new(name: impl Into<String>, kind: impl Into<String>, subtype: impl Into<String>) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        kind: impl Into<String>,
+        subtype: impl Into<String>,
+    ) -> Self {
         let mut g = Self {
             meta: Meta::new(name, kind).with_subtype(subtype),
             raster: RasterCollection {
@@ -73,11 +77,21 @@ impl Grid {
 
     // -- identity -----------------------------------------------------------
 
-    pub fn id(&self) -> Uuid { self.meta.id }
-    pub fn name(&self) -> &str { &self.meta.name }
-    pub fn kind(&self) -> &str { &self.meta.kind }
-    pub fn subtype(&self) -> &str { &self.meta.subtype }
-    pub fn meta(&self) -> &Meta { &self.meta }
+    pub fn id(&self) -> Uuid {
+        self.meta.id
+    }
+    pub fn name(&self) -> &str {
+        &self.meta.name
+    }
+    pub fn kind(&self) -> &str {
+        &self.meta.kind
+    }
+    pub fn subtype(&self) -> &str {
+        &self.meta.subtype
+    }
+    pub fn meta(&self) -> &Meta {
+        &self.meta
+    }
 
     pub fn set_id(&mut self, id: Uuid) {
         self.meta.id = id;
@@ -98,48 +112,77 @@ impl Grid {
 
     // -- spatial ------------------------------------------------------------
 
-    pub fn datum(&self) -> &Geo { &self.raster.datum }
+    pub fn datum(&self) -> &Geo {
+        &self.raster.datum
+    }
     pub fn set_datum(&mut self, datum: Geo) {
         self.raster.datum = datum;
-        for layer in &mut self.raster.layers { layer.datum = datum; }
+        for layer in &mut self.raster.layers {
+            layer.datum = datum;
+        }
     }
 
-    pub fn shift(&self) -> &Pose { &self.raster.shift }
+    pub fn shift(&self) -> &Pose {
+        &self.raster.shift
+    }
     pub fn set_shift(&mut self, shift: Pose) {
         self.raster.shift = shift;
-        for layer in &mut self.raster.layers { layer.shift = shift; }
+        for layer in &mut self.raster.layers {
+            layer.shift = shift;
+        }
     }
 
-    pub fn resolution(&self) -> f64 { self.raster.resolution }
+    pub fn resolution(&self) -> f64 {
+        self.raster.resolution
+    }
     pub fn set_resolution(&mut self, resolution: f64) {
         self.raster.resolution = resolution;
-        for layer in &mut self.raster.layers { layer.resolution = resolution; }
+        for layer in &mut self.raster.layers {
+            layer.resolution = resolution;
+        }
     }
 
     // -- raw access ---------------------------------------------------------
 
-    pub fn raster(&self) -> &RasterCollection { &self.raster }
-    pub fn raster_mut(&mut self) -> &mut RasterCollection { &mut self.raster }
+    pub fn raster(&self) -> &RasterCollection {
+        &self.raster
+    }
+    pub fn raster_mut(&mut self) -> &mut RasterCollection {
+        &mut self.raster
+    }
 
-    pub fn has_layers(&self) -> bool { !self.raster.layers.is_empty() }
-    pub fn layer_count(&self) -> usize { self.raster.layers.len() }
-    pub fn layers(&self) -> &[Layer] { &self.raster.layers }
-    pub fn layers_mut(&mut self) -> &mut Vec<Layer> { &mut self.raster.layers }
+    pub fn has_layers(&self) -> bool {
+        !self.raster.layers.is_empty()
+    }
+    pub fn layer_count(&self) -> usize {
+        self.raster.layers.len()
+    }
+    pub fn layers(&self) -> &[Layer] {
+        &self.raster.layers
+    }
+    pub fn layers_mut(&mut self) -> &mut Vec<Layer> {
+        &mut self.raster.layers
+    }
 
     pub fn get_layer(&self, index: usize) -> Result<&Layer> {
-        self.raster.layers.get(index).ok_or_else(|| Error::NotFound(format!("layer index {index}")))
+        self.raster
+            .layers
+            .get(index)
+            .ok_or_else(|| Error::NotFound(format!("layer index {index}")))
     }
 
     pub fn layer_by_name(&self, name: &str) -> Option<&Layer> {
-        self.raster.layers.iter().find(|l| {
-            l.get_global_properties().get(KEY_NAME).map(String::as_str) == Some(name)
-        })
+        self.raster
+            .layers
+            .iter()
+            .find(|l| l.get_global_properties().get(KEY_NAME).map(String::as_str) == Some(name))
     }
 
     pub fn layer_index_by_name(&self, name: &str) -> Option<usize> {
-        self.raster.layers.iter().position(|l| {
-            l.get_global_properties().get(KEY_NAME).map(String::as_str) == Some(name)
-        })
+        self.raster
+            .layers
+            .iter()
+            .position(|l| l.get_global_properties().get(KEY_NAME).map(String::as_str) == Some(name))
     }
 
     pub fn is_valid(&self) -> bool {
@@ -183,7 +226,9 @@ impl Grid {
         layer.resolution = self.raster.resolution;
         layer.set_global_property(KEY_NAME, &name.into());
         layer.set_global_property(KEY_TYPE, &kind.into());
-        for (k, v) in properties { layer.set_global_property(&k, &v); }
+        for (k, v) in properties {
+            layer.set_global_property(&k, &v);
+        }
         self.raster.layers.push(layer);
         self.sync_meta_to_layers();
         self.raster.layers.last_mut().expect("just pushed")
@@ -207,7 +252,9 @@ impl Grid {
         }
     }
 
-    pub fn clear_layers(&mut self) { self.raster.layers.clear(); }
+    pub fn clear_layers(&mut self) {
+        self.raster.layers.clear();
+    }
 
     // -- I/O ----------------------------------------------------------------
 
@@ -228,7 +275,10 @@ impl Grid {
     }
 
     pub fn from_raster(raster: RasterCollection) -> Self {
-        let mut g = Self { meta: Meta::default(), raster };
+        let mut g = Self {
+            meta: Meta::default(),
+            raster,
+        };
         g.extract_meta_from_layers();
         g
     }
@@ -248,14 +298,22 @@ impl Grid {
     }
 
     fn extract_meta_from_layers(&mut self) {
-        let Some(first) = self.raster.layers.first() else { return };
+        let Some(first) = self.raster.layers.first() else {
+            return;
+        };
         let props = first.get_global_properties();
         if let Some(id) = props.get(KEY_UUID).and_then(|s| Uuid::parse_str(s).ok()) {
             self.meta.id = id;
         }
-        if let Some(name) = props.get(KEY_NAME) { self.meta.name = name.clone(); }
-        if let Some(kind) = props.get(KEY_TYPE) { self.meta.kind = kind.clone(); }
-        if let Some(subtype) = props.get(KEY_SUBTYPE) { self.meta.subtype = subtype.clone(); }
+        if let Some(name) = props.get(KEY_NAME) {
+            self.meta.name = name.clone();
+        }
+        if let Some(kind) = props.get(KEY_TYPE) {
+            self.meta.kind = kind.clone();
+        }
+        if let Some(subtype) = props.get(KEY_SUBTYPE) {
+            self.meta.subtype = subtype.clone();
+        }
     }
 }
 

@@ -6,7 +6,6 @@
 
 use std::collections::BTreeMap;
 
-
 use concord::{Enu, to_enu, to_wgs_from_enu};
 use datapod::{Geo, Point, Polygon};
 use serde::{Deserialize, Serialize};
@@ -27,12 +26,18 @@ pub struct JsonGeo {
 
 impl From<datapod::Geo> for JsonGeo {
     fn from(g: datapod::Geo) -> Self {
-        Self { lat: g.latitude, lon: g.longitude, alt: g.altitude }
+        Self {
+            lat: g.latitude,
+            lon: g.longitude,
+            alt: g.altitude,
+        }
     }
 }
 
 impl From<JsonGeo> for datapod::Geo {
-    fn from(g: JsonGeo) -> Self { datapod::Geo::new(g.lat, g.lon, g.alt) }
+    fn from(g: JsonGeo) -> Self {
+        datapod::Geo::new(g.lat, g.lon, g.alt)
+    }
 }
 
 /// `global` (WGS84 lat/lon) vs `local` (ENU x/y) wire encoding.
@@ -44,7 +49,9 @@ pub enum CoordMode {
 }
 
 impl Default for CoordMode {
-    fn default() -> Self { Self::Global }
+    fn default() -> Self {
+        Self::Global
+    }
 }
 
 /// A 2D point in whichever frame `CoordMode` selects.
@@ -57,7 +64,9 @@ pub struct JsonPoint {
 }
 
 impl JsonPoint {
-    pub const fn new(lat: f64, lon: f64) -> Self { Self { lat, lon } }
+    pub const fn new(lat: f64, lon: f64) -> Self {
+        Self { lat, lon }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -100,9 +109,15 @@ impl Default for ZoneJson {
     }
 }
 
-fn default_zone_name() -> String { "Zone".into() }
-fn default_zone_type() -> String { "zone".into() }
-fn default_resolution() -> f64 { 1.0 }
+fn default_zone_name() -> String {
+    "Zone".into()
+}
+fn default_zone_type() -> String {
+    "zone".into()
+}
+fn default_resolution() -> f64 {
+    1.0
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NodeJson {
@@ -129,7 +144,9 @@ impl Default for NodeJson {
     }
 }
 
-fn default_node_name() -> String { "Node".into() }
+fn default_node_name() -> String {
+    "Node".into()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EdgeJson {
@@ -146,7 +163,9 @@ pub struct EdgeJson {
     pub properties: BTreeMap<String, String>,
 }
 
-fn default_weight() -> f64 { 1.0 }
+fn default_weight() -> f64 {
+    1.0
+}
 
 #[derive(Debug, Clone)]
 pub struct WorkspaceJson {
@@ -160,7 +179,9 @@ pub struct WorkspaceJson {
     pub name: String,
 }
 
-fn default_workspace_name() -> String { "Workspace".into() }
+fn default_workspace_name() -> String {
+    "Workspace".into()
+}
 
 impl Default for WorkspaceJson {
     fn default() -> Self {
@@ -181,16 +202,20 @@ impl Default for WorkspaceJson {
 // field at (de)serialisation time.
 mod serde_rename {
     use super::{JsonPoint, WorkspaceJson};
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
     use serde::ser::SerializeStruct;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
     impl Serialize for WorkspaceJson {
         fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
             let mut st = s.serialize_struct("WorkspaceJson", 8)?;
             st.serialize_field("root_zone_id", &self.root_zone_id)?;
             st.serialize_field("coord_mode", &self.coord_mode)?;
-            if let Some(r) = &self.ref_ { st.serialize_field("ref", r)?; }
-            if let Some(d) = &self.datum { st.serialize_field("datum", d)?; }
+            if let Some(r) = &self.ref_ {
+                st.serialize_field("ref", r)?;
+            }
+            if let Some(d) = &self.datum {
+                st.serialize_field("datum", d)?;
+            }
             st.serialize_field("zones", &self.zones)?;
             st.serialize_field("nodes", &self.nodes)?;
             st.serialize_field("edges", &self.edges)?;
@@ -239,7 +264,10 @@ mod serde_rename {
 // --- coord-mode-aware point helpers --------------------------------------
 
 pub fn valid_latlon(p: JsonPoint) -> bool {
-    p.lat.is_finite() && p.lon.is_finite() && (-90.0..=90.0).contains(&p.lat) && (-180.0..=180.0).contains(&p.lon)
+    p.lat.is_finite()
+        && p.lon.is_finite()
+        && (-90.0..=90.0).contains(&p.lat)
+        && (-180.0..=180.0).contains(&p.lon)
 }
 
 pub fn valid_local_xy(p: JsonPoint) -> bool {
@@ -265,18 +293,28 @@ pub fn to_json_point(p: Point, datum: Geo, mode: CoordMode) -> JsonPoint {
         CoordMode::Local => JsonPoint { lat: p.y, lon: p.x },
         CoordMode::Global => {
             let wgs = to_wgs_from_enu(Enu::new(p.x, p.y, p.z, datum));
-            JsonPoint { lat: wgs.latitude, lon: wgs.longitude }
+            JsonPoint {
+                lat: wgs.latitude,
+                lon: wgs.longitude,
+            }
         }
     }
 }
 
 pub fn to_local_polygon(poly: &[JsonPoint], datum: Geo, mode: CoordMode) -> Polygon {
-    let vertices: Vec<Point> = poly.iter().map(|p| to_local_point(*p, datum, mode)).collect();
+    let vertices: Vec<Point> = poly
+        .iter()
+        .map(|p| to_local_point(*p, datum, mode))
+        .collect();
     Polygon::new(vertices)
 }
 
 pub fn to_json_polygon(poly: &Polygon, datum: Geo, mode: CoordMode) -> Vec<JsonPoint> {
-    let mut out: Vec<JsonPoint> = poly.vertices.iter().map(|v| to_json_point(*v, datum, mode)).collect();
+    let mut out: Vec<JsonPoint> = poly
+        .vertices
+        .iter()
+        .map(|v| to_json_point(*v, datum, mode))
+        .collect();
     // C++ drops the closing duplicate vertex if the ring is closed.
     if out.len() > 1 && out.first() == out.last() {
         out.pop();
@@ -287,8 +325,12 @@ pub fn to_json_polygon(poly: &Polygon, datum: Geo, mode: CoordMode) -> Vec<JsonP
 // --- datum / root inference ----------------------------------------------
 
 pub fn infer_datum(ws: &WorkspaceJson) -> Result<Geo, String> {
-    if let Some(r) = ws.ref_ { return Ok(Geo::new(r.lat, r.lon, 0.0)); }
-    if let Some(d) = ws.datum { return Ok(Geo::new(d.lat, d.lon, d.alt)); }
+    if let Some(r) = ws.ref_ {
+        return Ok(Geo::new(r.lat, r.lon, 0.0));
+    }
+    if let Some(d) = ws.datum {
+        return Ok(Geo::new(d.lat, d.lon, d.alt));
+    }
     for zone in ws.zones.values() {
         if let Some(p) = zone.polygon_latlon.first() {
             return Ok(Geo::new(p.lat, p.lon, 0.0));
@@ -298,13 +340,17 @@ pub fn infer_datum(ws: &WorkspaceJson) -> Result<Geo, String> {
         return Ok(Geo::new(node.latlon.lat, node.latlon.lon, 0.0));
     }
     if ws.coord_mode == CoordMode::Local {
-        return Err("Cannot infer workspace datum for local coordinates without a ref point".into());
+        return Err(
+            "Cannot infer workspace datum for local coordinates without a ref point".into(),
+        );
     }
     Err("Cannot infer workspace datum from empty draft".into())
 }
 
 pub fn infer_root_zone_id(ws: &WorkspaceJson) -> Result<Uuid, String> {
-    if !ws.root_zone_id.is_nil() { return Ok(ws.root_zone_id); }
+    if !ws.root_zone_id.is_nil() {
+        return Ok(ws.root_zone_id);
+    }
     let mut candidate: Option<Uuid> = None;
     for (id, z) in &ws.zones {
         if z.parent_id.is_none() {
@@ -326,7 +372,10 @@ pub fn validate_workspace_json(ws: &WorkspaceJson) -> Vec<String> {
 
     for (id, zone) in &ws.zones {
         if *id != zone.id {
-            errors.push(format!("Zone map key '{id}' does not match zone.id '{}'", zone.id));
+            errors.push(format!(
+                "Zone map key '{id}' does not match zone.id '{}'",
+                zone.id
+            ));
         }
         if zone.polygon_latlon.len() < 3 {
             errors.push(format!("Zone '{id}' must have at least 3 polygon vertices"));
@@ -343,7 +392,9 @@ pub fn validate_workspace_json(ws: &WorkspaceJson) -> Vec<String> {
         }
         if let Some(parent_id) = zone.parent_id {
             match ws.zones.get(&parent_id) {
-                None => errors.push(format!("Zone '{id}' points to missing parent '{parent_id}'")),
+                None => errors.push(format!(
+                    "Zone '{id}' points to missing parent '{parent_id}'"
+                )),
                 Some(parent) => {
                     if !parent.child_ids.contains(id) {
                         errors.push(format!(
@@ -359,13 +410,18 @@ pub fn validate_workspace_json(ws: &WorkspaceJson) -> Vec<String> {
             }
         }
         if zone.grid_enabled && zone.grid_resolution <= 0.0 {
-            errors.push(format!("Zone '{id}' has grid_enabled but non-positive grid_resolution"));
+            errors.push(format!(
+                "Zone '{id}' has grid_enabled but non-positive grid_resolution"
+            ));
         }
     }
 
     for (id, node) in &ws.nodes {
         if *id != node.id {
-            errors.push(format!("Node map key '{id}' does not match node.id '{}'", node.id));
+            errors.push(format!(
+                "Node map key '{id}' does not match node.id '{}'",
+                node.id
+            ));
         }
         let node_valid = match ws.coord_mode {
             CoordMode::Local => valid_local_xy(node.latlon),
@@ -383,16 +439,25 @@ pub fn validate_workspace_json(ws: &WorkspaceJson) -> Vec<String> {
 
     for (id, edge) in &ws.edges {
         if *id != edge.id {
-            errors.push(format!("Edge map key '{id}' does not match edge.id '{}'", edge.id));
+            errors.push(format!(
+                "Edge map key '{id}' does not match edge.id '{}'",
+                edge.id
+            ));
         }
         if !edge.weight.is_finite() {
             errors.push(format!("Edge '{id}' has non-finite weight"));
         }
         if !ws.nodes.contains_key(&edge.source_id) {
-            errors.push(format!("Edge '{id}' references unknown source node '{}'", edge.source_id));
+            errors.push(format!(
+                "Edge '{id}' references unknown source node '{}'",
+                edge.source_id
+            ));
         }
         if !ws.nodes.contains_key(&edge.target_id) {
-            errors.push(format!("Edge '{id}' references unknown target node '{}'", edge.target_id));
+            errors.push(format!(
+                "Edge '{id}' references unknown target node '{}'",
+                edge.target_id
+            ));
         }
         for zone_id in &edge.zone_ids {
             if !ws.zones.contains_key(zone_id) {
@@ -408,9 +473,14 @@ pub fn validate_workspace_json(ws: &WorkspaceJson) -> Vec<String> {
 /// `require_valid_workspace_json`.
 pub fn require_valid_workspace_json(ws: &WorkspaceJson) -> Result<(), String> {
     let errors = validate_workspace_json(ws);
-    if errors.is_empty() { return Ok(()); }
+    if errors.is_empty() {
+        return Ok(());
+    }
     let mut msg = String::from("WorkspaceJson validation failed:");
-    for e in errors { msg.push_str("\n- "); msg.push_str(&e); }
+    for e in errors {
+        msg.push_str("\n- ");
+        msg.push_str(&e);
+    }
     Err(msg)
 }
 

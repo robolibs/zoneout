@@ -28,7 +28,9 @@ pub fn make_base_grid(
         return Err(Error::InvalidZone("make_base_grid: empty boundary".into()));
     }
     if resolution <= 0.0 {
-        return Err(Error::InvalidZone("make_base_grid: resolution must be > 0".into()));
+        return Err(Error::InvalidZone(
+            "make_base_grid: resolution must be > 0".into(),
+        ));
     }
 
     let aabb = padded_aabb(boundary, resolution * 2.0);
@@ -125,13 +127,15 @@ pub fn load_poly_grid(
             if poly.id() != g.id() {
                 return Err(Error::InvalidZone(format!(
                     "poly / grid UUID mismatch: {} vs {}",
-                    poly.id(), g.id()
+                    poly.id(),
+                    g.id()
                 )));
             }
             if poly.name() != g.name() {
                 return Err(Error::InvalidZone(format!(
                     "poly / grid name mismatch: '{}' vs '{}'",
-                    poly.name(), g.name()
+                    poly.name(),
+                    g.name()
                 )));
             }
         }
