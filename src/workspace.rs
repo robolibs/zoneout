@@ -5,7 +5,6 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
-
 use datapod::{Geo, Point};
 use graphix::vertex::{EdgeId, EdgeType, Graph, VertexId};
 use serde::{Deserialize, Serialize};
@@ -36,7 +35,9 @@ pub struct NodeData {
     pub properties: BTreeMap<String, String>,
 }
 
-fn default_node_name() -> String { "Node".into() }
+fn default_node_name() -> String {
+    "Node".into()
+}
 
 impl Default for NodeData {
     fn default() -> Self {
@@ -59,23 +60,40 @@ pub struct NodePosition {
 }
 
 impl From<Point> for NodePosition {
-    fn from(p: Point) -> Self { Self { x: p.x, y: p.y, z: p.z } }
+    fn from(p: Point) -> Self {
+        Self {
+            x: p.x,
+            y: p.y,
+            z: p.z,
+        }
+    }
 }
 
 impl From<NodePosition> for Point {
-    fn from(p: NodePosition) -> Self { Point::new(p.x, p.y, p.z) }
+    fn from(p: NodePosition) -> Self {
+        Point::new(p.x, p.y, p.z)
+    }
 }
 
 impl NodeData {
     pub fn new(position: Point) -> Self {
-        Self { position: position.into(), ..Self::default() }
+        Self {
+            position: position.into(),
+            ..Self::default()
+        }
     }
 
     pub fn with_id(id: Uuid, position: Point) -> Self {
-        Self { id, position: position.into(), ..Self::default() }
+        Self {
+            id,
+            position: position.into(),
+            ..Self::default()
+        }
     }
 
-    pub fn point(&self) -> Point { self.position.into() }
+    pub fn point(&self) -> Point {
+        self.position.into()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -138,19 +156,39 @@ impl Workspace {
 
     // -- identity & frame --------------------------------------------------
 
-    pub fn root_zone(&self) -> &Zone { &self.root_zone }
-    pub fn root_zone_mut(&mut self) -> &mut Zone { &mut self.root_zone }
+    pub fn root_zone(&self) -> &Zone {
+        &self.root_zone
+    }
+    pub fn root_zone_mut(&mut self) -> &mut Zone {
+        &mut self.root_zone
+    }
 
-    pub fn graph(&self) -> &Graph<NodeData, EdgeData> { &self.graph }
-    pub fn graph_mut(&mut self) -> &mut Graph<NodeData, EdgeData> { &mut self.graph }
+    pub fn graph(&self) -> &Graph<NodeData, EdgeData> {
+        &self.graph
+    }
+    pub fn graph_mut(&mut self) -> &mut Graph<NodeData, EdgeData> {
+        &mut self.graph
+    }
 
-    pub fn datum(&self) -> Option<&Geo> { self.datum.as_ref() }
-    pub fn set_datum(&mut self, datum: Geo) { self.datum = Some(datum); }
-    pub fn clear_datum(&mut self) { self.datum = None; }
-    pub fn has_datum(&self) -> bool { self.datum.is_some() }
+    pub fn datum(&self) -> Option<&Geo> {
+        self.datum.as_ref()
+    }
+    pub fn set_datum(&mut self, datum: Geo) {
+        self.datum = Some(datum);
+    }
+    pub fn clear_datum(&mut self) {
+        self.datum = None;
+    }
+    pub fn has_datum(&self) -> bool {
+        self.datum.is_some()
+    }
 
-    pub fn coord_mode(&self) -> CoordMode { self.coord_mode }
-    pub fn set_coord_mode(&mut self, mode: CoordMode) { self.coord_mode = mode; }
+    pub fn coord_mode(&self) -> CoordMode {
+        self.coord_mode
+    }
+    pub fn set_coord_mode(&mut self, mode: CoordMode) {
+        self.coord_mode = mode;
+    }
 
     // -- zone queries ------------------------------------------------------
 
@@ -164,8 +202,12 @@ impl Workspace {
     /// Every zone in the tree whose boundary contains the point.
     pub fn zones_containing(&self, point: Point) -> Vec<&Zone> {
         fn walk<'a>(z: &'a Zone, p: Point, out: &mut Vec<&'a Zone>) {
-            if z.contains(p) { out.push(z); }
-            for c in z.children() { walk(c, p, out); }
+            if z.contains(p) {
+                out.push(z);
+            }
+            for c in z.children() {
+                walk(c, p, out);
+            }
         }
         let mut out = Vec::new();
         walk(&self.root_zone, point, &mut out);
@@ -173,7 +215,10 @@ impl Workspace {
     }
 
     fn zone_ids_containing(&self, point: Point) -> Vec<Uuid> {
-        self.zones_containing(point).into_iter().map(|z| z.id()).collect()
+        self.zones_containing(point)
+            .into_iter()
+            .map(|z| z.id())
+            .collect()
     }
 
     // -- graph mutation ----------------------------------------------------
@@ -212,7 +257,11 @@ impl Workspace {
         edge_type: EdgeType,
         properties: BTreeMap<String, String>,
     ) -> EdgeId {
-        let edge = EdgeData { id: Uuid::new_v4(), zone_ids: Vec::new(), properties };
+        let edge = EdgeData {
+            id: Uuid::new_v4(),
+            zone_ids: Vec::new(),
+            properties,
+        };
         self.graph.add_edge(source, target, weight, edge_type, edge)
     }
 
@@ -243,7 +292,9 @@ impl Workspace {
     pub fn find_node(&self, node_id: Uuid) -> Option<VertexId<NodeData>> {
         for vid in self.graph.vertices() {
             if let Some(n) = self.graph.get_vertex(vid) {
-                if n.id == node_id { return Some(vid); }
+                if n.id == node_id {
+                    return Some(vid);
+                }
             }
         }
         None
@@ -255,7 +306,9 @@ impl Workspace {
         for vid in self.graph.vertices() {
             for eid in self.graph.out_edges(vid) {
                 if let Some(p) = self.graph.edge_property(eid) {
-                    if p.id == edge_id { return Some(eid); }
+                    if p.id == edge_id {
+                        return Some(eid);
+                    }
                 }
             }
         }
@@ -266,7 +319,9 @@ impl Workspace {
 
     /// Recompute a single node's `zone_ids` from its current position.
     pub fn refresh_node_zone_membership(&mut self, vid: VertexId<NodeData>) {
-        let Some(node) = self.graph.get_vertex(vid) else { return };
+        let Some(node) = self.graph.get_vertex(vid) else {
+            return;
+        };
         let new_ids = self.zone_ids_containing(node.point());
         if let Some(m) = self.graph.get_vertex_mut(vid) {
             m.zone_ids = new_ids;
@@ -279,11 +334,21 @@ impl Workspace {
         let (Some(src), Some(tgt)) = (self.graph.source(eid), self.graph.target(eid)) else {
             return;
         };
-        let src_zones = self.graph.get_vertex(src).map(|n| n.zone_ids.clone()).unwrap_or_default();
-        let tgt_zones = self.graph.get_vertex(tgt).map(|n| n.zone_ids.clone()).unwrap_or_default();
+        let src_zones = self
+            .graph
+            .get_vertex(src)
+            .map(|n| n.zone_ids.clone())
+            .unwrap_or_default();
+        let tgt_zones = self
+            .graph
+            .get_vertex(tgt)
+            .map(|n| n.zone_ids.clone())
+            .unwrap_or_default();
         let mut merged: Vec<Uuid> = src_zones;
         for z in tgt_zones {
-            if !merged.contains(&z) { merged.push(z); }
+            if !merged.contains(&z) {
+                merged.push(z);
+            }
         }
         if let Some(edge) = self.graph.edge_property_mut(eid) {
             edge.zone_ids = merged;
@@ -298,10 +363,7 @@ impl Workspace {
             self.refresh_node_zone_membership(*vid);
         }
         self.refresh_zone_node_membership();
-        let all_edges: Vec<EdgeId> = vids
-            .iter()
-            .flat_map(|v| self.graph.out_edges(*v))
-            .collect();
+        let all_edges: Vec<EdgeId> = vids.iter().flat_map(|v| self.graph.out_edges(*v)).collect();
         for eid in all_edges {
             self.refresh_edge_zone_membership(eid);
         }
@@ -313,7 +375,9 @@ impl Workspace {
         self.root_zone.visit_clear_node_ids();
         let vids = self.graph.vertices();
         for vid in vids {
-            let Some(node) = self.graph.get_vertex(vid) else { continue };
+            let Some(node) = self.graph.get_vertex(vid) else {
+                continue;
+            };
             let node_id = node.id;
             let zone_ids = node.zone_ids.clone();
             for zid in zone_ids {
@@ -367,7 +431,8 @@ impl Workspace {
         let manifest_path = dir.join(FILE_WORKSPACE_JSON);
         if !manifest_path.exists() {
             return Err(Error::NotFound(format!(
-                "workspace.json not found in {}", dir.display()
+                "workspace.json not found in {}",
+                dir.display()
             )));
         }
         let bytes = fs::read(&manifest_path).map_err(|e| Error::io(&manifest_path, e))?;
@@ -376,7 +441,8 @@ impl Workspace {
         let zones_dir = dir.join(DIR_ZONES);
         if !zones_dir.is_dir() {
             return Err(Error::NotFound(format!(
-                "no zones/ directory in {}", dir.display()
+                "no zones/ directory in {}",
+                dir.display()
             )));
         }
         let root = Zone::load(zones_dir)?;
@@ -415,18 +481,33 @@ impl Workspace {
         }
 
         let mut edges = Vec::new();
-        let mut seen_edge_ids: std::collections::HashSet<Uuid> =
-            std::collections::HashSet::new();
+        let mut seen_edge_ids: std::collections::HashSet<Uuid> = std::collections::HashSet::new();
         for vid in &vertices {
             for eid in self.graph.out_edges(*vid) {
-                let Some(prop) = self.graph.edge_property(eid) else { continue };
-                if !seen_edge_ids.insert(prop.id) { continue; }
-                let Some(src) = self.graph.source(eid) else { continue };
-                let Some(tgt) = self.graph.target(eid) else { continue };
-                let Some(src_node) = self.graph.get_vertex(src) else { continue };
-                let Some(tgt_node) = self.graph.get_vertex(tgt) else { continue };
-                let Some(et) = self.graph.get_edge_type(eid) else { continue };
-                let Some(w) = self.graph.get_weight(eid) else { continue };
+                let Some(prop) = self.graph.edge_property(eid) else {
+                    continue;
+                };
+                if !seen_edge_ids.insert(prop.id) {
+                    continue;
+                }
+                let Some(src) = self.graph.source(eid) else {
+                    continue;
+                };
+                let Some(tgt) = self.graph.target(eid) else {
+                    continue;
+                };
+                let Some(src_node) = self.graph.get_vertex(src) else {
+                    continue;
+                };
+                let Some(tgt_node) = self.graph.get_vertex(tgt) else {
+                    continue;
+                };
+                let Some(et) = self.graph.get_edge_type(eid) else {
+                    continue;
+                };
+                let Some(w) = self.graph.get_weight(eid) else {
+                    continue;
+                };
                 edges.push(GraphEdgeJson {
                     id: prop.id,
                     source_id: src_node.id,
@@ -484,7 +565,8 @@ impl Workspace {
 
         let mut ws = Self::new(root);
         ws.coord_mode = ws_json.coord_mode;
-        ws.datum = ws_json.ref_
+        ws.datum = ws_json
+            .ref_
             .map(|p| Geo::new(p.lat, p.lon, 0.0))
             .or_else(|| ws_json.datum.map(Geo::from));
 
@@ -510,7 +592,9 @@ impl Workspace {
             };
             node.zone_ids.extend(computed);
             for id in &draft.zone_ids {
-                if !node.zone_ids.contains(id) { node.zone_ids.push(*id); }
+                if !node.zone_ids.contains(id) {
+                    node.zone_ids.push(*id);
+                }
             }
             let vid = ws.graph.add_vertex(node);
             node_vid_by_node_id.insert(draft.id, vid);
@@ -523,10 +607,15 @@ impl Workspace {
                 node_vid_by_node_id.get(&draft.target_id),
             ) else {
                 return Err(Error::InvalidZone(format!(
-                    "Edge '{}' references unknown node ids", draft.id
+                    "Edge '{}' references unknown node ids",
+                    draft.id
                 )));
             };
-            let et = if draft.directed { EdgeType::Directed } else { EdgeType::Undirected };
+            let et = if draft.directed {
+                EdgeType::Directed
+            } else {
+                EdgeType::Undirected
+            };
             let edge = EdgeData {
                 id: draft.id,
                 zone_ids: Vec::new(),
@@ -535,11 +624,25 @@ impl Workspace {
             let eid = ws.graph.add_edge(s, t, draft.weight, et, edge);
 
             // Merge zone_ids from endpoints + manual list
-            let s_zones = ws.graph.get_vertex(s).map(|n| n.zone_ids.clone()).unwrap_or_default();
-            let t_zones = ws.graph.get_vertex(t).map(|n| n.zone_ids.clone()).unwrap_or_default();
+            let s_zones = ws
+                .graph
+                .get_vertex(s)
+                .map(|n| n.zone_ids.clone())
+                .unwrap_or_default();
+            let t_zones = ws
+                .graph
+                .get_vertex(t)
+                .map(|n| n.zone_ids.clone())
+                .unwrap_or_default();
             let mut merged: Vec<Uuid> = Vec::new();
-            for z in s_zones.into_iter().chain(t_zones).chain(draft.zone_ids.iter().copied()) {
-                if !merged.contains(&z) { merged.push(z); }
+            for z in s_zones
+                .into_iter()
+                .chain(t_zones)
+                .chain(draft.zone_ids.iter().copied())
+            {
+                if !merged.contains(&z) {
+                    merged.push(z);
+                }
             }
             if let Some(ep) = ws.graph.edge_property_mut(eid) {
                 ep.zone_ids = merged;
@@ -562,15 +665,11 @@ impl Workspace {
     /// Flatten a `Workspace` to a `WorkspaceJson` draft. Mirrors C++
     /// `zoneout::from_workspace`.
     pub fn to_wire(&self) -> WorkspaceJson {
-        let datum = self
-            .datum
-            .unwrap_or_else(|| *self.root_zone.plot().datum());
+        let datum = self.datum.unwrap_or_else(|| *self.root_zone.plot().datum());
         let mut ws_json = WorkspaceJson {
             root_zone_id: self.root_zone.id(),
             coord_mode: self.coord_mode,
-            ref_: self
-                .datum
-                .map(|d| JsonPoint::new(d.latitude, d.longitude)),
+            ref_: self.datum.map(|d| JsonPoint::new(d.latitude, d.longitude)),
             datum: Some(JsonGeo::from(datum)),
             zones: BTreeMap::new(),
             nodes: BTreeMap::new(),
@@ -581,7 +680,9 @@ impl Workspace {
 
         // Nodes
         for vid in self.graph.vertices() {
-            let Some(n) = self.graph.get_vertex(vid) else { continue };
+            let Some(n) = self.graph.get_vertex(vid) else {
+                continue;
+            };
             let mut props = n.properties.clone();
             props.entry("name".into()).or_insert_with(|| n.name.clone());
             let latlon = wire::to_json_point(n.point(), datum, self.coord_mode);
@@ -601,13 +702,28 @@ impl Workspace {
         let mut seen_edges: std::collections::HashSet<Uuid> = std::collections::HashSet::new();
         for vid in self.graph.vertices() {
             for eid in self.graph.out_edges(vid) {
-                let Some(prop) = self.graph.edge_property(eid) else { continue };
-                if !seen_edges.insert(prop.id) { continue; }
-                let (Some(src), Some(tgt)) = (self.graph.source(eid), self.graph.target(eid)) else { continue };
-                let Some(src_n) = self.graph.get_vertex(src) else { continue };
-                let Some(tgt_n) = self.graph.get_vertex(tgt) else { continue };
-                let Some(et) = self.graph.get_edge_type(eid) else { continue };
-                let Some(w) = self.graph.get_weight(eid) else { continue };
+                let Some(prop) = self.graph.edge_property(eid) else {
+                    continue;
+                };
+                if !seen_edges.insert(prop.id) {
+                    continue;
+                }
+                let (Some(src), Some(tgt)) = (self.graph.source(eid), self.graph.target(eid))
+                else {
+                    continue;
+                };
+                let Some(src_n) = self.graph.get_vertex(src) else {
+                    continue;
+                };
+                let Some(tgt_n) = self.graph.get_vertex(tgt) else {
+                    continue;
+                };
+                let Some(et) = self.graph.get_edge_type(eid) else {
+                    continue;
+                };
+                let Some(w) = self.graph.get_weight(eid) else {
+                    continue;
+                };
                 ws_json.edges.insert(
                     prop.id,
                     EdgeJson {
@@ -654,9 +770,19 @@ impl Workspace {
         }
         for e in snap.edges {
             let (Some(&s), Some(&t)) = (by_node_id.get(&e.source_id), by_node_id.get(&e.target_id))
-            else { continue };
-            let ed = EdgeData { id: e.id, zone_ids: e.zone_ids, properties: e.properties };
-            let et = if e.directed { EdgeType::Directed } else { EdgeType::Undirected };
+            else {
+                continue;
+            };
+            let ed = EdgeData {
+                id: e.id,
+                zone_ids: e.zone_ids,
+                properties: e.properties,
+            };
+            let et = if e.directed {
+                EdgeType::Directed
+            } else {
+                EdgeType::Undirected
+            };
             self.graph.add_edge(s, t, e.weight, et, ed);
         }
     }
@@ -665,8 +791,12 @@ impl Workspace {
 // --- wire conversion helpers ---------------------------------------------
 
 fn walk_zones(z: &Zone, p: Point, out: &mut Vec<Uuid>) {
-    if z.contains(p) { out.push(z.id()); }
-    for c in z.children() { walk_zones(c, p, out); }
+    if z.contains(p) {
+        out.push(z.id());
+    }
+    for c in z.children() {
+        walk_zones(c, p, out);
+    }
 }
 
 fn build_zone_tree(
@@ -814,7 +944,9 @@ struct GraphEdgeJson {
     properties: BTreeMap<String, String>,
 }
 
-fn default_edge_weight() -> f64 { 1.0 }
+fn default_edge_weight() -> f64 {
+    1.0
+}
 
 // --- tests ----------------------------------------------------------------
 
@@ -959,15 +1091,27 @@ mod tests {
 
         // Verify: every zone produces its own vector.geojson + raster.tiff.
         let root = dir.join("zones");
-        assert!(root.join("vector.geojson").is_file(), "root vector.geojson missing");
-        assert!(root.join("raster.tiff").is_file(),   "root raster.tiff missing");
-        assert!(root.join("zone.json").is_file(),     "root zone.json missing");
+        assert!(
+            root.join("vector.geojson").is_file(),
+            "root vector.geojson missing"
+        );
+        assert!(
+            root.join("raster.tiff").is_file(),
+            "root raster.tiff missing"
+        );
+        assert!(root.join("zone.json").is_file(), "root zone.json missing");
 
         for i in 0..2 {
             let c = root.join(format!("child_{i}"));
-            assert!(c.join("vector.geojson").is_file(), "child {i} vector.geojson missing");
-            assert!(c.join("raster.tiff").is_file(),   "child {i} raster.tiff missing");
-            assert!(c.join("zone.json").is_file(),     "child {i} zone.json missing");
+            assert!(
+                c.join("vector.geojson").is_file(),
+                "child {i} vector.geojson missing"
+            );
+            assert!(
+                c.join("raster.tiff").is_file(),
+                "child {i} raster.tiff missing"
+            );
+            assert!(c.join("zone.json").is_file(), "child {i} zone.json missing");
         }
 
         assert!(dir.join("workspace.json").is_file());
@@ -1096,7 +1240,10 @@ mod tests {
         ];
         ws.zones.insert(zid, zone);
         let errs = wire::validate_workspace_json(&ws);
-        assert!(errs.iter().any(|e| e.contains("at least 3 polygon vertices")));
+        assert!(
+            errs.iter()
+                .any(|e| e.contains("at least 3 polygon vertices"))
+        );
     }
 
     #[test]

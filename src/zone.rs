@@ -5,8 +5,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
-
-use datapod::{bytemuck, Aabb, Geo, Point, Polygon};
+use datapod::{Aabb, Geo, Point, Polygon, bytemuck};
 use rastera::{GridData, Layer};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -88,9 +87,15 @@ impl Zone {
 
     // -- identity -----------------------------------------------------------
 
-    pub fn id(&self) -> Uuid { self.id }
-    pub fn name(&self) -> &str { &self.name }
-    pub fn kind(&self) -> &str { &self.kind }
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+    pub fn kind(&self) -> &str {
+        &self.kind
+    }
 
     pub fn set_id(&mut self, id: Uuid) {
         self.id = id;
@@ -108,49 +113,88 @@ impl Zone {
         self.plot_data.set_datum(datum);
     }
 
-    pub fn datum(&self) -> &Geo { self.plot_data.datum() }
-    pub fn plot(&self) -> &Plot { &self.plot_data }
-    pub fn plot_mut(&mut self) -> &mut Plot { &mut self.plot_data }
-    pub fn poly(&self) -> &crate::poly::Poly { self.plot_data.poly() }
-    pub fn has_grid(&self) -> bool { self.plot_data.has_grid() }
+    pub fn datum(&self) -> &Geo {
+        self.plot_data.datum()
+    }
+    pub fn plot(&self) -> &Plot {
+        &self.plot_data
+    }
+    pub fn plot_mut(&mut self) -> &mut Plot {
+        &mut self.plot_data
+    }
+    pub fn poly(&self) -> &crate::poly::Poly {
+        self.plot_data.poly()
+    }
+    pub fn has_grid(&self) -> bool {
+        self.plot_data.has_grid()
+    }
 
     // -- properties ---------------------------------------------------------
 
     pub fn set_property(&mut self, key: impl Into<String>, value: impl Into<String>) {
         self.properties.insert(key.into(), value.into());
     }
-    pub fn property(&self, key: &str) -> Option<&String> { self.properties.get(key) }
-    pub fn properties(&self) -> &BTreeMap<String, String> { &self.properties }
-    pub fn properties_mut(&mut self) -> &mut BTreeMap<String, String> { &mut self.properties }
-    pub fn has_property(&self, key: &str) -> bool { self.properties.contains_key(key) }
+    pub fn property(&self, key: &str) -> Option<&String> {
+        self.properties.get(key)
+    }
+    pub fn properties(&self) -> &BTreeMap<String, String> {
+        &self.properties
+    }
+    pub fn properties_mut(&mut self) -> &mut BTreeMap<String, String> {
+        &mut self.properties
+    }
+    pub fn has_property(&self, key: &str) -> bool {
+        self.properties.contains_key(key)
+    }
     pub fn remove_property(&mut self, key: &str) -> bool {
         self.properties.remove(key).is_some()
     }
-    pub fn clear_properties(&mut self) { self.properties.clear(); }
+    pub fn clear_properties(&mut self) {
+        self.properties.clear();
+    }
 
     // -- node ids -----------------------------------------------------------
 
-    pub fn node_ids(&self) -> &[Uuid] { &self.node_ids }
-    pub fn node_ids_mut(&mut self) -> &mut Vec<Uuid> { &mut self.node_ids }
-    pub fn set_node_ids(&mut self, ids: Vec<Uuid>) { self.node_ids = ids; }
-    pub fn clear_node_ids(&mut self) { self.node_ids.clear(); }
+    pub fn node_ids(&self) -> &[Uuid] {
+        &self.node_ids
+    }
+    pub fn node_ids_mut(&mut self) -> &mut Vec<Uuid> {
+        &mut self.node_ids
+    }
+    pub fn set_node_ids(&mut self, ids: Vec<Uuid>) {
+        self.node_ids = ids;
+    }
+    pub fn clear_node_ids(&mut self) {
+        self.node_ids.clear();
+    }
 
     /// Recursively clear `node_ids` on this zone and every descendant.
     pub fn visit_clear_node_ids(&mut self) {
         self.node_ids.clear();
-        for c in &mut self.children { c.visit_clear_node_ids(); }
+        for c in &mut self.children {
+            c.visit_clear_node_ids();
+        }
     }
 
     // -- children / tree ---------------------------------------------------
 
-    pub fn children(&self) -> &[Zone] { &self.children }
-    pub fn children_mut(&mut self) -> &mut Vec<Zone> { &mut self.children }
-    pub fn child_count(&self) -> usize { self.children.len() }
+    pub fn children(&self) -> &[Zone] {
+        &self.children
+    }
+    pub fn children_mut(&mut self) -> &mut Vec<Zone> {
+        &mut self.children
+    }
+    pub fn child_count(&self) -> usize {
+        self.children.len()
+    }
 
     pub fn add_child(&mut self, child: Zone) -> Result<()> {
         self.validate_child_boundary(&child)?;
         if self.find(child.id).is_some() {
-            return Err(Error::InvalidZone(format!("duplicate child id: {}", child.id)));
+            return Err(Error::InvalidZone(format!(
+                "duplicate child id: {}",
+                child.id
+            )));
         }
         self.children.push(child);
         Ok(())
@@ -173,25 +217,37 @@ impl Zone {
     }
 
     pub fn find(&self, zone_id: Uuid) -> Option<&Zone> {
-        if self.id == zone_id { return Some(self); }
+        if self.id == zone_id {
+            return Some(self);
+        }
         for c in &self.children {
-            if let Some(z) = c.find(zone_id) { return Some(z); }
+            if let Some(z) = c.find(zone_id) {
+                return Some(z);
+            }
         }
         None
     }
 
     pub fn find_mut(&mut self, zone_id: Uuid) -> Option<&mut Zone> {
-        if self.id == zone_id { return Some(self); }
+        if self.id == zone_id {
+            return Some(self);
+        }
         for c in &mut self.children {
-            if let Some(z) = c.find_mut(zone_id) { return Some(z); }
+            if let Some(z) = c.find_mut(zone_id) {
+                return Some(z);
+            }
         }
         None
     }
 
     pub fn find_by_name(&self, name: &str) -> Option<&Zone> {
-        if self.name == name { return Some(self); }
+        if self.name == name {
+            return Some(self);
+        }
         for c in &self.children {
-            if let Some(z) = c.find_by_name(name) { return Some(z); }
+            if let Some(z) = c.find_by_name(name) {
+                return Some(z);
+            }
         }
         None
     }
@@ -213,18 +269,26 @@ impl Zone {
     }
 
     fn depth_of_rec(&self, zone_id: Uuid, depth: usize) -> Option<usize> {
-        if self.id == zone_id { return Some(depth); }
+        if self.id == zone_id {
+            return Some(depth);
+        }
         for c in &self.children {
-            if let Some(d) = c.depth_of_rec(zone_id, depth + 1) { return Some(d); }
+            if let Some(d) = c.depth_of_rec(zone_id, depth + 1) {
+                return Some(d);
+            }
         }
         None
     }
 
     // -- spatial ------------------------------------------------------------
 
-    pub fn contains(&self, point: Point) -> bool { self.plot_data.poly().contains(point) }
+    pub fn contains(&self, point: Point) -> bool {
+        self.plot_data.poly().contains(point)
+    }
 
-    pub fn bounding_box(&self) -> Option<Aabb> { self.plot_data.poly().bounding_box() }
+    pub fn bounding_box(&self) -> Option<Aabb> {
+        self.plot_data.poly().bounding_box()
+    }
 
     pub fn polygon_elements_in_area(&self, bbox: Aabb) -> Vec<PolygonElement> {
         self.plot_data
@@ -266,7 +330,9 @@ impl Zone {
             .collect()
     }
 
-    pub fn is_valid(&self) -> bool { self.plot_data.is_valid() }
+    pub fn is_valid(&self) -> bool {
+        self.plot_data.is_valid()
+    }
 
     /// Human-readable summary of the grid (layer count, first layer size).
     pub fn raster_info(&self) -> String {
@@ -274,9 +340,12 @@ impl Zone {
             Ok(g) if g.has_layers() => {
                 let n = g.layer_count();
                 if let Some(first) = g.layers().first() {
-                    format!("Raster size: {}x{} ({n} layer{})",
-                        first.width(), first.height(),
-                        if n == 1 { "" } else { "s" })
+                    format!(
+                        "Raster size: {}x{} ({n} layer{})",
+                        first.width(),
+                        first.height(),
+                        if n == 1 { "" } else { "s" }
+                    )
                 } else {
                     format!("Raster: {n} layers")
                 }
@@ -370,14 +439,9 @@ impl Zone {
         }
 
         let id = Uuid::new_v4();
-        self.plot_data.poly_mut().add_polygon_element(
-            id,
-            name,
-            kind,
-            subtype,
-            geometry,
-            properties,
-        );
+        self.plot_data
+            .poly_mut()
+            .add_polygon_element(id, name, kind, subtype, geometry, properties);
         Ok(id)
     }
 
@@ -421,7 +485,9 @@ impl Zone {
         let mut index = 0;
         loop {
             let child_dir = dir.join(format!("{DIR_CHILD_PREFIX}{index}"));
-            if !child_dir.is_dir() { break; }
+            if !child_dir.is_dir() {
+                break;
+            }
             let child = Zone::load(&child_dir)?;
             zone.children.push(child);
             index += 1;
@@ -451,9 +517,13 @@ impl Zone {
 
     fn validate_child_boundary(&self, child: &Zone) -> Result<()> {
         let parent_poly = self.plot_data.poly();
-        if !parent_poly.has_field_boundary() { return Ok(()); }
+        if !parent_poly.has_field_boundary() {
+            return Ok(());
+        }
         let child_poly = child.plot_data.poly();
-        if !child_poly.has_field_boundary() { return Ok(()); }
+        if !child_poly.has_field_boundary() {
+            return Ok(());
+        }
         for v in child_poly.field_boundary().iter() {
             if !parent_poly.contains(*v) {
                 return Err(Error::BoundaryViolation);
@@ -560,23 +630,50 @@ pub struct ZoneBuilder {
     resolution: f64,
     initial_grid: Option<Grid>,
     properties: BTreeMap<String, String>,
-    raster_layers: Vec<(GridData, String, String, std::collections::HashMap<String, String>)>,
+    raster_layers: Vec<(
+        GridData,
+        String,
+        String,
+        std::collections::HashMap<String, String>,
+    )>,
     polygon_elements: Vec<(Polygon, String, String, String, BTreeMap<String, String>)>,
 }
 
 impl ZoneBuilder {
     pub fn new() -> Self {
-        Self { resolution: 1.0, ..Self::default() }
+        Self {
+            resolution: 1.0,
+            ..Self::default()
+        }
     }
 
-    pub fn with_name(mut self, n: impl Into<String>) -> Self { self.name = Some(n.into()); self }
-    pub fn with_kind(mut self, k: impl Into<String>) -> Self { self.kind = Some(k.into()); self }
-    pub fn with_boundary(mut self, b: Polygon) -> Self { self.boundary = Some(b); self }
-    pub fn with_datum(mut self, d: Geo) -> Self { self.datum = Some(d); self }
-    pub fn with_resolution(mut self, r: f64) -> Self { self.resolution = r; self }
-    pub fn with_initial_grid(mut self, g: Grid) -> Self { self.initial_grid = Some(g); self }
+    pub fn with_name(mut self, n: impl Into<String>) -> Self {
+        self.name = Some(n.into());
+        self
+    }
+    pub fn with_kind(mut self, k: impl Into<String>) -> Self {
+        self.kind = Some(k.into());
+        self
+    }
+    pub fn with_boundary(mut self, b: Polygon) -> Self {
+        self.boundary = Some(b);
+        self
+    }
+    pub fn with_datum(mut self, d: Geo) -> Self {
+        self.datum = Some(d);
+        self
+    }
+    pub fn with_resolution(mut self, r: f64) -> Self {
+        self.resolution = r;
+        self
+    }
+    pub fn with_initial_grid(mut self, g: Grid) -> Self {
+        self.initial_grid = Some(g);
+        self
+    }
     pub fn with_property(mut self, k: impl Into<String>, v: impl Into<String>) -> Self {
-        self.properties.insert(k.into(), v.into()); self
+        self.properties.insert(k.into(), v.into());
+        self
     }
     pub fn with_raster_layer(
         mut self,
@@ -585,7 +682,8 @@ impl ZoneBuilder {
         kind: impl Into<String>,
         props: std::collections::HashMap<String, String>,
     ) -> Self {
-        self.raster_layers.push((data, name.into(), kind.into(), props));
+        self.raster_layers
+            .push((data, name.into(), kind.into(), props));
         self
     }
     pub fn with_polygon_element(
@@ -596,19 +694,30 @@ impl ZoneBuilder {
         subtype: impl Into<String>,
         props: BTreeMap<String, String>,
     ) -> Self {
-        self.polygon_elements.push((geom, name.into(), kind.into(), subtype.into(), props));
+        self.polygon_elements
+            .push((geom, name.into(), kind.into(), subtype.into(), props));
         self
     }
 
     pub fn validation_error(&self) -> Option<String> {
-        if self.name.is_none() { return Some("name is required".into()); }
-        if self.kind.is_none() { return Some("type is required".into()); }
-        if self.boundary.is_none() { return Some("boundary is required".into()); }
-        if self.datum.is_none() { return Some("datum is required".into()); }
+        if self.name.is_none() {
+            return Some("name is required".into());
+        }
+        if self.kind.is_none() {
+            return Some("type is required".into());
+        }
+        if self.boundary.is_none() {
+            return Some("boundary is required".into());
+        }
+        if self.datum.is_none() {
+            return Some("datum is required".into());
+        }
         None
     }
 
-    pub fn is_valid(&self) -> bool { self.validation_error().is_none() }
+    pub fn is_valid(&self) -> bool {
+        self.validation_error().is_none()
+    }
 
     pub fn build(self) -> Result<Zone> {
         if let Some(e) = self.validation_error() {
@@ -625,7 +734,9 @@ impl ZoneBuilder {
             Zone::new(&name, &kind, boundary, datum, self.resolution)?
         };
 
-        for (k, v) in self.properties { zone.set_property(k, v); }
+        for (k, v) in self.properties {
+            zone.set_property(k, v);
+        }
 
         for (data, n, k, props) in self.raster_layers {
             zone.add_raster_layer(data, n, k, props)?;
@@ -759,7 +870,10 @@ mod tests {
             GridData::U8(data) => data.data.iter().any(|&v| (50..=200).contains(&v)),
             _ => false,
         };
-        assert!(painted_any, "rasterise_polygon_onto_layer failed to paint any cell");
+        assert!(
+            painted_any,
+            "rasterise_polygon_onto_layer failed to paint any cell"
+        );
     }
 
     #[test]

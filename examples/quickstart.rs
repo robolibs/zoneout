@@ -3,10 +3,9 @@
 //!
 //! Ports `examples/quickstart.cpp` from the C++ zoneout library.
 
-use std::collections::BTreeMap;
-
 use datapod::{Geo, Point, Polygon};
 use graphix::vertex::EdgeType;
+use std::collections::BTreeMap;
 use zoneout::{CoordMode, Workspace, ZoneBuilder};
 
 fn square(size: f64, offset: (f64, f64)) -> Polygon {
@@ -16,8 +15,7 @@ fn square(size: f64, offset: (f64, f64)) -> Polygon {
             Point::new(offset.0 + size, offset.1, 0.0),
             Point::new(offset.0 + size, offset.1 + size, 0.0),
             Point::new(offset.0, offset.1 + size, 0.0),
-        ]
-        .into(),
+        ],
     }
 }
 
@@ -68,7 +66,11 @@ fn main() -> zoneout::Result<()> {
     ws.add_edge(b, c, 50.0, EdgeType::Directed, BTreeMap::new());
 
     println!("workspace: {ws:?}");
-    println!("root: {} ({} children)", ws.root_zone().name(), ws.root_zone().child_count());
+    println!(
+        "root: {} ({} children)",
+        ws.root_zone().name(),
+        ws.root_zone().child_count()
+    );
     for child in ws.root_zone().children() {
         println!(
             "  child: {} ({} nodes, crop={:?})",
@@ -80,7 +82,11 @@ fn main() -> zoneout::Result<()> {
 
     // Point-in-zone query.
     let here = Point::new(15.0, 15.0, 0.0);
-    let containing: Vec<&str> = ws.zones_containing(here).into_iter().map(|z| z.name()).collect();
+    let containing: Vec<&str> = ws
+        .zones_containing(here)
+        .into_iter()
+        .map(|z| z.name())
+        .collect();
     println!("zones containing {here:?}: {containing:?}");
 
     // Round-trip through disk.

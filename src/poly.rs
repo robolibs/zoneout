@@ -70,7 +70,13 @@ impl StructuredElement {
             }
             extras.insert(k.clone(), v.clone());
         }
-        Some(Self { id, name, kind, subtype, properties: extras })
+        Some(Self {
+            id,
+            name,
+            kind,
+            subtype,
+            properties: extras,
+        })
     }
 
     fn write_properties(&self, out: &mut HashMap<String, String>) {
@@ -122,7 +128,11 @@ impl Default for Poly {
 }
 
 impl Poly {
-    pub fn new(name: impl Into<String>, kind: impl Into<String>, subtype: impl Into<String>) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        kind: impl Into<String>,
+        subtype: impl Into<String>,
+    ) -> Self {
         let mut poly = Self {
             meta: Meta::new(name, kind).with_subtype(subtype),
             collection: FeatureCollection::new(Geo::new(0.0, 0.0, 0.0), Euler::default()),
@@ -162,11 +172,21 @@ impl Poly {
 
     // -- identity -----------------------------------------------------------
 
-    pub fn id(&self) -> Uuid { self.meta.id }
-    pub fn name(&self) -> &str { &self.meta.name }
-    pub fn kind(&self) -> &str { &self.meta.kind }
-    pub fn subtype(&self) -> &str { &self.meta.subtype }
-    pub fn meta(&self) -> &Meta { &self.meta }
+    pub fn id(&self) -> Uuid {
+        self.meta.id
+    }
+    pub fn name(&self) -> &str {
+        &self.meta.name
+    }
+    pub fn kind(&self) -> &str {
+        &self.meta.kind
+    }
+    pub fn subtype(&self) -> &str {
+        &self.meta.subtype
+    }
+    pub fn meta(&self) -> &Meta {
+        &self.meta
+    }
 
     pub fn set_id(&mut self, id: Uuid) {
         self.meta.id = id;
@@ -187,17 +207,35 @@ impl Poly {
 
     // -- spatial ------------------------------------------------------------
 
-    pub fn datum(&self) -> &Geo { &self.collection.datum }
-    pub fn set_datum(&mut self, datum: Geo) { self.collection.datum = datum; }
-    pub fn heading(&self) -> &Euler { &self.collection.heading }
-    pub fn set_heading(&mut self, heading: Euler) { self.collection.heading = heading; }
+    pub fn datum(&self) -> &Geo {
+        &self.collection.datum
+    }
+    pub fn set_datum(&mut self, datum: Geo) {
+        self.collection.datum = datum;
+    }
+    pub fn heading(&self) -> &Euler {
+        &self.collection.heading
+    }
+    pub fn set_heading(&mut self, heading: Euler) {
+        self.collection.heading = heading;
+    }
 
-    pub fn field_boundary(&self) -> &Polygon { &self.field_boundary }
-    pub fn set_field_boundary(&mut self, boundary: Polygon) { self.field_boundary = boundary; }
-    pub fn has_field_boundary(&self) -> bool { !self.field_boundary.empty() }
+    pub fn field_boundary(&self) -> &Polygon {
+        &self.field_boundary
+    }
+    pub fn set_field_boundary(&mut self, boundary: Polygon) {
+        self.field_boundary = boundary;
+    }
+    pub fn has_field_boundary(&self) -> bool {
+        !self.field_boundary.empty()
+    }
 
-    pub fn area(&self) -> f64 { self.field_boundary.area() }
-    pub fn perimeter(&self) -> f64 { self.field_boundary.perimeter() }
+    pub fn area(&self) -> f64 {
+        self.field_boundary.area()
+    }
+    pub fn perimeter(&self) -> f64 {
+        self.field_boundary.perimeter()
+    }
     pub fn contains(&self, p: Point) -> bool {
         self.has_field_boundary() && self.field_boundary.contains(p)
     }
@@ -215,9 +253,13 @@ impl Poly {
 
     // -- global properties --------------------------------------------------
 
-    pub fn global_properties(&self) -> &HashMap<String, String> { &self.collection.global_properties }
+    pub fn global_properties(&self) -> &HashMap<String, String> {
+        &self.collection.global_properties
+    }
     pub fn set_global_property(&mut self, key: impl Into<String>, value: impl Into<String>) {
-        self.collection.global_properties.insert(key.into(), value.into());
+        self.collection
+            .global_properties
+            .insert(key.into(), value.into());
     }
     pub fn global_property(&self, key: &str) -> Option<&String> {
         self.collection.global_properties.get(key)
@@ -235,9 +277,15 @@ impl Poly {
 
     // -- raw feature access -------------------------------------------------
 
-    pub fn collection(&self) -> &FeatureCollection { &self.collection }
-    pub fn collection_mut(&mut self) -> &mut FeatureCollection { &mut self.collection }
-    pub fn feature_count(&self) -> usize { self.collection.features.len() }
+    pub fn collection(&self) -> &FeatureCollection {
+        &self.collection
+    }
+    pub fn collection_mut(&mut self) -> &mut FeatureCollection {
+        &mut self.collection
+    }
+    pub fn feature_count(&self) -> usize {
+        self.collection.features.len()
+    }
 
     pub fn add_feature(&mut self, feature: Feature) {
         self.collection.features.push(feature);
@@ -255,7 +303,11 @@ impl Poly {
         let key = key.into();
         let value = value.into();
         for f in &mut self.collection.features {
-            if f.properties.get(KEY_BORDER).map(|s| s == "true").unwrap_or(false) {
+            if f.properties
+                .get(KEY_BORDER)
+                .map(|s| s == "true")
+                .unwrap_or(false)
+            {
                 f.properties.insert(key, value);
                 return;
             }
@@ -276,7 +328,8 @@ impl Poly {
         let meta = StructuredElement::new(id, name, kind, subtype, properties);
         let feature = Self::build_feature(&meta, Geometry::Polygon(geometry.clone()));
         self.collection.features.push(feature);
-        self.polygon_elements.push(PolygonElement { meta, geometry });
+        self.polygon_elements
+            .push(PolygonElement { meta, geometry });
     }
 
     pub fn add_polygon(&mut self, geometry: Polygon, kind: impl Into<String>) -> Uuid {
@@ -393,9 +446,15 @@ impl Poly {
         }
     }
 
-    pub fn polygon_elements(&self) -> &[PolygonElement] { &self.polygon_elements }
-    pub fn line_elements(&self) -> &[LineElement] { &self.line_elements }
-    pub fn point_elements(&self) -> &[PointElement] { &self.point_elements }
+    pub fn polygon_elements(&self) -> &[PolygonElement] {
+        &self.polygon_elements
+    }
+    pub fn line_elements(&self) -> &[LineElement] {
+        &self.line_elements
+    }
+    pub fn point_elements(&self) -> &[PointElement] {
+        &self.point_elements
+    }
 
     pub fn polygon_element(&self, id: Uuid) -> Option<&PolygonElement> {
         self.polygon_elements.iter().find(|e| e.meta.id == id)
@@ -408,22 +467,40 @@ impl Poly {
     }
 
     pub fn polygons_by_type(&self, kind: &str) -> Vec<&PolygonElement> {
-        self.polygon_elements.iter().filter(|e| e.meta.kind == kind).collect()
+        self.polygon_elements
+            .iter()
+            .filter(|e| e.meta.kind == kind)
+            .collect()
     }
     pub fn lines_by_type(&self, kind: &str) -> Vec<&LineElement> {
-        self.line_elements.iter().filter(|e| e.meta.kind == kind).collect()
+        self.line_elements
+            .iter()
+            .filter(|e| e.meta.kind == kind)
+            .collect()
     }
     pub fn points_by_type(&self, kind: &str) -> Vec<&PointElement> {
-        self.point_elements.iter().filter(|e| e.meta.kind == kind).collect()
+        self.point_elements
+            .iter()
+            .filter(|e| e.meta.kind == kind)
+            .collect()
     }
     pub fn polygons_by_subtype(&self, subtype: &str) -> Vec<&PolygonElement> {
-        self.polygon_elements.iter().filter(|e| e.meta.subtype == subtype).collect()
+        self.polygon_elements
+            .iter()
+            .filter(|e| e.meta.subtype == subtype)
+            .collect()
     }
     pub fn lines_by_subtype(&self, subtype: &str) -> Vec<&LineElement> {
-        self.line_elements.iter().filter(|e| e.meta.subtype == subtype).collect()
+        self.line_elements
+            .iter()
+            .filter(|e| e.meta.subtype == subtype)
+            .collect()
     }
     pub fn points_by_subtype(&self, subtype: &str) -> Vec<&PointElement> {
-        self.point_elements.iter().filter(|e| e.meta.subtype == subtype).collect()
+        self.point_elements
+            .iter()
+            .filter(|e| e.meta.subtype == subtype)
+            .collect()
     }
 
     pub fn clear_polygon_elements(&mut self) {
@@ -446,7 +523,10 @@ impl Poly {
         self.line_elements.clear();
         self.point_elements.clear();
         self.collection.features.retain(|f| {
-            f.properties.get(KEY_BORDER).map(|s| s == "true").unwrap_or(false)
+            f.properties
+                .get(KEY_BORDER)
+                .map(|s| s == "true")
+                .unwrap_or(false)
         });
     }
 
@@ -483,7 +563,10 @@ impl Poly {
     fn build_feature(meta: &StructuredElement, geom: Geometry) -> Feature {
         let mut properties = HashMap::new();
         meta.write_properties(&mut properties);
-        Feature { geometry: geom, properties }
+        Feature {
+            geometry: geom,
+            properties,
+        }
     }
 
     fn sync_meta_to_globals(&mut self) {
@@ -501,9 +584,15 @@ impl Poly {
         if let Some(id) = g.get(KEY_UUID).and_then(|s| Uuid::parse_str(s).ok()) {
             self.meta.id = id;
         }
-        if let Some(name) = g.get(KEY_NAME) { self.meta.name = name.clone(); }
-        if let Some(kind) = g.get(KEY_TYPE) { self.meta.kind = kind.clone(); }
-        if let Some(subtype) = g.get(KEY_SUBTYPE) { self.meta.subtype = subtype.clone(); }
+        if let Some(name) = g.get(KEY_NAME) {
+            self.meta.name = name.clone();
+        }
+        if let Some(kind) = g.get(KEY_TYPE) {
+            self.meta.kind = kind.clone();
+        }
+        if let Some(subtype) = g.get(KEY_SUBTYPE) {
+            self.meta.subtype = subtype.clone();
+        }
     }
 
     fn load_structured_elements(&mut self) {
@@ -512,14 +601,21 @@ impl Poly {
         self.point_elements.clear();
 
         for feat in &self.collection.features {
-            let is_border = feat.properties.get(KEY_BORDER).map(|s| s == "true").unwrap_or(false);
+            let is_border = feat
+                .properties
+                .get(KEY_BORDER)
+                .map(|s| s == "true")
+                .unwrap_or(false);
             match &feat.geometry {
                 Geometry::Polygon(poly) if is_border => {
                     self.field_boundary = poly.clone();
                 }
                 Geometry::Polygon(poly) => {
                     if let Some(meta) = StructuredElement::from_feature(feat) {
-                        self.polygon_elements.push(PolygonElement { meta, geometry: poly.clone() });
+                        self.polygon_elements.push(PolygonElement {
+                            meta,
+                            geometry: poly.clone(),
+                        });
                     }
                 }
                 Geometry::Segment(s) => {
@@ -529,7 +625,8 @@ impl Poly {
                 }
                 Geometry::Point(p) => {
                     if let Some(meta) = StructuredElement::from_feature(feat) {
-                        self.point_elements.push(PointElement { meta, geometry: *p });
+                        self.point_elements
+                            .push(PointElement { meta, geometry: *p });
                     }
                 }
                 Geometry::Path(_) => { /* unsupported as a typed element */ }
@@ -542,7 +639,10 @@ impl Poly {
             return;
         }
         let already = self.collection.features.iter().any(|f| {
-            f.properties.get(KEY_BORDER).map(|s| s == "true").unwrap_or(false)
+            f.properties
+                .get(KEY_BORDER)
+                .map(|s| s == "true")
+                .unwrap_or(false)
         });
         if already {
             return;
@@ -561,14 +661,13 @@ impl Poly {
     fn drop_features_by_ids(&mut self, ids: &[Uuid]) {
         let set: std::collections::HashSet<String> =
             ids.iter().map(|u| u.hyphenated().to_string()).collect();
-        self.collection.features.retain(|f| {
-            match f.properties.get(KEY_UUID) {
+        self.collection
+            .features
+            .retain(|f| match f.properties.get(KEY_UUID) {
                 Some(uuid_str) => !set.contains(uuid_str),
                 None => true,
-            }
-        });
+            });
     }
-
 }
 
 #[cfg(test)]

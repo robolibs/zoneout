@@ -27,3 +27,10 @@ Sibling robolibs Rust crates (pulled from Codeberg):
 | `graphix` | vertex graph for workspace nodes and edges       |
 | `vectory` | GeoJSON feature collection I/O                   |
 | `rastera` | multi-layer TIFF raster I/O                      |
+
+## Bindings
+
+```sh
+make bind    # check C header and build Python wheel
+make c-demo  # run the C ABI smoke demo
+```

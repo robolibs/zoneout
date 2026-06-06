@@ -119,7 +119,9 @@ pub fn show_zone_enu(
     );
     rec.log_static(
         format!("/{zone_name}/enu"),
-        &LineStrips3D::new([strip]).with_colors([color]).with_radii([0.5f32]),
+        &LineStrips3D::new([strip])
+            .with_colors([color])
+            .with_radii([0.5f32]),
     )?;
     Ok(())
 }
@@ -193,19 +195,19 @@ pub fn show_polygon_elements_enu(
 }
 
 fn close_3d(mut points: Vec<[f32; 3]>) -> Vec<[f32; 3]> {
-    if let Some(first) = points.first().copied() {
-        if points.last().copied() != Some(first) {
-            points.push(first);
-        }
+    if let Some(first) = points.first().copied()
+        && points.last().copied() != Some(first)
+    {
+        points.push(first);
     }
     points
 }
 
 fn close_2d(mut points: Vec<[f64; 2]>) -> Vec<[f64; 2]> {
-    if let Some(first) = points.first().copied() {
-        if points.last().copied() != Some(first) {
-            points.push(first);
-        }
+    if let Some(first) = points.first().copied()
+        && points.last().copied() != Some(first)
+    {
+        points.push(first);
     }
     points
 }

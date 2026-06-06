@@ -8,7 +8,6 @@ use std::fs::{self, File};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
-
 use datapod::{Geo, Polygon};
 use uuid::Uuid;
 use vectory::Crs;
@@ -30,7 +29,10 @@ pub struct Plot {
 
 impl Default for Plot {
     fn default() -> Self {
-        Self { poly: Poly::default(), grid: None }
+        Self {
+            poly: Poly::default(),
+            grid: None,
+        }
     }
 }
 
@@ -40,7 +42,10 @@ impl Plot {
     }
 
     pub fn with_grid(poly: Poly, grid: Grid) -> Self {
-        Self { poly, grid: Some(grid) }
+        Self {
+            poly,
+            grid: Some(grid),
+        }
     }
 
     pub fn with_boundary(
@@ -74,61 +79,99 @@ impl Plot {
 
     // -- identity passthrough ----------------------------------------------
 
-    pub fn id(&self) -> Uuid { self.poly.id() }
-    pub fn name(&self) -> &str { self.poly.name() }
-    pub fn kind(&self) -> &str { self.poly.kind() }
-    pub fn datum(&self) -> &Geo { self.poly.datum() }
+    pub fn id(&self) -> Uuid {
+        self.poly.id()
+    }
+    pub fn name(&self) -> &str {
+        self.poly.name()
+    }
+    pub fn kind(&self) -> &str {
+        self.poly.kind()
+    }
+    pub fn datum(&self) -> &Geo {
+        self.poly.datum()
+    }
 
     pub fn set_name(&mut self, name: impl Into<String>) {
         let name = name.into();
         self.poly.set_name(name.clone());
-        if let Some(g) = &mut self.grid { g.set_name(name); }
+        if let Some(g) = &mut self.grid {
+            g.set_name(name);
+        }
     }
     pub fn set_kind(&mut self, kind: impl Into<String>) {
         let kind = kind.into();
         self.poly.set_kind(kind.clone());
-        if let Some(g) = &mut self.grid { g.set_kind(kind); }
+        if let Some(g) = &mut self.grid {
+            g.set_kind(kind);
+        }
     }
     pub fn set_datum(&mut self, datum: Geo) {
         self.poly.set_datum(datum);
-        if let Some(g) = &mut self.grid { g.set_datum(datum); }
+        if let Some(g) = &mut self.grid {
+            g.set_datum(datum);
+        }
     }
 
     // -- halves ------------------------------------------------------------
 
-    pub fn poly(&self) -> &Poly { &self.poly }
-    pub fn poly_mut(&mut self) -> &mut Poly { &mut self.poly }
-    pub fn has_grid(&self) -> bool { self.grid.is_some() }
+    pub fn poly(&self) -> &Poly {
+        &self.poly
+    }
+    pub fn poly_mut(&mut self) -> &mut Poly {
+        &mut self.poly
+    }
+    pub fn has_grid(&self) -> bool {
+        self.grid.is_some()
+    }
     pub fn grid(&self) -> Result<&Grid> {
-        self.grid.as_ref().ok_or_else(|| Error::NotFound("plot has no grid".into()))
+        self.grid
+            .as_ref()
+            .ok_or_else(|| Error::NotFound("plot has no grid".into()))
     }
     pub fn grid_mut(&mut self) -> Result<&mut Grid> {
-        self.grid.as_mut().ok_or_else(|| Error::NotFound("plot has no grid".into()))
+        self.grid
+            .as_mut()
+            .ok_or_else(|| Error::NotFound("plot has no grid".into()))
     }
-    pub fn set_grid(&mut self, grid: Grid) { self.grid = Some(grid); }
-    pub fn clear_grid(&mut self) { self.grid = None; }
+    pub fn set_grid(&mut self, grid: Grid) {
+        self.grid = Some(grid);
+    }
+    pub fn clear_grid(&mut self) {
+        self.grid = None;
+    }
 
-    pub fn is_valid(&self) -> bool { self.poly.is_valid() }
+    pub fn is_valid(&self) -> bool {
+        self.poly.is_valid()
+    }
 
     // -- plot-level properties (stored in poly.global_properties with "prop_" prefix) --
 
     pub fn set_property(&mut self, key: &str, value: impl Into<String>) {
-        self.poly.set_global_property(format!("{PROP_PREFIX}{key}"), value);
+        self.poly
+            .set_global_property(format!("{PROP_PREFIX}{key}"), value);
     }
     pub fn property(&self, key: &str) -> Option<String> {
-        self.poly.global_property(&format!("{PROP_PREFIX}{key}")).cloned()
+        self.poly
+            .global_property(&format!("{PROP_PREFIX}{key}"))
+            .cloned()
     }
     pub fn has_property(&self, key: &str) -> bool {
-        self.poly.has_global_property(&format!("{PROP_PREFIX}{key}"))
+        self.poly
+            .has_global_property(&format!("{PROP_PREFIX}{key}"))
     }
     pub fn remove_property(&mut self, key: &str) -> bool {
-        self.poly.remove_global_property(&format!("{PROP_PREFIX}{key}"))
+        self.poly
+            .remove_global_property(&format!("{PROP_PREFIX}{key}"))
     }
     pub fn properties(&self) -> BTreeMap<String, String> {
         self.poly
             .global_properties()
             .iter()
-            .filter_map(|(k, v)| k.strip_prefix(PROP_PREFIX).map(|short| (short.to_string(), v.clone())))
+            .filter_map(|(k, v)| {
+                k.strip_prefix(PROP_PREFIX)
+                    .map(|short| (short.to_string(), v.clone()))
+            })
             .collect()
     }
     pub fn clear_properties(&mut self) {
@@ -139,7 +182,9 @@ impl Plot {
             .filter(|k| k.starts_with(PROP_PREFIX))
             .cloned()
             .collect();
-        for k in keys { self.poly.remove_global_property(&k); }
+        for k in keys {
+            self.poly.remove_global_property(&k);
+        }
     }
 
     // -- I/O ---------------------------------------------------------------
@@ -149,7 +194,13 @@ impl Plot {
         vector_path: impl AsRef<Path>,
         raster_path: impl AsRef<Path>,
     ) -> Result<()> {
-        save_poly_grid(&self.poly, self.grid.as_ref(), vector_path, raster_path, Crs::Wgs)
+        save_poly_grid(
+            &self.poly,
+            self.grid.as_ref(),
+            vector_path,
+            raster_path,
+            Crs::Wgs,
+        )
     }
 
     pub fn save(&self, directory: impl AsRef<Path>) -> Result<()> {
@@ -208,7 +259,9 @@ impl Plot {
         let mut archive = tar::Archive::new(Cursor::new(bytes));
 
         let tmp = tempdir_for_plot()?;
-        archive.unpack(&tmp).map_err(|e| Error::Tar(e.to_string()))?;
+        archive
+            .unpack(&tmp)
+            .map_err(|e| Error::Tar(e.to_string()))?;
         let plot = Self::load(&tmp)?;
         let _ = fs::remove_dir_all(&tmp);
         Ok(plot)
@@ -236,7 +289,9 @@ pub struct PlotBuilder {
 }
 
 impl PlotBuilder {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn with_name(mut self, name: impl Into<String>) -> Self {
         self.name = Some(name.into());
@@ -275,7 +330,9 @@ impl PlotBuilder {
             }
             _ => Plot::with_boundary(&name, &kind, boundary, datum),
         };
-        for (k, v) in self.properties { plot.set_property(&k, v); }
+        for (k, v) in self.properties {
+            plot.set_property(&k, v);
+        }
         Ok(plot)
     }
 }
