@@ -1,6 +1,6 @@
 [package]
 name = "zoneout"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 description = "Rust hierarchical agricultural zone / workspace library for robotics"
 license = "MIT"
@@ -29,11 +29,11 @@ python-extension = ["python"]
 rerun-viz = ["dep:rerun"]
 
 [dependencies]
-concord = { git = "https://codeberg.org/robolibs/concord.git", tag = "0.1.1" }
-datapod = { git = "https://codeberg.org/robolibs/datapod.git", tag = "0.4.0" }
-graphix = { git = "https://codeberg.org/robolibs/graphix.git", tag = "0.1.1" }
-vectory = { git = "https://codeberg.org/robolibs/vectory.git", tag = "0.1.1" }
-rastera = { git = "https://codeberg.org/robolibs/rastera.git", tag = "0.1.1" }
+concord = { git = "https://codeberg.org/robolibs/concord.git", tag = "0.1.2" }
+datapod = { git = "https://codeberg.org/robolibs/datapod.git", tag = "0.4.1" }
+graphix = { git = "https://codeberg.org/robolibs/graphix.git", tag = "0.1.2" }
+vectory = { git = "https://codeberg.org/robolibs/vectory.git", tag = "0.1.2" }
+rastera = { git = "https://codeberg.org/robolibs/rastera.git", tag = "0.1.2" }
 pyo3 = { version = "0.23", optional = true, features = [
     "abi3-py39",
     "extension-module",
