@@ -50,5 +50,9 @@ rerun = { version = "0.31.2", default-features = false, features = ["sdk", "serv
 
 [[example]]
 name = "agricultural_visualization"
-path = "examples/agricultural_visualization.rs"
+path = "examples/rust/agricultural_visualization.rs"
 required-features = ["rerun-viz"]
+
+[[example]]
+name = "quickstart"
+path = "examples/rust/quickstart.rs"
