@@ -12,10 +12,6 @@ make test           # cargo test --all-targets
 make run EXAMPLE=quickstart
 ```
 
-## Status
-
-Work in progress — see [`PLAN.md`](./PLAN.md) for the conversion roadmap.
-
 ## Dependencies
 
 Sibling robolibs Rust crates (pulled from Codeberg):
